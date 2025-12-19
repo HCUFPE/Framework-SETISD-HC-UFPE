@@ -13,7 +13,7 @@ h11==0.16.0
 idna==3.11
 Mako==1.3.10
 MarkupSafe==3.0.3
-numpy==2.3.4
+numpy==1.26.4 # Anteriormente estava numpy==2.3.4 (Versão de Aguiar)
 pandas==2.3.3
 psycopg2-binary==2.9.11
 pyasn1==0.6.1
@@ -23,7 +23,8 @@ pydantic_core==2.41.5
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
-python-ldap==3.4.5
+#python-ldap==3.4.5 # Para rodar no linux/mac (inves de ldap3) (Versão de Aguiar tinha esse)
+ldap3==2.9.1 # Para rodar no windows (inves de python-ldap) (Versão de Aguiar não tinha esse)
 python-multipart==0.0.20
 pytz==2025.2
 requests==2.32.5

@@ -32,21 +32,21 @@
     </Card>
 
     <Card class="mt-6">
-      <DataTable :headers="headers" :items="pacientes">
+      <DataTable :headers="headers" :items="pacientes" keyField="codigo">
         <template #actions="{ item }">
           <div class="flex space-x-2">
-            <Button @click="viewPaciente(item)" variant="info" size="sm">
+            <Button @click="viewPaciente(item as Paciente)" variant="info" size="sm">
               <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </Button>
-            <Button @click="editPaciente(item)" variant="warning" size="sm">
+            <Button @click="editPaciente(item as Paciente)" variant="warning" size="sm">
               <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
               </svg>
             </Button>
-            <Button @click="deletePaciente(item)" variant="danger" size="sm">
+            <Button @click="deletePaciente(item as Paciente)" variant="danger" size="sm">
               <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
@@ -61,16 +61,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useToast } from 'vue-toastification';
-import api from '../services/api';
+import { getPacientes, getPacientePorCodigo } from '../services/api';
+import type { Paciente } from '../types';
 import Card from '../components/Card.vue';
 import DataTable from '../components/DataTable.vue';
 import Button from '../components/Button.vue';
 
 const toast = useToast();
 
-const pacienteCodigoInput = ref(null);
+const pacienteCodigoInput = ref<number | null>(null);
 const loadingPaciente = ref(false);
-const pacienteDetalhe = ref<any | null>(null);
+const pacienteDetalhe = ref<Paciente | null>(null);
 
 const headers = ref([
   { text: 'Prontuário', value: 'codigo' },
@@ -79,11 +80,11 @@ const headers = ref([
   { text: 'Nome da Mãe', value: 'nome_mae' },
 ]);
 
-const pacientes = ref([]);
+const pacientes = ref<Paciente[]>([]);
 
 onMounted(async () => {
   try {
-    const { data } = await api.get('/api/pacientes');
+    const data = await getPacientes();
     pacientes.value = data;
   } catch (error) {
     toast.error('Falha ao carregar a lista de pacientes.');
@@ -98,25 +99,29 @@ const fetchPacientePorCodigo = async () => {
   loadingPaciente.value = true;
   pacienteDetalhe.value = null; // Clear previous details
   try {
-    const { data } = await api.get(`/api/pacientes/${pacienteCodigoInput.value}`);
-    pacienteDetalhe.value = data;
-    toast.success(`Paciente encontrado: ${data.nome}`);
+    const data = await getPacientePorCodigo(pacienteCodigoInput.value);
+    if (data) {
+      pacienteDetalhe.value = data;
+      toast.success(`Paciente encontrado: ${data.nome}`);
+    } else {
+      toast.error('Paciente não encontrado.');
+    }
   } catch (error) {
-    toast.error('Paciente não encontrado.');
+    toast.error('Erro ao buscar paciente.');
   } finally {
     loadingPaciente.value = false;
   }
 };
 
-const viewPaciente = (item: any) => {
+const viewPaciente = (item: Paciente) => {
   toast.info(`Visualizando paciente: ${item.nome}`);
 };
 
-const editPaciente = (item: any) => {
+const editPaciente = (item: Paciente) => {
   toast.warning(`Editando paciente: ${item.nome}`);
 };
 
-const deletePaciente = (item: any) => {
+const deletePaciente = (item: Paciente) => {
   toast.error(`Deletando paciente: ${item.nome}`);
 };
 </script>

@@ -1,0 +1,82 @@
+# ==========================
+# BACKEND (Python)
+# ==========================
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Alembic
+alembic.ini
+alembic/
+migrations/
+
+# Não enviar notebooks
+*.ipynb
+
+# ==========================
+# FRONTEND (Vue + Node)
+# ==========================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/**/*.log
+
+# ==========================
+# SISTEMA / EDITORES
+# ==========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==========================
+# DOCKER / BUILD
+# ==========================
+docker-compose.yaml
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# ==========================
+# AMBIENTES
+# ==========================
+.env
+.env.local
+.env.development
+.env.production
+
+# ==========================
+# ARQUIVOS GRANDES / ESTÁTICOS
+# ==========================
+data/
+*.csv
+*.tsv
+*.bak
+*.sqlite
+*.db
+
+# ==========================
+# BUILD E TEMPORÁRIOS
+# ==========================
+tmp/
+temp/
+*.tmp
+
+# ==========================
+# BACKUPS
+# ==========================
+*.bak
+*.old
+*.orig
+
+# ==========================
+# GIT
+# ==========================
+.git/
+.gitignore

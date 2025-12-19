@@ -1,5 +1,21 @@
-Prontuário,Nome,Nome Social,CPF,Data Nasc.,Sexo,Cor,Nome Mãe,Nome Pai,Data/Hora Início,Data/Hora Fim,Status Consulta,Local/Consultório,Sala,Médico/Profissional,Especialidade,Procedimento,N° Consulta
-77001,CARLA DIAS (CSV),(null),111.111.111-11,1985-03-10,F,BRANCA,SANDRA DIAS,ROBERTO DIAS,2025-11-25 09:00,2025-11-25 09:30,PACIENTE AGENDADO,Ambulatório de Clínica Médica,101,Dr. João Mendes,Clínica Médica,(null),960001
-77002,BRUNO LIMA (CSV),(null),(null),1991-07-22,M,PARDA,FATIMA LIMA,JORGE LIMA,2025-11-25 10:30,2025-11-25 11:00,PACIENTE AGENDADO,Ambulatório de Ortopedia,205,Dra. Ana Gomes,Ortopedia,(null),960002
-77003,FERNANDA COSTA (CSV),Nanda Costa,333.333.333-33,2001-11-01,F,BRANCA,VERA COSTA,MARCOS COSTA,2025-11-25 14:00,2025-11-25 14:30,PACIENTE AGENDADO,Ambulatório de Dermatologia,302,Dr. Ricardo Alves,Dermatologia,Biópsia de pele,960003
-77004,LUCAS ALMEIDA (CSV),(null),444.444.444-44,1988-02-18,M,PRETA,REGINA ALMEIDA,ANTONIO ALMEIDA,2025-11-26 08:00,2025-11-26 08:30,PACIENTE AGENDADO,Ambulatório de Cardiologia,102,Dra. Beatriz Costa,Cardiologia,Eletrocardiograma,960004
+codigo,prontuario,nome,dt_nascimento,idade,nome_mae,nome_pai,sexo,cor,especialidade_atual,diagnostico_principal,data_admissao,data_alta_prevista,origem_atendimento
+77001,77001,Carla Dias,1985-03-10,39,Sandra Dias,Roberto Dias,F,Branca,Clinica Medica,Insuficiencia cardiaca,2025-11-25,2025-12-02,Ambulatorio
+77002,77002,Bruno Lima,1991-07-22,33,Fatima Lima,Jorge Lima,M,Parda,Ortopedia,Fratura de femur,2025-11-25,2025-11-28,PS
+77003,77003,Fernanda Costa,2001-11-01,23,Vera Costa,Marcos Costa,F,Branca,Dermatologia,Biopsia de pele,2025-11-25,2025-11-25,Ambulatorio
+77004,77004,Lucas Almeida,1988-02-18,36,Regina Almeida,Antonio Almeida,M,Preta,Cardiologia,Arritmia supraventricular,2025-11-26,2025-12-03,PS
+77005,77005,Mariana Souza,1975-05-14,49,Helena Souza,Carlos Souza,F,Parda,Oncologia,Linfoma nao Hodgkin,2025-11-20,2025-12-10,Transferido
+77006,77006,Diego Ferreira,1999-09-05,25,Lucia Ferreira,Paulo Ferreira,M,Branca,Neurologia,AVC isquemico,2025-11-24,2025-12-05,PS
+77007,77007,Aline Martins,1983-12-30,40,Rita Martins,Jose Martins,F,Branca,Obstetricia,Gestacao alto risco,2025-11-23,2025-12-01,Centro Obstetrico
+77008,77008,Rafael Nogueira,1970-04-02,54,Claudia Nogueira,Luiz Nogueira,M,Branca,Clinica Medica,Sepse de foco pulmonar,2025-11-21,2025-12-06,Transferido
+77009,77009,Joana Pereira,1995-08-16,29,Angela Pereira,Nilson Pereira,F,Parda,Infectologia,Pneumonia comunitaria,2025-11-22,2025-11-29,PS
+77010,77010,Tiago Barbosa,2003-01-11,21,Marisa Barbosa,Pedro Barbosa,M,Preta,Trauma,Cranioencefalico moderado,2025-11-25,2025-12-04,PS
+77011,77011,Sofia Ribeiro,1968-06-07,56,Gloria Ribeiro,Paulo Ribeiro,F,Branca,Reumatologia,Lupus em atividade,2025-11-18,2025-12-03,Ambulatorio
+77012,77012,Gustavo Araujo,1987-10-19,37,Patricia Araujo,Celso Araujo,M,Parda,Nefrologia,Insuficiencia renal aguda,2025-11-19,2025-12-07,Transferido
+77013,77013,Patricia Rocha,1993-02-25,31,Sonia Rocha,Ademar Rocha,F,Branca,Gastroenterologia,Hepatite autoimune,2025-11-24,2025-12-02,Ambulatorio
+77014,77014,Henrique Tavares,1980-09-29,44,Juliana Tavares,Renato Tavares,M,Branca,Pneumologia,Asma grave descompensada,2025-11-26,2025-12-05,PS
+77015,77015,Natalia Cardoso,1978-03-03,46,Elza Cardoso,Mario Cardoso,F,Parda,Endocrinologia,Cetoacidose diabetica,2025-11-25,2025-12-02,PS
+77016,77016,Daniel Figueira,1997-07-13,27,Ana Figueira,Roberto Figueira,M,Branca,Hematologia,Leucemia mieloide aguda,2025-11-15,2025-12-12,Transferido
+77017,77017,Priscila Lopes,2000-05-21,24,Celia Lopes,Otavio Lopes,F,Preta,Psiquiatria,Transtorno bipolar agudo,2025-11-23,2025-11-30,PS
+77018,77018,Anderson Melo,1994-12-02,30,Vivian Melo,Claudio Melo,M,Branca,Cirurgia Geral,Abdome agudo inflamatorio,2025-11-26,2025-12-03,Cirurgico
+77019,77019,Luana Teixeira,1986-11-09,38,Marina Teixeira,Silvio Teixeira,F,Branca,Neurologia,Convulsao refrataria,2025-11-21,2025-11-30,PS
+77020,77020,Matheus Silveira,1972-08-28,52,Cecilia Silveira,Antonio Silveira,M,Amarela,Cardiologia,Infarto com supra,2025-11-20,2025-12-01,Transferido

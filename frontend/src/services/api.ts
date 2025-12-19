@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
+import type { Paciente, Leito, LeitoFormatado } from '../types';
+import * as pacientesService from './mock/pacientes';
+import * as leitosService from './mock/leitos';
 
 const api = axios.create({
   baseURL: '/', // Adjust if your API is on a different host
@@ -96,5 +99,69 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// ==========================================
+// API MOCKADA - PACIENTES
+// ==========================================
+
+/**
+ * Lista todos os pacientes (mockado)
+ */
+export const getPacientes = async (): Promise<Paciente[]> => {
+  return await pacientesService.listarPacientes();
+};
+
+/**
+ * Busca um paciente por código (mockado)
+ */
+export const getPacientePorCodigo = async (codigo: number): Promise<Paciente | null> => {
+  return await pacientesService.obterPacientePorCodigo(codigo);
+};
+
+/**
+ * Busca um paciente por prontuário (mockado)
+ */
+export const getPacientePorProntuario = async (prontuario: string): Promise<Paciente | null> => {
+  return await pacientesService.obterPacientePorProntuario(prontuario);
+};
+
+/**
+ * Busca pacientes por nome (mockado)
+ */
+export const buscarPacientesPorNome = async (nome: string): Promise<Paciente[]> => {
+  return await pacientesService.buscarPacientesPorNome(nome);
+};
+
+// ==========================================
+// API MOCKADA - LEITOS
+// ==========================================
+
+/**
+ * Lista todos os leitos (mockado)
+ */
+export const getLeitos = async (): Promise<Leito[]> => {
+  return await leitosService.listarLeitos();
+};
+
+/**
+ * Lista todos os leitos formatados (mockado)
+ */
+export const getLeitosFormatados = async (): Promise<LeitoFormatado[]> => {
+  return await leitosService.listarLeitosFormatados();
+};
+
+/**
+ * Busca um leito por número (mockado)
+ */
+export const getLeitoPorNumero = async (numero: string): Promise<Leito | null> => {
+  return await leitosService.obterLeitoPorNumero(numero);
+};
+
+/**
+ * Retorna estatísticas dos leitos (mockado)
+ */
+export const getEstatisticasLeitos = async () => {
+  return await leitosService.obterEstatisticasLeitos();
+};
 
 export default api;

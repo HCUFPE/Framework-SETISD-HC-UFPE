@@ -8,7 +8,24 @@ Este guia contem os passos detalhados para configurar e executar os ambientes de
 - Node.js 18 ou superior
 - Git
 
-## 1. Configuracao do Backend
+## Opcao A: Executar com Docker (rapido)
+
+1. Na raiz do repositorio, copie e ajuste suas variaveis de ambiente:
+   ```bash
+   cp .env.example .env
+   # Edite o arquivo .env conforme seu ambiente (AD, banco, JWT, etc.)
+   ```
+2. Ainda na raiz, suba os servicos:
+   ```bash
+   docker compose up --build
+   ```
+
+- Backend em `http://127.0.0.1:8000` e frontend em `http://127.0.0.1:5173`.
+- Use esta opcao se quiser um ambiente pronto rapidamente; lembre-se de revisar `.env` para conectar ao seu AD ou banco real.
+
+## Opcao B: Ambiente local manual
+
+### 1. Configuracao do Backend
 
 Siga estes passos a partir da raiz do repositorio.
 
@@ -33,7 +50,7 @@ cp .env.example .env
 nano .env
 ```
 
-## 2. Configuracao do Frontend
+### 2. Configuracao do Frontend
 
 Estes passos devem ser executados em um novo terminal.
 
@@ -45,9 +62,9 @@ cd frontend
 npm install
 ```
 
-## 3. Executando a Aplicacao
+### 3. Executando a Aplicacao
 
-### Servidor de Backend
+#### Servidor de Backend
 
 Com o ambiente virtual (`.venv`) ativado, execute o servidor FastAPI a partir da raiz do projeto.
 
@@ -59,7 +76,7 @@ uvicorn src.main:app --reload
 - A documentacao interativa da API (Swagger UI) estara em `http://127.0.0.1:8000/docs`.
 - A documentacao alternativa (ReDoc) estara em `http://127.0.0.1:8000/redoc`.
 
-### Servidor de Frontend
+#### Servidor de Frontend
 
 Na pasta `frontend/`, execute o servidor de desenvolvimento do Vite.
 
@@ -69,7 +86,7 @@ npm run dev
 
 - O frontend estara disponivel em `http://127.0.0.1:5173` (ou outra porta indicada pelo Vite). O servidor de desenvolvimento do Vite ja vem configurado com um proxy para o backend, entao todas as chamadas de API para `/api` serao redirecionadas automaticamente para `http://127.0.0.1:8000`.
 
-## 4. Build de Producao do Frontend
+### 4. Build de Producao do Frontend
 
 Para gerar a versao de producao do frontend, que e servida diretamente pelo FastAPI:
 

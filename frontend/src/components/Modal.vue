@@ -1,7 +1,11 @@
 <template>
   <teleport to="body">
     <transition name="fade">
-      <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 z-40" @click="close"></div>
+      <div
+        v-if="show"
+        class="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm"
+        @click="close"
+      ></div>
     </transition>
     <transition name="slide-up">
       <div v-if="show" class="fixed bottom-0 inset-x-0 sm:inset-0 sm:flex sm:items-center sm:justify-center z-50">

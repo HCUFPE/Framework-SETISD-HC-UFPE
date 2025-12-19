@@ -25,8 +25,14 @@ async def lifespan(app: FastAPI):
 
     # Initialize App DB Manager (SQLite) and store in app.state
     app_dsn = os.getenv("SQLITE_DSN")
+    sqlite_path = os.getenv("SQLITE_PATH")
+    if not app_dsn and sqlite_path:
+        app_dsn = f"sqlite+aiosqlite:///{os.path.abspath(sqlite_path)}"
+        print(f"INFO: Derived SQLITE_DSN from SQLITE_PATH={sqlite_path}")
     if not app_dsn:
-        raise ValueError("SQLITE_DSN not found in environment variables.")
+        default_sqlite_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "app.db"))
+        app_dsn = f"sqlite+aiosqlite:///{default_sqlite_path}"
+        print(f"WARNING: SQLITE_DSN not found. Using default local SQLite at {default_sqlite_path}.")
     app.state.app_db = DatabaseManager(app_dsn)
     print("App SQLite connection pool initialized.")
 

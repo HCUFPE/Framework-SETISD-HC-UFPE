@@ -1,0 +1,11 @@
+leito_numero,status,tipo,paciente_prontuario,paciente_idade,paciente_especialidade,proximo_prontuario,proximo_especialidade,tipo_reserva,sinalizacao_transferencia,previsao_liberacao
+UTI-01,ocupado,cirurgico,77018,30,Cirurgia Geral,77012,Nefrologia,Emergencia,false,2025-12-03
+UTI-02,ocupado,hem,77016,27,Hematologia,,,,false,2025-12-12
+UTI-03,ocupado,obstetrico,77007,40,Obstetricia,77009,Infectologia,Clinica,true,2025-12-01
+UTI-04,disponivel,nao_definido,,,,,,,,
+UTI-05,higienizacao,nao_definido,,,,,,,false,2025-11-27
+UTI-06,disponivel,cirurgico,,,,77018,Cirurgia Geral,Cirurgico,false,2025-11-29
+UTI-07,ocupado,outro,77006,25,Neurologia,77014,Pneumologia,Clinica,false,2025-12-05
+UTI-08,desativado,outro,,,,,,,false,
+UTI-09,ocupado,cirurgico,77010,21,Trauma,77002,Ortopedia,Emergencia,true,2025-12-04
+UTI-10,alta,nao_definido,77005,49,Oncologia,77011,Reumatologia,Clinica,false,2025-11-30

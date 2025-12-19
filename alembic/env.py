@@ -33,10 +33,15 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-# Get the SQLite DSN from environment variables
+# Get the SQLite DSN from environment variables (with fallbacks)
 sqlite_dsn = os.getenv("SQLITE_DSN")
+sqlite_path = os.getenv("SQLITE_PATH")
+if not sqlite_dsn and sqlite_path:
+    sqlite_dsn = f"sqlite+aiosqlite:///{os.path.abspath(sqlite_path)}"
 if not sqlite_dsn:
-    raise ValueError("SQLITE_DSN not found in environment variables.")
+    default_sqlite_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "app.db"))
+    sqlite_dsn = f"sqlite+aiosqlite:///{default_sqlite_path}"
+    print(f"WARNING: SQLITE_DSN not found. Using default local SQLite at {default_sqlite_path}.")
 
 # Set the sqlalchemy.url in the config to the SQLite DSN
 config.set_main_option("sqlalchemy.url", sqlite_dsn)

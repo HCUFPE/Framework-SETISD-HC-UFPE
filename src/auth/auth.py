@@ -1,6 +1,5 @@
 import os
 import jwt
-import ldap
 import re
 import secrets
 from datetime import datetime, timedelta
@@ -10,6 +9,8 @@ from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+from ldap3 import Server, Connection, ALL, SUBTREE, ALL_ATTRIBUTES
+from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError, LDAPException
 
 from ..resources.database import get_app_db_session
 from ..models.refresh_token import RefreshToken
@@ -61,54 +62,73 @@ class ActiveDirectoryAuthProvider(AuthProviderInterface):
         if not self.ad_url or not self.ad_basedn:
             raise RuntimeError("Active Directory is not configured. Check .env file.")
 
+    def _bind(self, user, password) -> Connection:
+        server = Server(self.ad_url, get_info=ALL)
+        return Connection(
+            server,
+            user=user,
+            password=password,
+            auto_bind=True,
+            receive_timeout=10,
+        )
+
     def authenticate_user(self, username, password) -> dict:
         print(f"--- Starting AD Authentication for user: {username} ---")
-        l = None
+        user_conn = None
+        search_conn = None
         try:
-            l = ldap.initialize(self.ad_url)
-            l.protocol_version = ldap.VERSION3
-            l.set_option(ldap.OPT_REFERRALS, 0)
-
             user_bind_dn = f"EBSERHNET\\{username}"
-            l.simple_bind_s(user_bind_dn, password)
+            user_conn = self._bind(user_bind_dn, password)
 
-            groups = []
-            search_ldap_conn = l
+            search_conn = user_conn
             if self.ad_bind_user and self.ad_bind_password:
-                search_ldap_conn = ldap.initialize(self.ad_url)
-                search_ldap_conn.protocol_version = ldap.VERSION3
-                search_ldap_conn.set_option(ldap.OPT_REFERRALS, 0)
-                search_ldap_conn.simple_bind_s(self.ad_bind_user, self.ad_bind_password)
+                search_conn = self._bind(self.ad_bind_user, self.ad_bind_password)
 
             search_filter = f"(&(objectClass=user)(sAMAccountName={username}))"
-            result_id = search_ldap_conn.search(self.ad_basedn, ldap.SCOPE_SUBTREE, search_filter, ["*"])
-            result_type, result_data = search_ldap_conn.result(result_id, 1)
+            search_conn.search(
+                search_base=self.ad_basedn,
+                search_filter=search_filter,
+                search_scope=SUBTREE,
+                attributes=ALL_ATTRIBUTES,
+                size_limit=1,
+            )
 
+            if not search_conn.entries:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+            entry = search_conn.entries[0]
+            attrs = entry.entry_attributes_as_dict
             user_info = {"username": username}
-            if result_data and result_data[0][1]:
-                user_entry = result_data[0][1]
-                for key, value in user_entry.items():
-                    if key == 'memberOf':
-                        groups = [re.match(r'CN=([^,]+)', group_dn.decode('utf-8')).group(1) for group_dn in value if re.match(r'CN=([^,]+)', group_dn.decode('utf-8'))]
-                        user_info['groups'] = groups
-                    else:
-                        user_info[key] = [i.decode('utf-8', 'ignore') for i in value] if isinstance(value, list) else value.decode('utf-8', 'ignore')
 
-            if search_ldap_conn != l:
-                search_ldap_conn.unbind_s()
-            
+            groups_attr = attrs.get("memberOf") or []
+            user_info["groups"] = [
+                re.match(r"CN=([^,]+)", group).group(1)
+                for group in groups_attr
+                if re.match(r"CN=([^,]+)", group)
+            ]
+
+            for key, value in attrs.items():
+                if key == "memberOf":
+                    continue
+                if isinstance(value, list):
+                    user_info[key] = [str(v) for v in value]
+                else:
+                    user_info[key] = str(value)
+
             print(f"--- AD Authentication successful for user: {username}. ---")
             return user_info
 
-        except ldap.INVALID_CREDENTIALS:
+        except LDAPBindError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-        except ldap.SERVER_DOWN:
+        except LDAPSocketOpenError:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="AD server is down or unreachable")
-        except Exception as e:
+        except LDAPException as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"AD error: {e}")
         finally:
-            if l:
-                l.unbind_s()
+            if search_conn and search_conn is not user_conn and search_conn.bound:
+                search_conn.unbind()
+            if user_conn and user_conn.bound:
+                user_conn.unbind()
 
 # --- AuthHandler Principal ---
 

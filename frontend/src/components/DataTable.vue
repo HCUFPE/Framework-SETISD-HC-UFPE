@@ -8,7 +8,7 @@
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-100">
-        <tr v-for="item in items" :key="item.id" class="text-gray-700 hover:bg-gray-100">
+        <tr v-for="item in items" :key="getItemKey(item)" class="text-gray-700 hover:bg-gray-100">
           <td v-for="header in headers" :key="header.value" class="px-4 py-3 text-sm">
             {{ item[header.value] }}
           </td>
@@ -28,25 +28,24 @@
 
 <script setup lang="ts">
 
-
 interface Header {
   text: string;
   value: string;
 }
 
 interface Item {
-  id: number | string;
   [key: string]: any;
 }
 
-defineProps({
-  headers: {
-    type: Array as () => Header[],
-    required: true,
-  },
-  items: {
-    type: Array as () => Item[],
-    required: true,
-  },
+const props = withDefaults(defineProps<{
+  headers: Header[];
+  items: Item[];
+  keyField?: string;
+}>(), {
+  keyField: 'id',
 });
+
+const getItemKey = (item: Item): string | number => {
+  return item[props.keyField];
+};
 </script>

@@ -2,7 +2,7 @@
   <button
     :class="[buttonClass, { 'cursor-not-allowed': loading }]"
     :disabled="loading || disabled"
-    class="flex items-center justify-center font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+    class="flex items-center justify-center font-bold py-2 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
   >
     <span v-if="loading" class="mr-2">
       <svg class="animate-spin h-5 w-5" :class="textColorClass" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
