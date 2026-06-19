@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dúvida geral
+    url: https://github.com/SEU_USUARIO/HC-PathLab-Analytics/discussions
+    about: Para dúvidas que não são bug nem feature, use uma discussão em vez de issue.

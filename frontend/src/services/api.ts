@@ -1,18 +1,22 @@
 import axios from 'axios';
+import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/auth';
+import { useUiStore } from '../stores/ui';
 
 const api = axios.create({
-  baseURL: '/', // Adjust if your API is on a different host
+  baseURL: '/',
   headers: {
     'Content-Type': 'application/json',
   }
 });
 
-// Request interceptor to add the access token
 api.interceptors.request.use(config => {
   const authStore = useAuthStore();
+  const uiStore = useUiStore();
+
+  uiStore.startLoading();
+
   const token = authStore.accessToken;
-  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -34,14 +38,18 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Response error interceptor to handle expired tokens
 api.interceptors.response.use(
-  response => response, // Simply return successful responses
+  response => {
+    useUiStore().stopLoading();
+    return response;
+  },
   async error => {
+    useUiStore().stopLoading();
+
     const originalRequest = error.config;
     const authStore = useAuthStore();
+    const toast = useToast();
 
-    // Check if the error is 401 and it's not a retry request
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {
@@ -54,34 +62,29 @@ api.interceptors.response.use(
         });
       }
 
-      originalRequest._retry = true; // Mark it as a retry
+      originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        console.log('Access token expired. Attempting to refresh...');
         const { data } = await axios.post('/api/token/refresh');
-        
-        // Set the new token in the store
         authStore.setToken(data.access_token);
-        
-        // Update the authorization header of the original request
         originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
-        
         processQueue(null, data.access_token);
-        // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        console.error('Unable to refresh token. Logging out.', refreshError);
         const router = (await import('../router')).default;
-        authStore.logout(router); // If refresh fails, logout the user
+        authStore.logout(router);
+        toast.error('Sua sessão expirou. Faça login novamente.');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // For other errors, just reject the promise
+    const message = error.response?.data?.detail || error.message || 'Ocorreu um erro inesperado.';
+    toast.error(message);
+
     return Promise.reject(error);
   }
 );

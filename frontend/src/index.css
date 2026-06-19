@@ -3,38 +3,38 @@
 @theme {
   --font-family-sans: 'Nunito', sans-serif;
 
-  --color-paper-bg: #f4f3ef;
-  --color-paper-text: #66615b;
-  --color-paper-sidebar: #424242;
-  --color-paper-active-link: #5a5a5a; /* Light Gray for active link */
+  --color-lab-bg: #f3f6f6;
+  --color-lab-text: #3f4a4a;
+  --color-lab-sidebar: #173f42;
+  --color-lab-active-link: #1f5358;
 
   /* Default */
-  --color-paper-default: #66615b;
-  --color-paper-default-hover: #55504a;
+  --color-lab-default: #3f4a4a;
+  --color-lab-default-hover: #313a3a;
 
   /* Primary */
-  --color-paper-primary: #7a9e9f;
-  --color-paper-primary-hover: #6a8d8e;
+  --color-lab-primary: #2f7d82;
+  --color-lab-primary-hover: #266569;
 
   /* Info */
-  --color-paper-info: #68b3c8;
-  --color-paper-info-hover: #58a2b7;
+  --color-lab-info: #4a90a4;
+  --color-lab-info-hover: #3f7c8d;
 
   /* Success */
-  --color-paper-success: #7ac29a;
-  --color-paper-success-hover: #6ab189;
+  --color-lab-success: #4caf7d;
+  --color-lab-success-hover: #3f9968;
 
   /* Warning */
-  --color-paper-warning: #f3bb45;
-  --color-paper-warning-hover: #e2ac34;
+  --color-lab-warning: #e3a73c;
+  --color-lab-warning-hover: #d1962e;
 
   /* Danger */
-  --color-paper-danger: #eb5e28;
-  --color-paper-danger-hover: #d95524;
+  --color-lab-danger: #d9534f;
+  --color-lab-danger-hover: #c8453f;
 
-  --color-paper-disabled: #E0E0E0; /* Light Gray */
+  --color-lab-disabled: #e0e0e0;
 
-  --shadow-paper: 0 2px 2px 0 rgba(204, 197, 185, 0.5);
+  --shadow-lab: 0 2px 2px 0 rgba(23, 63, 66, 0.12);
 }
 
 @layer components {
@@ -47,40 +47,31 @@
   }
 
   @screen sm {
-    .container {
-      max-width: 540px;
-    }
+    .container { max-width: 540px; }
   }
 
   @screen md {
-    .container {
-      max-width: 720px;
-    }
+    .container { max-width: 720px; }
   }
 
   @screen lg {
-    .container {
-      max-width: 960px;
-    }
+    .container { max-width: 960px; }
   }
 
   @screen xl {
-    .container {
-      max-width: 1140px;
-    }
+    .container { max-width: 1140px; }
   }
 
-  /* Form Styles */
   .form-group {
     @apply mb-4;
   }
 
   .form-label {
-    @apply block text-sm font-medium text-paper-text mb-1;
+    @apply block text-sm font-medium text-lab-text mb-1;
   }
 
   .form-control {
-    @apply block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-paper-primary focus:border-paper-primary sm:text-sm;
+    @apply block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-lab-primary focus:border-lab-primary sm:text-sm;
   }
 
   .form-control-icon {
