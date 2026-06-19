@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '../services/api';
 import { MOCK_USERS } from '../mocks/mockUsers';
+import { Sector } from '../constants/sectors';
 
 const USE_MOCK_AUTH = import.meta.env.VITE_USE_MOCK_AUTH === 'true';
 
@@ -13,7 +14,7 @@ interface User {
   title?: string[];
   department?: string[];
   employeeNumber?: string[];
-  setor?: 'recepcao' | 'macroscopia' | 'microscopia' | 'processamento_tecnico';
+  setor?: Sector;
 }
 
 export const useAuthStore = defineStore('auth', () => {

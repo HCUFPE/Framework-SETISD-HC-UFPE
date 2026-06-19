@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, NavigationGuardNext } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/auth';
+import { SECTOR_INFO } from '../constants/sectors';
 import Dashboard from '../views/dashboard.vue';
 import Login from '../views/auth/login.vue';
 import Register from '../views/auth/register.vue';
@@ -10,6 +11,7 @@ import Recepcao from '../views/frontDesk.vue';
 import Macroscopia from '../views/macroscopy.vue';
 import Microscopia from '../views/microscopy.vue';
 import ProcessamentoTecnico from '../views/technicalProcessing.vue';
+import Admin from '../views/admin.vue';
 import NotFound from '../views/notFound.vue';
 
 const routes = [
@@ -67,6 +69,12 @@ const routes = [
     component: ProcessamentoTecnico, 
     meta: { sector: 'processamento_tecnico', title: 'Processamento Técnico' } 
   },
+  { 
+    path: '/admin', 
+    name: 'Admin', 
+    component: Admin, 
+    meta: { sector: 'admin', title: 'Administração' } 
+  },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -76,7 +84,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   linkActiveClass: 'bg-lab-active-link',
   linkExactActiveClass: 'bg-lab-active-link',
@@ -91,7 +99,17 @@ router.beforeEach((to, _from, next: NavigationGuardNext) => {
     return;
   }
 
-  if (to.meta.sector && authStore.user?.setor !== to.meta.sector) {
+  const setor = authStore.user?.setor;
+
+  // Usuário com setor definido (exceto admin) é mandado direto pra sua página
+  // ao acessar a Dashboard genérica.
+  if (to.name === 'Dashboard' && setor && setor !== 'admin') {
+    next(SECTOR_INFO[setor].path);
+    return;
+  }
+
+  // Admin tem acesso a todos os setores. Demais usuários só acessam o próprio.
+  if (to.meta.sector && setor !== 'admin' && setor !== to.meta.sector) {
     toast.error('Você não tem acesso a este setor.');
     next({ name: 'Dashboard' });
     return;

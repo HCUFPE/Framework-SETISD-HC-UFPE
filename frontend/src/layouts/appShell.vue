@@ -1,7 +1,7 @@
 <template>
   <div class="relative h-screen overflow-hidden md:flex">
     <!-- Mobile Menu -->
-    <div class="bg-lab-sidebar text-gray-100 flex justify-between md:hidden shrink-0">
+    <div class="bg-lab-sidebar text-gray-100 flex justify-between items-center md:hidden shrink-0">
       <router-link to="/" class="flex items-center gap-2 p-4 text-white font-bold">
         <Microscope class="h-6 w-6" :stroke-width="1.5" />
         Anatomia Patológica
@@ -13,9 +13,9 @@
 
     <!-- Sidebar -->
     <aside :class="{ '-translate-x-full': !sidebarOpen }" class="bg-lab-sidebar text-gray-100 w-56 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-200 ease-in-out z-20 h-full shrink-0">
-      <div @click="() => router.push('/')" class="cursor-pointer text-white flex items-center space-x-2 px-4">
-        <Microscope class="h-8 w-8 shrink-0" :stroke-width="1.5" />
-        <span class="text-lg font-extrabold leading-tight">Anatomia Patológica</span>
+      <div @click="() => router.push('/')" class="cursor-pointer text-white flex items-center gap-3 px-4">
+        <Microscope class="h-7 w-7 shrink-0" :stroke-width="1.5" />
+        <span class="text-sm font-bold leading-snug">Anatomia<br>Patológica</span>
       </div>
 
       <div class="px-4 my-6">
@@ -34,12 +34,22 @@
         </router-link>
 
         <router-link
-          v-if="sectorNavItem"
-          :to="sectorNavItem.path"
+          v-for="item in sectorLinks"
+          :key="item.path"
+          :to="item.path"
           class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-lab-active-link hover:text-white"
         >
-          <component :is="sectorNavItem.icon" class="h-6 w-6" />
-          <span>{{ sectorNavItem.label }}</span>
+          <component :is="item.icon" class="h-6 w-6" />
+          <span>{{ item.label }}</span>
+        </router-link>
+
+        <router-link
+          v-if="isAdmin"
+          to="/admin"
+          class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-lab-active-link hover:text-white"
+        >
+          <ShieldCheckIcon class="h-6 w-6" />
+          <span>Administração</span>
         </router-link>
       </nav>
     </aside>
@@ -79,49 +89,37 @@ import {
   QrCodeIcon,
   UsersIcon,
   BeakerIcon,
+  ShieldCheckIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/vue/24/outline';
 import { Microscope } from 'lucide-vue-next';
 import ProfileDropdown from '../components/profileDropdown/profileDropdown.vue';
 import Button from '../components/button/button.vue';
-import { useAuthStore } from '../stores/auth.js';
+import { useAuthStore } from '../stores/auth';
+import { OPERATIONAL_SECTORS } from '../constants/sectors';
 
 const sidebarOpen = ref(false);
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
-// Mapeia o setor do usuário pra rota/ícone/label do 3º item do menu.
-// authStore.user.setor ainda não é preenchido (login não está pronto) — vai vir do backend.
 const SECTOR_NAV: Record<string, { path: string; label: string; icon: any }> = {
-  recepcao: 
-  { 
-    path: '/recepcao', 
-    label: 'Recepção', 
-    icon: UsersIcon 
-  },
-  macroscopia: 
-  { 
-    path: '/macroscopia', 
-    label: 'Macroscopia', 
-    icon: BeakerIcon },
-  microscopia: 
-  { 
-    path: '/microscopia', 
-    label: 'Microscopia', 
-    icon: BeakerIcon 
-  },
-  processamento_tecnico: 
-  { path: '/processamento-tecnico', 
-  label: 'Processamento Técnico', 
-  icon: BeakerIcon 
-},
+  recepcao: { path: '/recepcao', label: 'Recepção', icon: UsersIcon },
+  macroscopia: { path: '/macroscopia', label: 'Macroscopia', icon: BeakerIcon },
+  microscopia: { path: '/microscopia', label: 'Microscopia', icon: BeakerIcon },
+  processamento_tecnico: { path: '/processamento-tecnico', label: 'Processamento Técnico', icon: BeakerIcon },
 };
 
-const sectorNavItem = computed(() => {
+const isAdmin = computed(() => authStore.user?.setor === 'admin');
+
+// Admin vê todos os setores na sidebar. Usuário comum vê só o próprio.
+const sectorLinks = computed(() => {
+  if (isAdmin.value) {
+    return OPERATIONAL_SECTORS.map(s => SECTOR_NAV[s]);
+  }
   const setor = authStore.user?.setor;
-  return setor ? SECTOR_NAV[setor] : null;
+  return setor && SECTOR_NAV[setor] ? [SECTOR_NAV[setor]] : [];
 });
 
 watch(() => route.path, () => {
