@@ -43,6 +43,7 @@ Com `true`, o login usa usuários fake (sem backend) — ver `stores/auth.ts` e 
 | `macroscopia` | Macroscopia |
 | `microscopia` | Microscopia |
 | `tecnico` | Processamento Técnico |
+| `admin` | Administrador |
 
 Quando o backend estiver pronto, troque para `VITE_USE_MOCK_AUTH=false` (ou apague o arquivo) — nenhum outro código precisa ser alterado.
 
