@@ -57,6 +57,7 @@ Cada pasta abaixo tem seu próprio `README.md` com a lógica interna, convençõ
 - `views/` — páginas
 - `components/` — componentes de UI reutilizáveis
 - `mocks/` — dados fake para desenvolvimento sem backend
+- `constants/` — dados constantes e estáticos utilizados em várias partes da aplicação
 
 ## Convenções gerais do projeto
 
