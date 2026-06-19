@@ -1,12 +1,17 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 export const useUiStore = defineStore('ui', () => {
-  const isLoading = ref(false);
+  const loadingCount = ref(0);
+  const isLoading = computed(() => loadingCount.value > 0);
 
-  function setLoading(loading: boolean) {
-    isLoading.value = loading;
+  function startLoading() {
+    loadingCount.value++;
   }
 
-  return { isLoading, setLoading };
+  function stopLoading() {
+    loadingCount.value = Math.max(0, loadingCount.value - 1);
+  }
+
+  return { isLoading, startLoading, stopLoading };
 });
