@@ -1,0 +1,186 @@
+workspace "Sistema de Marcação de Exames" {
+
+    model {
+        archetypes {
+            rest = -> {
+                technology "JSON/HTTP REST"
+            }
+
+            webhook = -> {
+                technology "Webhook?"
+            }
+
+            sql = -> {
+                technology "SQL"
+            }
+        }
+
+        aghu = softwareSystem "AGHU" {
+            description ""
+            tags "yellow"
+        }
+
+        solucao = softwareSystem "Nossa solução" {
+            description "Recebe e valida solicitações de exame, ordena os pedidos e permite a visualização da fila de marcações."
+
+            backend = container "Back-end" {
+                description "Trata de toda regra de negócio do formulário e dos dashboards."
+                tags "backend"
+                technology "Python & FastAPI"
+
+                banco_dados = component "Banco de dados" {
+                    description "Números de prontuários, números de solicitações, datas de retorno, etc."
+                    tags "database"
+                }
+
+                atualizacao = component "Componente de Atualização" {
+                    description "Atualiza o banco de dados local."
+                    tags "component"
+
+                    --sql-> banco_dados "Escreve dados"
+                    --webhook-> aghu "Lê dados"
+                }
+
+                validacao = component "Componente de Validação" {
+                    description "Verifica se os dados do formulário existem ou são coerentes."
+                    tags "component"
+
+                    -> atualizacao "Solicita atualização de dados válidos"
+                    --sql-> aghu "Lê dados"
+                }
+
+                ordenacao = component "Componente de Ordenação" {
+                    description "Ordena as solicitações não atendidas com base nos dados dos pacientes."
+                    tags "component"
+
+                    --sql-> banco_dados "Lê dados"
+                }
+
+                api_form = component "API do Formulário" {
+                    description "Endpoint para enviar os dados do formulário."
+                    tags "api"
+
+                    -> validacao "Solicita validação dos dados"
+                }
+
+                api_fila = component "API da Fila de Solicitações" {
+                    description "Endpoint para consultar o status da fila de pedidos."
+                    tags "api"
+
+                    -> ordenacao "Solicita fila ordenada"
+                }
+            }
+
+            formulario = container "Formulário" {
+                description "Interface para recebimento dos dados do paciente."
+                tags "ui"
+                technology "TypeScript & Vue"
+
+                --rest-> api_form "Solicita confirmação do formulário"
+            }
+
+            dashboard_geral = container "Dashboard Geral" {
+                description "Interface que permite que o usuário visualize a fila de pedidos."
+                tags "ui"
+                technology "TypeScript & Vue"
+
+                --rest-> api_fila "Solicita fila ordenada"
+            }
+
+            dashboard_admin = container "Dashboard Administrativo" {
+                description "Interface para a visualização do histórico de pedidos e a configuração do formulário."
+                tags "ui"
+                technology "TypeScript & Vue"
+            }
+        }
+
+        group "Central de Marcação" {
+            funcionario = person "Funcionário" {
+                description "Usuário que tem a tarefa de marcar vários exames."
+                tags "green"
+
+                -> dashboard_geral "Visualiza e seleciona pedidos da fila de marcações"
+            }
+
+            gerente = person "Gerente" {
+                description "Usuário que regula o fluxo de solicitações atendidas."
+                tags "green"
+
+                -> dashboard_admin "Visualiza pedidos atendidos e controla disponibilidade do formulário"
+            }
+        }
+
+        paciente = person "Paciente" {
+            description "Usuário que possui múltiplas solicitações de exames."
+
+            -> formulario "Preenche informações da solicitação e de contato"
+        }
+    }
+
+    views {
+        systemContext solucao "C1" {
+            include *
+        }
+        
+        container solucao "C2" {
+            include *
+        }
+        
+        component backend "C3" {
+            include * paciente funcionario gerente dashboard_admin
+        }
+
+        styles {
+            element "Element" {
+                color #08A0CE
+                stroke #08A0CE
+                strokeWidth 7
+                shape roundedbox
+            }
+
+            element "Person" {
+                shape Person
+            }
+
+            element "ui" {
+                shape WebBrowser
+            }
+
+            element "mobile" {
+                shape MobileDevicePortrait
+            }
+
+            element "backend" {
+                shape Shell
+            }
+
+            element "api" {
+                shape Pipe
+            }
+
+            element "database" {
+                shape Cylinder
+            }
+
+            element "component" {
+                shape Component
+            }
+
+            element "Group:Central de Marcação" {
+                strokeWidth 5
+                color #08CF62
+                stroke #08CF62
+            }
+
+            element "green" {
+                color #08CF62
+                stroke #08CF62
+            }
+
+            element "yellow" {
+                color #CFCC08
+                stroke #CFCC08
+            }
+        }
+    }
+}
