@@ -91,6 +91,8 @@ import Card from '../../components/card/card.vue';
 import Button from '../../components/button/button.vue';
 import { ArrowRightOnRectangleIcon, EyeIcon, EyeSlashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import { Microscope } from 'lucide-vue-next';
+import { SECTOR_INFO } from '../../constants/sectors';
+
 
 const username = ref('');
 const password = ref('');
@@ -121,8 +123,15 @@ const handleLogin = async () => {
   error.value = '';
   try {
     await authStore.login(username.value, password.value, rememberMe.value);
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
-    await router.push(redirect);
+
+    if (typeof route.query.redirect === 'string') {
+      await router.push(route.query.redirect);
+      return;
+    }
+
+    const setor = authStore.user?.setor;
+    const destino = setor && setor !== 'admin' ? SECTOR_INFO[setor].path : '/';
+    await router.push(destino);
   } catch (e: any) {
     error.value = e.response?.data?.detail || e.message || 'Não foi possível entrar. Verifique usuário e senha.';
   } finally {
