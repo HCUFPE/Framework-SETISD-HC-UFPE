@@ -101,13 +101,6 @@ router.beforeEach((to, _from, next: NavigationGuardNext) => {
 
   const setor = authStore.user?.setor;
 
-  // Usuário com setor definido (exceto admin) é mandado direto pra sua página
-  // ao acessar a Dashboard genérica.
-  if (to.name === 'Dashboard' && setor && setor !== 'admin') {
-    next(SECTOR_INFO[setor].path);
-    return;
-  }
-
   // Admin tem acesso a todos os setores. Demais usuários só acessam o próprio.
   if (to.meta.sector && setor !== 'admin' && setor !== to.meta.sector) {
     toast.error('Você não tem acesso a este setor.');
