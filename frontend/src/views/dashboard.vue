@@ -80,20 +80,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ExclamationTriangleIcon, ClockIcon, EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
 import Card from '../components/card/card.vue';
 import DataTable from '../components/dataTable/dataTable.vue';
 import Badge from '../components/badge/badge.vue';
-import { formatExamCode, deriveExamCode } from '../utils/examCode';
 import { STATUS_COLOR, EXAM_STATUSES } from '../constants/statuses';
 import { diasDesde, getSlaStatus, formatTempoTotal, type SlaStatus } from '../utils/sla';
+import { exameService, type DashboardExame } from '../services/exameService';
 
 const headers = [
-  { text: 'Solicitação', value: 'solicitacao' }, 
-  { text: 'Paciente', value: 'paciente' },       
-  { text: 'Etapa', value: 'etapa', align: 'center' }, 
-  { text: 'Tempo na etapa', value: 'tempoNaEtapa', align: 'center' }, 
+  { text: 'Solicitação', value: 'solicitacao' },
+  { text: 'Paciente', value: 'paciente' },
+  { text: 'Etapa', value: 'etapa', align: 'center' },
+  { text: 'Tempo na etapa', value: 'tempoNaEtapa', align: 'center' },
   { text: 'Tempo total', value: 'tempoTotal', align: 'center' },
 ];
 
@@ -103,33 +103,24 @@ const TEMPO_TOTAL_CLASS: Record<SlaStatus, string> = {
   atrasado: 'text-red-600 font-medium',
 };
 
-function diasAtras(n: number): Date {
-  const data = new Date();
-  data.setDate(data.getDate() - n);
-  return data;
-}
-
 function verDetalhes(item: any) {
   alert(`Visão Unificada de ${item.paciente} (${item.solicitacao}) — em construção.`);
 }
 
-// mocks — dataEntrada simula quando o caso entrou no sistema (Recepção)
-const exames = [
-  { id: 1, solicitacao: formatExamCode('HP', 1002, 2026, 1), paciente: 'João Batista Oliveira', etapa: 'Liberado', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(3) },
-  { id: 2, solicitacao: formatExamCode('HP', 1003, 2026, 1), paciente: 'Ana Carolina Souza', etapa: 'Liberado', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(5) },
-  { id: 3, solicitacao: formatExamCode('HP', 1006, 2026, 1), paciente: 'Maria Aparecida Silva', etapa: 'Em Processamento', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(9) },
-  { id: 4, solicitacao: formatExamCode('HP', 1001, 2026, 1), paciente: 'Maria Aparecida Silva', etapa: 'Em Macroscopia', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(1) },
-  { id: 5, solicitacao: deriveExamCode(1001, 2026, 1, 'IHQ'), paciente: 'Maria Aparecida Silva', etapa: 'Em Macroscopia', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(1) },
-  { id: 6, solicitacao: formatExamCode('HP', 1005, 2026, 1), paciente: 'Beatriz Helena Costa', etapa: 'Na Recepção', tempoNaEtapa: '2h', atrasado: false, dataEntrada: diasAtras(0) },
-  { id: 7, solicitacao: formatExamCode('HP', 1009, 2026, 1), paciente: 'João Batista Oliveira', etapa: 'Liberado', tempoNaEtapa: '5h', atrasado: false, dataEntrada: diasAtras(12) },
-  { id: 8, solicitacao: formatExamCode('HP', 1007, 2026, 1), paciente: 'Ana Carolina Souza', etapa: 'Em Processamento', tempoNaEtapa: '8h', atrasado: false, dataEntrada: diasAtras(17) },
-  { id: 9, solicitacao: formatExamCode('HP', 1004, 2026, 1), paciente: 'Carlos Eduardo Lima', etapa: 'Revisão Pendente', tempoNaEtapa: '5d 0h', atrasado: true, dataEntrada: diasAtras(23) },
-  { id: 10, solicitacao: formatExamCode('IHQ', 1010, 2026, 1), paciente: 'Rafael Costa', etapa: 'Em Microscopia', tempoNaEtapa: '1h', atrasado: false, dataEntrada: diasAtras(18) },
-  { id: 11, solicitacao: formatExamCode('Congela', 1011, 2026, 1), paciente: 'Beatriz Andrade', etapa: 'Em Congelamento', tempoNaEtapa: '15min', atrasado: false, dataEntrada: diasAtras(0) },
-];
+type ExameLocal = DashboardExame & { dataEntrada: Date; tempoNaEtapa: string };
+const exames = ref<ExameLocal[]>([]);
+
+onMounted(async () => {
+  const raw = await exameService.dashboard();
+  exames.value = raw.map(e => ({
+    ...e,
+    dataEntrada: new Date(e.data_entrada),
+    tempoNaEtapa: '—',
+  }));
+});
 
 const examesComSla = computed(() => {
-  return exames.map(exame => {
+  return exames.value.map(exame => {
     const dias = diasDesde(exame.dataEntrada);
     const slaStatus = getSlaStatus(dias);
     return {
@@ -148,7 +139,7 @@ const temAtrasado = computed(() => qtdAtrasados.value > 0);
 const statusCards = computed(() => {
   return EXAM_STATUSES.map(status => ({
     label: status,
-    count: exames.filter(e => e.etapa === status).length,
+    count: exames.value.filter(e => e.etapa === status).length,
   }));
 });
 </script>
