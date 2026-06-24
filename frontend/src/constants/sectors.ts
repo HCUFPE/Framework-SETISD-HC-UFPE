@@ -9,4 +9,4 @@ export const SECTOR_INFO: Record<Sector, { path: string; label: string }> = {
 };
 
 // Setores "operacionais" (exclui admin) — usado pra listar no menu do admin.
-export const OPERATIONAL_SECTORS: Sector[] = ['recepcao', 'macroscopia', 'microscopia', 'processamento_tecnico'];
+export const OPERATIONAL_SECTORS: Sector[] = ['recepcao', 'macroscopia', 'processamento_tecnico', 'microscopia'];

@@ -1,18 +1,36 @@
 <template>
   <div class="space-y-6">
-    <div
-      v-if="examesEmAlerta.length > 0"
-      class="flex items-start gap-3 p-4 rounded-lg"
-      :class="temAtrasado ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'"
-    >
-      <ExclamationTriangleIcon class="h-6 w-6 shrink-0" :class="temAtrasado ? 'text-red-600' : 'text-amber-600'" />
-      <div>
-        <p class="font-semibold" :class="temAtrasado ? 'text-red-700' : 'text-amber-700'">
-          {{ temAtrasado ? 'Exames fora do prazo de 20 dias' : 'Exames se aproximando do prazo de 20 dias' }}
-        </p>
-        <p class="text-sm mt-0.5" :class="temAtrasado ? 'text-red-600' : 'text-amber-600'">
-          {{ qtdAtrasados }} atrasado(s) e {{ qtdNoAlerta }} próximo(s) do limite. Meta da UACAP: liberação em até 20 dias.
-        </p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- 1. Alerta Crítico: Fora do Prazo (Atrasados) -->
+      <div
+        v-if="qtdAtrasados > 0"
+        class="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200"
+      >
+        <ExclamationTriangleIcon class="h-6 w-6 shrink-0 text-red-600" />
+        <div>
+          <p class="font-semibold text-red-700">
+            Exames fora da meta de 20 dias
+          </p>
+          <p class="text-sm mt-0.5 text-red-600">
+            Há {{ qtdAtrasados }} caso(s) que excederam o prazo máximo estabelecido pela UACAP.
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. Alerta de Atenção: Próximos ao Limite (Alerta) -->
+      <div
+        v-if="qtdNoAlerta > 0"
+        class="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200"
+      >
+        <ClockIcon class="h-6 w-6 shrink-0 text-amber-600" />
+        <div>
+          <p class="font-semibold text-amber-700">
+            Exames próximos da meta de 20 dias
+          </p>
+          <p class="text-sm mt-0.5 text-amber-600">
+            Há {{ qtdNoAlerta }} caso(s) na zona de alerta precisando de atenção para não estourar o prazo.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -33,17 +51,28 @@
         <template #item-etapa="{ item }">
           <Badge :color="STATUS_COLOR[item.etapa]">{{ item.etapa }}</Badge>
         </template>
+
         <template #item-tempoNaEtapa="{ item }">
           <span :class="item.atrasado ? 'text-red-600 font-medium' : 'text-gray-500'">
             {{ item.tempoNaEtapa }}
           </span>
         </template>
+
         <template #item-tempoTotal="{ item }">
           <span class="inline-flex items-center gap-1.5" :class="TEMPO_TOTAL_CLASS[item.slaStatus]">
             <ExclamationTriangleIcon v-if="item.slaStatus === 'atrasado'" class="h-4 w-4" />
             <ClockIcon v-else-if="item.slaStatus === 'alerta'" class="h-4 w-4" />
             {{ item.tempoTotalFormatado }}
           </span>
+        </template>
+
+        <template #actions="{ item }">
+          <button 
+            @click="verDetalhes(item)" 
+            class="text-xs font-medium text-gray-500 hover:text-[#173f42] underline decoration-transparent hover:decoration-[#173f42] underline-offset-4 transition-all duration-200 focus:outline-none"
+          >
+            Ver detalhes
+          </button>
         </template>
       </DataTable>
     </Card>
@@ -52,7 +81,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ExclamationTriangleIcon, ClockIcon } from '@heroicons/vue/24/outline';
+import { ExclamationTriangleIcon, ClockIcon, EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
 import Card from '../components/card/card.vue';
 import DataTable from '../components/dataTable/dataTable.vue';
 import Badge from '../components/badge/badge.vue';
@@ -61,11 +90,11 @@ import { STATUS_COLOR, EXAM_STATUSES } from '../constants/statuses';
 import { diasDesde, getSlaStatus, formatTempoTotal, type SlaStatus } from '../utils/sla';
 
 const headers = [
-  { text: 'Solicitação', value: 'solicitacao' },
-  { text: 'Paciente', value: 'paciente' },
-  { text: 'Etapa', value: 'etapa' },
-  { text: 'Tempo na etapa', value: 'tempoNaEtapa' },
-  { text: 'Tempo total', value: 'tempoTotal' },
+  { text: 'Solicitação', value: 'solicitacao' }, 
+  { text: 'Paciente', value: 'paciente' },       
+  { text: 'Etapa', value: 'etapa', align: 'center' }, 
+  { text: 'Tempo na etapa', value: 'tempoNaEtapa', align: 'center' }, 
+  { text: 'Tempo total', value: 'tempoTotal', align: 'center' },
 ];
 
 const TEMPO_TOTAL_CLASS: Record<SlaStatus, string> = {
@@ -78,6 +107,10 @@ function diasAtras(n: number): Date {
   const data = new Date();
   data.setDate(data.getDate() - n);
   return data;
+}
+
+function verDetalhes(item: any) {
+  alert(`Visão Unificada de ${item.paciente} (${item.solicitacao}) — em construção.`);
 }
 
 // mocks — dataEntrada simula quando o caso entrou no sistema (Recepção)
