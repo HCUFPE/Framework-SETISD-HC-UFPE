@@ -78,3 +78,46 @@
     @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none;
   }
 }
+
+.qr-print {
+  display: none;
+}
+.label-sheet-print {
+  display: none;
+}
+
+@media print {
+  body.printing-qr-label * {
+    visibility: hidden;
+  }
+  body.printing-qr-label .qr-print-target,
+  body.printing-qr-label .qr-print-target * {
+    visibility: visible;
+  }
+  body.printing-qr-label .qr-print-target {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  body.printing-qr-label .qr-screen,
+  body.printing-qr-label .qr-no-print {
+    display: none !important;
+  }
+  body.printing-qr-label .qr-print {
+    display: block !important;
+  }
+
+  body.printing-label-sheet * {
+    visibility: hidden;
+  }
+  body.printing-label-sheet .label-sheet-print,
+  body.printing-label-sheet .label-sheet-print * {
+    visibility: visible;
+  }
+  body.printing-label-sheet .label-sheet-print {
+    display: grid !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}
