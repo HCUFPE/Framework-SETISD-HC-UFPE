@@ -37,9 +37,9 @@
           v-for="item in sectorLinks"
           :key="item.path"
           :to="item.path"
-          class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-lab-active-link hover:text-white"
+          class="flex items-center gap-2 py-2.5 px-4 rounded transition duration-200 hover:bg-lab-active-link hover:text-white"
         >
-          <component :is="item.icon" class="h-6 w-6" />
+          <component :is="item.icon" class="h-6 w-6 shrink-0" :stroke-width="1.5" />
           <span>{{ item.label }}</span>
         </router-link>
 
@@ -88,12 +88,11 @@ import {
   Squares2X2Icon,
   QrCodeIcon,
   UsersIcon,
-  BeakerIcon,
   ShieldCheckIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/vue/24/outline';
-import { Microscope } from 'lucide-vue-next';
+import { Microscope, FlaskConical, Cog } from 'lucide-vue-next';
 import ProfileDropdown from '../components/profileDropdown/profileDropdown.vue';
 import Button from '../components/button/button.vue';
 import { useAuthStore } from '../stores/auth';
@@ -106,9 +105,9 @@ const authStore = useAuthStore();
 
 const SECTOR_NAV: Record<string, { path: string; label: string; icon: any }> = {
   recepcao: { path: '/recepcao', label: 'Recepção', icon: UsersIcon },
-  macroscopia: { path: '/macroscopia', label: 'Macroscopia', icon: BeakerIcon },
-  microscopia: { path: '/microscopia', label: 'Microscopia', icon: BeakerIcon },
-  processamento_tecnico: { path: '/processamento-tecnico', label: 'Processamento Técnico', icon: BeakerIcon },
+  macroscopia: { path: '/macroscopia', label: 'Macroscopia', icon: FlaskConical },
+  processamento_tecnico: { path: '/processamento-tecnico', label: 'Processamento Técnico', icon: Cog },
+  microscopia: { path: '/microscopia', label: 'Microscopia', icon: Microscope },
 };
 
 const isAdmin = computed(() => authStore.user?.setor === 'admin');

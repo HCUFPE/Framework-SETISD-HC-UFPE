@@ -65,8 +65,8 @@
         </template>
 
         <template #actions="{ item }">
-          <button 
-            @click="verDetalhes(item)" 
+          <button
+            @click="verDetalhes(item)"
             class="text-xs font-medium text-gray-500 hover:text-[#173f42] underline decoration-transparent hover:decoration-[#173f42] underline-offset-4 transition-all duration-200 focus:outline-none"
           >
             Ver detalhes
@@ -209,7 +209,7 @@ const exames = [
 ];
 
 const examesComSla = computed(() => {
-  return exames.value.map(exame => {
+  return exames.map(exame => {
     const dias = diasDesde(exame.dataEntrada);
     const slaStatus = getSlaStatus(dias);
     return {
@@ -228,7 +228,7 @@ const temAtrasado = computed(() => qtdAtrasados.value > 0);
 const statusCards = computed(() => {
   return EXAM_STATUSES.map(status => ({
     label: status,
-    count: exames.value.filter(e => e.etapa === status).length,
+    count: exames.filter(e => e.etapa === status).length,
   }));
 });
 </script>
