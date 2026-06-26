@@ -76,6 +76,7 @@ const SETOR_LABELS: Record<string, string> = {
   macroscopia: 'Macroscopia',
   microscopia: 'Microscopia',
   processamento_tecnico: 'Processamento Técnico',
+  admin: 'TI / Administração',
 };
 
 const setorLabel = computed(() => {

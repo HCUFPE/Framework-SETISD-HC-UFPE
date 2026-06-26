@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, NavigationGuardNext } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/auth';
-import { SECTOR_INFO } from '../constants/sectors';
 import Dashboard from '../views/dashboard.vue';
 import Login from '../views/auth/login.vue';
 import Register from '../views/auth/register.vue';
@@ -49,31 +48,31 @@ const routes = [
     path: '/recepcao', 
     name: 'Recepcao', 
     component: Recepcao, 
-    meta: { sector: 'recepcao', title: 'Recepção' } 
+    meta: { title: 'Recepção' } 
   },
   { 
     path: '/macroscopia', 
     name: 'Macroscopia', 
     component: Macroscopia, 
-    meta: { sector: 'macroscopia', title: 'Macroscopia' } 
-  },
-  { 
-    path: '/microscopia', 
-    name: 'Microscopia', 
-    component: Microscopia, 
-    meta: { sector: 'microscopia', title: 'Microscopia' } 
+    meta: { title: 'Macroscopia' } 
   },
   { 
     path: '/processamento-tecnico', 
     name: 'ProcessamentoTecnico', 
     component: ProcessamentoTecnico, 
-    meta: { sector: 'processamento_tecnico', title: 'Processamento Técnico' } 
+    meta: { title: 'Processamento Técnico' } 
+  },
+  { 
+    path: '/microscopia', 
+    name: 'Microscopia', 
+    component: Microscopia, 
+    meta: { title: 'Microscopia' } 
   },
   { 
     path: '/admin', 
     name: 'Admin', 
     component: Admin, 
-    meta: { sector: 'admin', title: 'Administração' } 
+    meta: { requiresAdmin: true, title: 'TI / Administração' } 
   },
   {
     path: '/:pathMatch(.*)*',
@@ -99,11 +98,8 @@ router.beforeEach((to, _from, next: NavigationGuardNext) => {
     return;
   }
 
-  const setor = authStore.user?.setor;
-
-  // Admin tem acesso a todos os setores. Demais usuários só acessam o próprio.
-  if (to.meta.sector && setor !== 'admin' && setor !== to.meta.sector) {
-    toast.error('Você não tem acesso a este setor.');
+  if (to.meta.requiresAdmin && authStore.user?.setor !== 'admin') {
+    toast.error('Acesso restrito à Administração.');
     next({ name: 'Dashboard' });
     return;
   }

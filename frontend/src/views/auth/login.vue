@@ -124,14 +124,8 @@ const handleLogin = async () => {
   try {
     await authStore.login(username.value, password.value, rememberMe.value);
 
-    if (typeof route.query.redirect === 'string') {
-      await router.push(route.query.redirect);
-      return;
-    }
-
-    const setor = authStore.user?.setor;
-    const destino = setor && setor !== 'admin' ? SECTOR_INFO[setor].path : '/';
-    await router.push(destino);
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
+    await router.push(redirect);
   } catch (e: any) {
     error.value = e.response?.data?.detail || e.message || 'Não foi possível entrar. Verifique usuário e senha.';
   } finally {
