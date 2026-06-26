@@ -7,7 +7,7 @@ export type ExamStatus =
   | 'Revisão Pendente'
   | 'Liberado';
 
-export type BadgeColor = 'gray' | 'blue' | 'purple' | 'orange' | 'green';
+export type BadgeColor = 'gray' | 'blue' | 'purple' | 'orange' | 'green' | 'red';
 
 export const STATUS_COLOR: Record<ExamStatus, BadgeColor> = {
   'Na Recepção': 'gray',
