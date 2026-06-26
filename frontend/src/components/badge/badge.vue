@@ -21,6 +21,7 @@ const COLOR_CLASSES: Record<BadgeColor, string> = {
   purple: 'bg-purple-100 text-purple-700',
   orange: 'bg-orange-100 text-orange-700',
   green: 'bg-green-100 text-green-700',
+  red: 'bg-red-100 text-red-600',
 };
 
 const colorClass = computed(() => COLOR_CLASSES[props.color] || COLOR_CLASSES.gray);

@@ -1,7 +1,6 @@
 <template>
   <div class="space-y-6">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- 1. Alerta Crítico: Fora do Prazo (Atrasados) -->
       <div
         v-if="qtdAtrasados > 0"
         class="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200"
@@ -17,7 +16,6 @@
         </div>
       </div>
 
-      <!-- 2. Alerta de Atenção: Próximos ao Limite (Alerta) -->
       <div
         v-if="qtdNoAlerta > 0"
         class="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200"
@@ -76,18 +74,26 @@
         </template>
       </DataTable>
     </Card>
+
+    <ExamDetailsModal
+      :show="modalAberto"
+      :detalhe="detalheSelecionado"
+      @close="modalAberto = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { ExclamationTriangleIcon, ClockIcon, EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
 import Card from '../components/card/card.vue';
 import DataTable from '../components/dataTable/dataTable.vue';
 import Badge from '../components/badge/badge.vue';
+import ExamDetailsModal from '../components/examDetailsModal/examDetailsModal.vue';
+import { formatExamCode, deriveExamCode } from '../utils/examCode';
 import { STATUS_COLOR, EXAM_STATUSES } from '../constants/statuses';
 import { diasDesde, getSlaStatus, formatTempoTotal, type SlaStatus } from '../utils/sla';
-import { exameService, type DashboardExame } from '../services/exameService';
+import type { ExamCaseDetail } from '../types/exam';
 
 const headers = [
   { text: 'Solicitação', value: 'solicitacao' },
@@ -103,21 +109,104 @@ const TEMPO_TOTAL_CLASS: Record<SlaStatus, string> = {
   atrasado: 'text-red-600 font-medium',
 };
 
-function verDetalhes(item: any) {
-  alert(`Visão Unificada de ${item.paciente} (${item.solicitacao}) — em construção.`);
+// Controle de estado do modal
+const modalAberto = ref(false);
+const detalheSelecionado = ref<ExamCaseDetail | null>(null);
+
+function diasAtras(n: number): Date {
+  const data = new Date();
+  data.setDate(data.getDate() - n);
+  return data;
 }
 
-type ExameLocal = DashboardExame & { dataEntrada: Date; tempoNaEtapa: string };
-const exames = ref<ExameLocal[]>([]);
+// Mocks detalhados por ID do exame
+const detalhesPorId: Record<number, ExamCaseDetail> = {
+  4: {
+    codigoLocal: formatExamCode('HP', 1001, 2026, 1),
+    etapaAtual: 'Em Macroscopia',
+    urgente: false,
+    aghu: {
+      numeroSolicitacaoAghu: '1379950',
+      nomePaciente: 'Maria Aparecida Silva',
+      prontuario: '445210',
+      idade: 58,
+      origem: 'Internado',
+      clinica: 'Hepatologia',
+      tipoMaterial: '',
+      tipoExame: 'HP',
+      procedimentoSus: 'Anatomopatológico Geral',
+      indicacaoClinica: 'Nódulo hepático em investigação.',
+    },
+    recepcao: {
+      dataEntrada: new Date('2026-06-23'),
+      quantidadeFrascos: 1,
+      responsavel: 'Ana Souza',
+    },
+  },
+  9: {
+    codigoLocal: formatExamCode('HP', 1004, 2026, 1),
+    etapaAtual: 'Revisão Pendente',
+    urgente: true,
+    aghu: {
+      numeroSolicitacaoAghu: '1380442',
+      nomePaciente: 'Carlos Eduardo Lima',
+      prontuario: '298104',
+      idade: 64,
+      origem: 'Ambulatorial',
+      tipoMaterial: 'Biópsia gástrica',
+      tipoExame: 'HP',
+      procedimentoSus: 'Biópsia',
+      indicacaoClinica: 'Investigação de lesão gástrica, suspeita de neoplasia.',
+    },
+    recepcao: { dataEntrada: new Date('2026-06-01'), quantidadeFrascos: 2, responsavel: 'Ana Souza' },
+    macroscopia: {
+      dataMacro: new Date('2026-06-02'),
+      responsavel: 'Carlos Lima',
+      descricaoMacroscopica: 'Dois fragmentos de mucosa gástrica, identificados A e B.',
+      quantidadeCassetes: 2,
+      destino: 'Histotécnico',
+      coloracaoEspecial: true,
+      coloracaoQual: 'Giemsa (bloco A) — pesquisa de H. pylori',
+      sobraMaterial: false,
+    },
+    processamentoTecnico: {
+      quantidadeBlocos: 2,
+      quantidadeLaminas: 3,
+      dataLiberacao: new Date('2026-06-08'),
+      responsavel: 'Rafael Costa',
+    },
+    microscopia: {
+      dataRecebimento: new Date('2026-06-09'),
+      laudo: 'Gastrite crônica com atividade. Pesquisa de H. pylori positiva.',
+      solicitouComplemento: false,
+    },
+  },
+};
 
-onMounted(async () => {
-  const raw = await exameService.dashboard();
-  exames.value = raw.map(e => ({
-    ...e,
-    dataEntrada: new Date(e.data_entrada),
-    tempoNaEtapa: '—',
-  }));
-});
+function verDetalhes(item: any) {
+  const detalhe = detalhesPorId[item.id];
+  if (!detalhe) {
+    alert(`Visão Unificada de ${item.paciente} (${item.solicitacao}) — dados completos ainda não cadastrados neste mock.`);
+    return;
+  }
+  detalheSelecionado.value = detalhe;
+  modalAberto.value = true;
+}
+
+// Mocks gerais da listagem
+const exames = [
+  { id: 1, solicitacao: formatExamCode('HP', 1002, 2026, 1), paciente: 'João Batista Oliveira', etapa: 'Liberado', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(3) },
+  { id: 2, solicitacao: formatExamCode('HP', 1003, 2026, 1), paciente: 'Ana Carolina Souza', etapa: 'Liberado', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(5) },
+  { id: 3, solicitacao: formatExamCode('HP', 1006, 2026, 1), paciente: 'Maria Aparecida Silva', etapa: 'Em Processamento', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(9) },
+  { id: 4, solicitacao: formatExamCode('HP', 1001, 2026, 1), paciente: 'Maria Aparecida Silva', etapa: 'Em Macroscopia', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(1) },
+  { id: 5, solicitacao: deriveExamCode(1001, 2026, 1, 'IHQ'), paciente: 'Maria Aparecida Silva', etapa: 'Em Macroscopia', tempoNaEtapa: 'agora', atrasado: false, dataEntrada: diasAtras(1) },
+  { id: 6, solicitacao: formatExamCode('HP', 1005, 2026, 1), paciente: 'Beatriz Helena Costa', etapa: 'Na Recepção', tempoNaEtapa: '2h', atrasado: false, dataEntrada: diasAtras(0) },
+  { id: 7, solicitacao: formatExamCode('HP', 1009, 2026, 1), paciente: 'João Batista Oliveira', etapa: 'Liberado', tempoNaEtapa: '5h', atrasado: false, dataEntrada: diasAtras(12) },
+  { id: 8, solicitacao: formatExamCode('HP', 1007, 2026, 1), paciente: 'Ana Carolina Souza', etapa: 'Em Processamento', tempoNaEtapa: '8h', atrasado: false, dataEntrada: diasAtras(17) },
+  { id: 9, solicitacao: formatExamCode('HP', 1004, 2026, 1), paciente: 'Carlos Eduardo Lima', etapa: 'Revisão Pendente', tempoNaEtapa: '5d 0h', atrasado: true, dataEntrada: diasAtras(23) },
+  { id: 10, solicitacao: formatExamCode('IHQ', 1010, 2026, 1), paciente: 'Rafael Costa', etapa: 'Em Microscopia', tempoNaEtapa: '1h', atrasado: false, dataEntrada: diasAtras(18) },
+  { id: 11, solicitacao: formatExamCode('Congela', 1011, 2026, 1), paciente: 'Beatriz Andrade', etapa: 'Em Congelamento', tempoNaEtapa: '15min', atrasado: false, dataEntrada: diasAtras(0) },
+];
 
 const examesComSla = computed(() => {
   return exames.value.map(exame => {
