@@ -96,10 +96,10 @@ import { diasDesde, getSlaStatus, formatTempoTotal, type SlaStatus } from '../ut
 import type { ExamCaseDetail } from '../types/exam';
 
 const headers = [
-  { text: 'Solicitação', value: 'solicitacao' }, 
-  { text: 'Paciente', value: 'paciente' },       
-  { text: 'Etapa', value: 'etapa', align: 'center' }, 
-  { text: 'Tempo na etapa', value: 'tempoNaEtapa', align: 'center' }, 
+  { text: 'Solicitação', value: 'solicitacao' },
+  { text: 'Paciente', value: 'paciente' },
+  { text: 'Etapa', value: 'etapa', align: 'center' },
+  { text: 'Tempo na etapa', value: 'tempoNaEtapa', align: 'center' },
   { text: 'Tempo total', value: 'tempoTotal', align: 'center' },
 ];
 
@@ -209,7 +209,7 @@ const exames = [
 ];
 
 const examesComSla = computed(() => {
-  return exames.map(exame => {
+  return exames.value.map(exame => {
     const dias = diasDesde(exame.dataEntrada);
     const slaStatus = getSlaStatus(dias);
     return {
@@ -228,7 +228,7 @@ const temAtrasado = computed(() => qtdAtrasados.value > 0);
 const statusCards = computed(() => {
   return EXAM_STATUSES.map(status => ({
     label: status,
-    count: exames.filter(e => e.etapa === status).length,
+    count: exames.value.filter(e => e.etapa === status).length,
   }));
 });
 </script>

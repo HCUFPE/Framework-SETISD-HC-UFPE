@@ -28,7 +28,7 @@ wheels/
 *.spec
 
 # Installer logs
-- pyinst.log
+pyinst.log
 
 # Unit test / coverage reports
 htmlcov/
@@ -56,10 +56,10 @@ instance/
 .scrapy
 
 # Sphinx documentation
-- docs/_build/
+docs/_build/
 
 # PyBuilder
-- target/
+target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -90,8 +90,12 @@ Thumbs.db
 *.log
 *.db
 *.sqlite3
-app.db
-server.log
+backend/app.db
+backend/server.log
+
+# Ambiente virtual Python (backend)
+backend/.venv
+.venv
 
 # Frontend (Node.js)
 node_modules/
@@ -106,3 +110,17 @@ yarn-error.log*
 
 # Gemini-specific files
 GEMINI.md
+
+# Configuração local do agente de IA (OpenSpec / Antigravity) — não versionar
+.agent/
+.agents/
+openspec/
+
+# Dados de pacientes / planilhas com dados reais
+# Em desenvolvimento usar: python backend/seed_dados.py
+data/
+backend/data/
+
+# Banco de dados local
+*.sqlite
+app.db
