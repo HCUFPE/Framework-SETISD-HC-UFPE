@@ -112,13 +112,10 @@ const SECTOR_NAV: Record<string, { path: string; label: string; icon: any }> = {
 
 const isAdmin = computed(() => authStore.user?.setor === 'admin');
 
-// Admin vê todos os setores na sidebar. Usuário comum vê só o próprio.
+// Todo usuário autenticado vê todos os setores — não há mais restrição por cargo.
 const sectorLinks = computed(() => {
-  if (isAdmin.value) {
-    return OPERATIONAL_SECTORS.map(s => SECTOR_NAV[s]);
-  }
-  const setor = authStore.user?.setor;
-  return setor && SECTOR_NAV[setor] ? [SECTOR_NAV[setor]] : [];
+  if (!authStore.isAuthenticated) return [];
+  return OPERATIONAL_SECTORS.map(s => SECTOR_NAV[s]);
 });
 
 watch(() => route.path, () => {

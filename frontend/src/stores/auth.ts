@@ -68,6 +68,8 @@ export const useAuthStore = defineStore('auth', () => {
         groups: mockUser.groups,
         givenName: [mockUser.fullName],
         setor: mockUser.setor,
+        title: mockUser.title ? [mockUser.title] : undefined,
+        employeeNumber: mockUser.employeeNumber ? [mockUser.employeeNumber] : undefined,
       });
       return;
     }
@@ -110,6 +112,8 @@ export const useAuthStore = defineStore('auth', () => {
           groups: mockUser.groups,
           givenName: [mockUser.fullName],
           setor: mockUser.setor,
+          title: mockUser.title ? [mockUser.title] : undefined,
+          employeeNumber: mockUser.employeeNumber ? [mockUser.employeeNumber] : undefined,
         });
       } else {
         clearToken();
