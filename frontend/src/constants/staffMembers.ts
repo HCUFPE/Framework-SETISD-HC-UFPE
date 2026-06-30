@@ -5,6 +5,12 @@ export const RESPONSAVEIS_MACROSCOPIA: string[] = [
   'Residente — Rodrigo Nunes',
 ];
 
+export const RESPONSAVEIS_PROCESSAMENTO: string[] = [
+  'Rafael Costa',
+  'Beatriz Andrade',
+  'Célia Ferreira',
+];
+
 export const STAINING_OPTIONS: string[] = [
   'HE (Hematoxilina-Eosina) - Rotina',
   'Congelação',

@@ -21,5 +21,11 @@ export const useExamCasesStore = defineStore('examCases', () => {
     return Object.values(cases.value).find(c => c.recepcao?.frascosIds.includes(frascoId)) ?? null;
   }
 
-  return { cases, upsertCase, getCase, findByFrasco };
+  function findByCassete(casseteFullCode: string): ExamCaseDetail | null {
+    return Object.values(cases.value).find(c =>
+      c.macroscopia?.cassetes.some(cassete => `${c.codigoLocal}-${cassete.id}` === casseteFullCode)
+    ) ?? null;
+  }
+
+  return { cases, upsertCase, getCase, findByFrasco, findByCassete };
 });

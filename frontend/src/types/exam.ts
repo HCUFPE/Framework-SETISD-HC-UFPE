@@ -25,7 +25,7 @@ export interface RecepcaoData {
 
 export interface CasseteInfo {
   id: string; // ex: 'A1', 'B', 'C3'
-  estrutura: string; // ex: 'Útero', 'Trompa direita'
+  estrutura: string;
   coloracao: string;
   observacao?: string;
 }
@@ -38,11 +38,24 @@ export interface MacroscopiaData {
   cassetes: CasseteInfo[];
 }
 
-export interface ProcessamentoData {
-  quantidadeBlocos: number;
-  quantidadeLaminas: number;
-  dataLiberacao: Date;
+export interface BlocoInfo {
+  id: string; // ex: 'A1' — 1:1 com o cassete de origem
+  casseteId: string;
   responsavel: string;
+  dataInclusao: Date;
+}
+
+export interface LaminaInfo {
+  id: string; // ex: 'A1-01'
+  blocoId: string;
+  coloracao: string;
+}
+
+export interface ProcessamentoData {
+  blocos: BlocoInfo[];
+  laminas: LaminaInfo[];
+  dataLiberacao?: Date;
+  responsavelLiberacao?: string;
   materialComplementarDataSaida?: Date;
 }
 
