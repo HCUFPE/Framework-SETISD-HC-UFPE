@@ -85,7 +85,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { ExclamationTriangleIcon, ClockIcon, EllipsisHorizontalIcon } from '@heroicons/vue/24/outline';
+import { ExclamationTriangleIcon, ClockIcon } from '@heroicons/vue/24/outline';
 import Card from '../components/card/card.vue';
 import DataTable from '../components/dataTable/dataTable.vue';
 import Badge from '../components/badge/badge.vue';
@@ -140,6 +140,8 @@ const detalhesPorId: Record<number, ExamCaseDetail> = {
     recepcao: {
       dataEntrada: new Date('2026-06-23'),
       quantidadeFrascos: 1,
+      descricaoFisica: 'Fragmento hepático nodular único.',
+      frascosIds: ['F-1379950-01'],
       responsavel: 'Ana Souza',
     },
   },
@@ -158,16 +160,22 @@ const detalhesPorId: Record<number, ExamCaseDetail> = {
       procedimentoSus: 'Biópsia',
       indicacaoClinica: 'Investigação de lesão gástrica, suspeita de neoplasia.',
     },
-    recepcao: { dataEntrada: new Date('2026-06-01'), quantidadeFrascos: 2, responsavel: 'Ana Souza' },
+    recepcao: {
+      dataEntrada: new Date('2026-06-01'),
+      quantidadeFrascos: 2,
+      descricaoFisica: 'Dois fragmentos de mucosa gástrica, identificados A e B.',
+      frascosIds: ['F-1380442-01', 'F-1380442-02'],
+      responsavel: 'Ana Souza',
+    },
     macroscopia: {
       dataMacro: new Date('2026-06-02'),
       responsavel: 'Carlos Lima',
       descricaoMacroscopica: 'Dois fragmentos de mucosa gástrica, identificados A e B.',
-      quantidadeCassetes: 2,
-      destino: 'Histotécnico',
-      coloracaoEspecial: true,
-      coloracaoQual: 'Giemsa (bloco A) — pesquisa de H. pylori',
       sobraMaterial: false,
+      cassetes: [
+        { id: 'A', estrutura: 'Mucosa gástrica - fragmento A', coloracao: 'HE (Hematoxilina-Eosina) - Rotina' },
+        { id: 'B', estrutura: 'Mucosa gástrica - fragmento B', coloracao: 'Giemsa' },
+      ],
     },
     processamentoTecnico: {
       quantidadeBlocos: 2,

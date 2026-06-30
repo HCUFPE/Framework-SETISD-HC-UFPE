@@ -1,35 +1,41 @@
 import type { ExamType } from '../constants/examTypes';
 import type { ExamStatus } from '../constants/statuses';
 
-/** Dados importados do AGHU — somente leitura, nunca editados pelo nosso sistema. */
 export interface AghuData {
   numeroSolicitacaoAghu: string;
   nomePaciente: string;
   prontuario: string;
   idade: number;
+  sexo: 'M' | 'F';
   origem: 'Internado' | 'Ambulatorial';
-  clinica?: string; // só relevante se Internado (ex: "Hepatologia") — nunca andar/ala
-  tipoMaterial: string; // descrição do material, às vezes vem vazia do AGHU
+  clinica?: string;
+  tipoMaterial: string;
   tipoExame: ExamType;
-  procedimentoSus: string; // subclassificação de faturamento: Geral, Biópsia, Peça de mama etc
+  procedimentoSus: string;
   indicacaoClinica: string;
 }
 
 export interface RecepcaoData {
   dataEntrada: Date;
   quantidadeFrascos: number;
+  descricaoFisica: string;
+  frascosIds: string[];
   responsavel: string;
+}
+
+export interface CasseteInfo {
+  id: string; // ex: 'A1', 'B', 'C3'
+  estrutura: string; // ex: 'Útero', 'Trompa direita'
+  coloracao: string;
+  observacao?: string;
 }
 
 export interface MacroscopiaData {
   dataMacro: Date;
   responsavel: string;
   descricaoMacroscopica: string;
-  quantidadeCassetes: number;
-  destino: 'Histotécnico' | 'Manual';
-  coloracaoEspecial: boolean;
-  coloracaoQual?: string;
   sobraMaterial: boolean;
+  cassetes: CasseteInfo[];
 }
 
 export interface ProcessamentoData {
@@ -37,7 +43,7 @@ export interface ProcessamentoData {
   quantidadeLaminas: number;
   dataLiberacao: Date;
   responsavel: string;
-  materialComplementarDataSaida?: Date; // preenchido quando teve recorte adicional
+  materialComplementarDataSaida?: Date;
 }
 
 export interface MicroscopiaData {

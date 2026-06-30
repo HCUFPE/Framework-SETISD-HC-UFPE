@@ -2,17 +2,14 @@
   <div v-if="show" class="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
     <div class="absolute inset-0 overflow-hidden">
 
-      <!-- Fundo escurecido sutil com desfoque de movimento -->
       <div
         class="absolute inset-0 bg-lab-sidebar/40 backdrop-blur-xs transition-opacity duration-200"
         @click="$emit('close')"
       ></div>
 
-      <!-- Gaveta Lateral -->
       <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
         <div class="pointer-events-auto w-screen max-w-xl md:max-w-2xl lg:max-w-3xl transform bg-lab-bg shadow-2xl flex flex-col h-full border-l border-gray-200 transition-all">
 
-          <!-- Topo da Gaveta: Estilo Prontuário Moderno -->
           <div class="px-6 py-4 bg-white border-b border-gray-200 flex items-center justify-between">
             <div>
               <h2 class="text-base font-bold text-lab-text tracking-tight">Visão Unificada do Caso</h2>
@@ -29,11 +26,9 @@
             </button>
           </div>
 
-          <!-- Área de Conteúdo Scrollável com Separação por Cards Reais -->
           <div class="flex-1 overflow-y-auto p-6 space-y-5">
             <div v-if="detalhe" class="space-y-5">
 
-              <!-- Componente do Cabeçalho -->
               <PatientExamHeader
                 :codigo-local="detalhe.codigoLocal"
                 :aghu="detalhe.aghu"
@@ -41,7 +36,6 @@
                 :urgente="detalhe.urgente"
               />
 
-              <!-- SEÇÃO 1: RECEPÇÃO -->
               <div v-if="recepcaoFields.length" class="bg-white border border-gray-200 rounded-md p-5 shadow-xs">
                 <div class="flex items-center gap-2 mb-4 border-b border-gray-100 pb-2">
                   <span class="w-1.5 h-3.5 bg-lab-info rounded-xs"></span>
@@ -55,7 +49,6 @@
                 </div>
               </div>
 
-              <!-- SEÇÃO 2: MACROSCOPIA -->
               <div v-if="macroscopiaFields.length" class="bg-white border border-gray-200 rounded-md p-5 shadow-xs">
                 <div class="flex items-center gap-2 mb-4 border-b border-gray-100 pb-2">
                   <span class="w-1.5 h-3.5 bg-lab-warning rounded-xs"></span>
@@ -67,15 +60,21 @@
                     <span class="text-gray-800 font-semibold block mt-1">{{ f.value }}</span>
                   </div>
                 </div>
-                <div v-if="detalhe.macroscopia?.descricaoMacroscopica" class="mt-4 pt-3 border-t border-gray-100">
-                  <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Descrição Macroscópica</span>
-                  <p class="text-xs text-gray-800 bg-gray-50 border border-gray-200 rounded p-3 font-mono leading-relaxed whitespace-pre-wrap">
-                    {{ detalhe.macroscopia.descricaoMacroscopica }}
-                  </p>
+                <div v-if="detalhe.macroscopia?.cassetes?.length" class="mt-4 pt-3 border-t border-gray-100">
+                  <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Cassetes Gerados</span>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="c in detalhe.macroscopia.cassetes"
+                      :key="c.id"
+                      class="text-xs font-mono font-semibold bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                      :title="c.estrutura"
+                    >
+                      {{ c.id }}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <!-- SEÇÃO 3: PROCESSAMENTO TÉCNICO -->
               <div v-if="processamentoFields.length" class="bg-white border border-gray-200 rounded-md p-5 shadow-xs">
                 <div class="flex items-center gap-2 mb-4 border-b border-gray-100 pb-2">
                   <span class="w-1.5 h-3.5 bg-lab-primary rounded-xs"></span>
@@ -89,7 +88,6 @@
                 </div>
               </div>
 
-              <!-- SEÇÃO 4: MICROSCOPIA -->
               <div v-if="microscopiaFields.length" class="bg-white border border-gray-200 rounded-md p-5 shadow-xs">
                 <div class="flex items-center gap-2 mb-4 border-b border-gray-100 pb-2">
                   <span class="w-1.5 h-3.5 bg-lab-success rounded-xs"></span>
@@ -112,7 +110,6 @@
             </div>
           </div>
 
-          <!-- Rodapé Fixo e Limpo -->
           <div class="px-6 py-3.5 bg-white border-t border-gray-200 flex justify-end">
             <button
               type="button"
@@ -158,9 +155,7 @@ const macroscopiaFields = computed(() => {
   return [
     { label: 'Data da Macro', value: formatDateShort(m.dataMacro) },
     { label: 'Responsável', value: m.responsavel },
-    { label: 'Cassetes Gerados', value: String(m.quantidadeCassetes) },
-    { label: 'Destino', value: m.destino },
-    { label: 'Coloração Especial', value: m.coloracaoEspecial ? (m.coloracaoQual || 'Sim') : 'Não' },
+    { label: 'Cassetes Gerados', value: String(m.cassetes.length) },
     { label: 'Sobra de Material', value: m.sobraMaterial ? 'Sim' : 'Não' },
   ];
 });
