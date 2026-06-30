@@ -1,6 +1,5 @@
 <template>
   <div class="space-y-6">
-    <!-- Bloco de Busca -->
     <Card>
       <template #header>
         <h2 class="text-lg font-bold text-lab-text flex items-center gap-2">
@@ -18,7 +17,7 @@
             v-model="codigoBusca"
             type="text"
             class="form-control"
-            placeholder="Ex: 442806"
+            placeholder="Digite aqui"
             @keyup.enter="buscar"
           >
         </div>
@@ -26,7 +25,6 @@
       </div>
     </Card>
 
-    <!-- Caso 1: não encontrado no AGHU -->
     <Card v-if="buscou && !registroAghu">
       <div class="flex items-start gap-3 p-2">
         <ExclamationTriangleIcon class="h-6 w-6 shrink-0 text-amber-600" />
@@ -40,7 +38,6 @@
       </div>
     </Card>
 
-    <!-- Caso 2: encontrado, mas não é exame de Anatomia Patológica -->
     <Card v-else-if="buscou && registroAghu && !exameValido">
       <div class="flex items-start gap-3 p-2">
         <XCircleIcon class="h-6 w-6 shrink-0 text-red-600" />
@@ -54,12 +51,8 @@
       </div>
     </Card>
 
-    <!-- Caso 3: encontrado e é da Anatomia Patológica -->
     <div v-else-if="buscou && registroAghu && exameValido" class="space-y-6">
-
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <!-- CARD ESQUERDA: Dados do Paciente -->
         <Card>
           <template #header>
             <h2 class="text-lg font-bold text-lab-text">Dados do Paciente (AGHU)</h2>
@@ -115,7 +108,6 @@
           </div>
         </Card>
 
-        <!-- CARD DIREITA: Registro de Peça (Formulário) -->
         <Card>
           <template #header>
             <h2 class="text-lg font-bold text-lab-text">Registro de Peça (UACAP)</h2>
@@ -167,7 +159,6 @@
         </Card>
       </div>
 
-      <!-- BLOCO INFERIOR: QR Codes gerados pós-registro -->
       <Card v-if="registrado" class="border-t-4 border-t-lab-success">
         <div class="space-y-4">
           <div class="flex items-start gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
@@ -194,7 +185,6 @@
           </div>
         </div>
       </Card>
-
     </div>
   </div>
 </template>
@@ -214,6 +204,8 @@ import Button from '../components/button/button.vue';
 import Badge from '../components/badge/badge.vue';
 import QrcodeBatchPrint from '../components/qrcode/qrcodeBatchPrint.vue';
 import { useExamSequenceStore } from '../stores/examSequence';
+import { useExamCasesStore } from '../stores/examCases';
+import { useAuthStore } from '../stores/auth';
 import { formatExamCode } from '../utils/examCode';
 import { EXAM_TYPE_PREFIX, type ExamType } from '../constants/examTypes';
 
@@ -287,6 +279,8 @@ const AGHU_MOCK_DB: Record<string, AghuRawRecord> = {
 
 const toast = useToast();
 const sequenceStore = useExamSequenceStore();
+const examCasesStore = useExamCasesStore();
+const authStore = useAuthStore();
 
 const codigoBusca = ref('');
 const buscou = ref(false);
@@ -324,9 +318,12 @@ function registrarPeca() {
   const caso = sequenceStore.nextSequencial();
   codigoGerado.value = formatExamCode(tipoExame, caso.sequencial, caso.ano, caso.semestre);
 
+  // Cada frasco recebe um ID FÍSICO próprio (F-{AGHU}-{NN}) — diferente do código
+  // local do caso, que é compartilhado por todos os frascos da mesma peça.
   const total = quantidadeFrascos.value;
+  const aghuNumero = registroAghu.value.numeroSolicitacaoAghu;
   etiquetasFrascos.value = Array.from({ length: total }, (_, i) => ({
-    identificador: codigoGerado.value,
+    identificador: `F-${aghuNumero}-${String(i + 1).padStart(2, '0')}`,
     tipo: 'frasco' as const,
     rotulo: `Frasco ${String(i + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`,
   }));
@@ -340,6 +337,33 @@ function registrarPeca() {
 }
 
 function enviarParaMacroscopia() {
+  if (!registroAghu.value) return;
+
+  examCasesStore.upsertCase(codigoGerado.value, {
+    etapaAtual: 'Em Macroscopia',
+    urgente: urgente.value,
+    aghu: {
+      numeroSolicitacaoAghu: registroAghu.value.numeroSolicitacaoAghu,
+      nomePaciente: registroAghu.value.nomePaciente,
+      prontuario: registroAghu.value.prontuario,
+      idade: registroAghu.value.idade,
+      sexo: registroAghu.value.sexo,
+      origem: registroAghu.value.origem,
+      clinica: registroAghu.value.clinica,
+      tipoMaterial: registroAghu.value.tipoMaterial,
+      tipoExame: registroAghu.value.tipoExameRaw as ExamType,
+      procedimentoSus: registroAghu.value.procedimentoSus,
+      indicacaoClinica: registroAghu.value.indicacaoClinica,
+    },
+    recepcao: {
+      dataEntrada: new Date(),
+      quantidadeFrascos: quantidadeFrascos.value,
+      descricaoFisica: descricaoFisica.value,
+      frascosIds: etiquetasFrascos.value.map(e => e.identificador),
+      responsavel: authStore.user?.givenName?.[0] || authStore.user?.username || 'Recepção',
+    },
+  });
+
   toast.success(`Caso ${codigoGerado.value} enviado para a Macroscopia.`);
   codigoBusca.value = '';
   buscou.value = false;
