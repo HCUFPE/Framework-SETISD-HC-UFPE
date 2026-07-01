@@ -205,7 +205,7 @@ import Badge from '../components/badge/badge.vue';
 import QrcodeBatchPrint from '../components/qrcode/qrcodeBatchPrint.vue';
 import { useExamCasesStore } from '../stores/examCases';
 import { useAuthStore } from '../stores/auth';
-import { exameService, type FrascoDetalhe } from '../services/exameService';
+import { exameService } from '../services/exameService';
 import { EXAM_TYPE_PREFIX, type ExamType } from '../constants/examTypes';
 
 interface AghuRawRecord {
@@ -292,8 +292,6 @@ const codigoGerado = ref('');
 const etiquetasFrascos = ref<{ identificador: string; tipo: 'frasco'; rotulo: string }[]>([]);
 // ID (UUID) real do frasco criado/encontrado no backend — usado no encaminhamento.
 const frascoIdReal = ref<string | null>(null);
-// true quando a busca encontrou um caso JÁ existente no banco (não é recebimento novo).
-const casoExistente = ref(false);
 
 const exameValido = computed(() => {
   return !!registroAghu.value && registroAghu.value.tipoExameRaw in EXAM_TYPE_PREFIX;
@@ -303,14 +301,51 @@ const podeRegistrar = computed(() => {
   return quantidadeFrascos.value >= 1 && descricaoFisica.value.trim().length > 0;
 });
 
-function buscar() {
+async function buscar() {
   buscou.value = true;
   registrado.value = false;
-  const encontrado = AGHU_MOCK_DB[codigoBusca.value.trim()] ?? null;
+  registroAghu.value = null;
+  frascoIdReal.value = null;
+  urgente.value = false;
+
+  const code = codigoBusca.value.trim();
+  if (!code) return;
+
+  // 1) Caso JÁ existente no banco, procurado pelo número de solicitação AGHU.
+  try {
+    const fila = await exameService.pendenciasRecepcao();
+    const frasco = fila.find(f => f.numero_exame_aghu === code) ?? null;
+    if (frasco) {
+      const det = await exameService.detalhe(frasco.id_exame);
+      registroAghu.value = {
+        numeroSolicitacaoAghu: det.aghu.numero_solicitacao_aghu,
+        nomePaciente: det.aghu.nome_paciente,
+        prontuario: det.aghu.prontuario ?? '—',
+        idade: det.aghu.idade,
+        sexo: 'M',
+        origem: 'Internado',
+        tipoMaterial: det.aghu.tipo_material,
+        tipoExameRaw: det.aghu.tipo_exame,
+        procedimentoSus: det.aghu.procedimento_sus,
+        indicacaoClinica: det.aghu.indicacao_clinica,
+      };
+      descricaoFisica.value = det.recepcao?.descricao_fisica ?? det.aghu.tipo_material ?? '';
+      quantidadeFrascos.value = det.recepcao?.quantidade_frascos ?? 1;
+      frascoIdReal.value = frasco.id_frasco;
+      codigoGerado.value = det.codigo_local;
+      etiquetasFrascos.value = [{ identificador: frasco.codigo_interno, tipo: 'frasco', rotulo: 'Frasco 01/01' }];
+      registrado.value = true; // já recebido no banco → segue direto para o envio à macroscopia
+      return;
+    }
+  } catch {
+    // O interceptor do axios já exibe o toast de erro; segue para o mock.
+  }
+
+  // 2) Recebimento novo — consulta o AGHU externo (mock; integração é Fase 4).
+  const encontrado = AGHU_MOCK_DB[code] ?? null;
   registroAghu.value = encontrado;
   descricaoFisica.value = encontrado?.tipoMaterial ?? '';
   quantidadeFrascos.value = 1;
-  urgente.value = false;
 }
 
 async function registrarPeca() {
