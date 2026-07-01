@@ -203,10 +203,9 @@ import Card from '../components/card/card.vue';
 import Button from '../components/button/button.vue';
 import Badge from '../components/badge/badge.vue';
 import QrcodeBatchPrint from '../components/qrcode/qrcodeBatchPrint.vue';
-import { useExamSequenceStore } from '../stores/examSequence';
 import { useExamCasesStore } from '../stores/examCases';
 import { useAuthStore } from '../stores/auth';
-import { formatExamCode } from '../utils/examCode';
+import { exameService } from '../services/exameService';
 import { EXAM_TYPE_PREFIX, type ExamType } from '../constants/examTypes';
 
 interface AghuRawRecord {
@@ -278,7 +277,6 @@ const AGHU_MOCK_DB: Record<string, AghuRawRecord> = {
 };
 
 const toast = useToast();
-const sequenceStore = useExamSequenceStore();
 const examCasesStore = useExamCasesStore();
 const authStore = useAuthStore();
 
@@ -292,6 +290,8 @@ const descricaoFisica = ref('');
 const registrado = ref(false);
 const codigoGerado = ref('');
 const etiquetasFrascos = ref<{ identificador: string; tipo: 'frasco'; rotulo: string }[]>([]);
+// ID (UUID) real do frasco criado/encontrado no backend — usado no encaminhamento.
+const frascoIdReal = ref<string | null>(null);
 
 const exameValido = computed(() => {
   return !!registroAghu.value && registroAghu.value.tipoExameRaw in EXAM_TYPE_PREFIX;
@@ -301,73 +301,136 @@ const podeRegistrar = computed(() => {
   return quantidadeFrascos.value >= 1 && descricaoFisica.value.trim().length > 0;
 });
 
-function buscar() {
+async function buscar() {
   buscou.value = true;
   registrado.value = false;
-  const encontrado = AGHU_MOCK_DB[codigoBusca.value.trim()] ?? null;
+  registroAghu.value = null;
+  frascoIdReal.value = null;
+  urgente.value = false;
+
+  const code = codigoBusca.value.trim();
+  if (!code) return;
+
+  // 1) Caso JÁ existente no banco, procurado pelo nº de solicitação interno
+  //    (o que aparece no dashboard, ex.: HP-0001/26.1) ou pelo nº AGHU.
+  try {
+    const fila = await exameService.pendenciasRecepcao();
+    const frasco = fila.find(f => f.numero_solicitacao === code || f.numero_exame_aghu === code) ?? null;
+    if (frasco) {
+      const det = await exameService.detalhe(frasco.id_exame);
+      registroAghu.value = {
+        numeroSolicitacaoAghu: det.aghu.numero_solicitacao_aghu,
+        nomePaciente: det.aghu.nome_paciente,
+        prontuario: det.aghu.prontuario ?? '—',
+        idade: det.aghu.idade,
+        sexo: 'M',
+        origem: 'Internado',
+        tipoMaterial: det.aghu.tipo_material,
+        tipoExameRaw: det.aghu.tipo_exame,
+        procedimentoSus: det.aghu.procedimento_sus,
+        indicacaoClinica: det.aghu.indicacao_clinica,
+      };
+      descricaoFisica.value = det.recepcao?.descricao_fisica ?? det.aghu.tipo_material ?? '';
+      quantidadeFrascos.value = det.recepcao?.quantidade_frascos ?? 1;
+      frascoIdReal.value = frasco.id_frasco;
+      codigoGerado.value = det.codigo_local;
+      etiquetasFrascos.value = [{ identificador: frasco.codigo_interno, tipo: 'frasco', rotulo: 'Frasco 01/01' }];
+      registrado.value = true; // já recebido no banco → segue direto para o envio à macroscopia
+      return;
+    }
+  } catch {
+    // O interceptor do axios já exibe o toast de erro; segue para o mock.
+  }
+
+  // 2) Recebimento novo — consulta o AGHU externo (mock; integração é Fase 4).
+  const encontrado = AGHU_MOCK_DB[code] ?? null;
   registroAghu.value = encontrado;
   descricaoFisica.value = encontrado?.tipoMaterial ?? '';
   quantidadeFrascos.value = 1;
-  urgente.value = false;
 }
 
-function registrarPeca() {
+async function registrarPeca() {
   if (!podeRegistrar.value || !registroAghu.value) return;
 
-  const tipoExame = registroAghu.value.tipoExameRaw as ExamType;
-  const caso = sequenceStore.nextSequencial();
-  codigoGerado.value = formatExamCode(tipoExame, caso.sequencial, caso.ano, caso.semestre);
+  const aghu = registroAghu.value;
+  try {
+    // Persiste a triagem no backend (cria exame + frasco + gera o nº de solicitação real).
+    const resp = await exameService.criar({
+      paciente: {
+        nome: aghu.nomePaciente,
+        cns: aghu.prontuario, // usa o prontuário como documento do paciente (dev/demo)
+        // origem do backend é o sistema de saúde (SUS/HC), eixo diferente do
+        // Internado/Ambulatorial da tela → deixa o default "SUS".
+      },
+      tipo_exame: aghu.tipoExameRaw,
+      tipo_peca: descricaoFisica.value,
+      numero_exame_aghu: aghu.numeroSolicitacaoAghu,
+    });
 
-  // Cada frasco recebe um ID FÍSICO próprio (F-{AGHU}-{NN}) — diferente do código
-  // local do caso, que é compartilhado por todos os frascos da mesma peça.
-  const total = quantidadeFrascos.value;
-  const aghuNumero = registroAghu.value.numeroSolicitacaoAghu;
-  etiquetasFrascos.value = Array.from({ length: total }, (_, i) => ({
-    identificador: `F-${aghuNumero}-${String(i + 1).padStart(2, '0')}`,
-    tipo: 'frasco' as const,
-    rotulo: `Frasco ${String(i + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}`,
-  }));
+    codigoGerado.value = resp.exame.numero_solicitacao;
+    frascoIdReal.value = resp.frasco.id;
 
-  registrado.value = true;
-  toast.success(
-    urgente.value
-      ? `Recebimento registrado com prioridade de urgência — caso ${codigoGerado.value}.`
-      : 'Recebimento registrado com sucesso.'
-  );
+    // O backend cria 1 frasco por exame; a etiqueta usa o código interno real dele.
+    etiquetasFrascos.value = [{
+      identificador: resp.frasco.codigo_interno,
+      tipo: 'frasco' as const,
+      rotulo: 'Frasco 01/01',
+    }];
+
+    registrado.value = true;
+    toast.success(
+      urgente.value
+        ? `Recebimento registrado com prioridade de urgência — caso ${codigoGerado.value}.`
+        : `Recebimento registrado com sucesso — caso ${codigoGerado.value}.`
+    );
+  } catch {
+    // O interceptor do axios já exibe o toast de erro.
+  }
 }
 
-function enviarParaMacroscopia() {
-  if (!registroAghu.value) return;
+async function enviarParaMacroscopia() {
+  if (!registroAghu.value || !frascoIdReal.value) return;
 
-  examCasesStore.upsertCase(codigoGerado.value, {
-    etapaAtual: 'Em Macroscopia',
-    urgente: urgente.value,
-    aghu: {
-      numeroSolicitacaoAghu: registroAghu.value.numeroSolicitacaoAghu,
-      nomePaciente: registroAghu.value.nomePaciente,
-      prontuario: registroAghu.value.prontuario,
-      idade: registroAghu.value.idade,
-      sexo: registroAghu.value.sexo,
-      origem: registroAghu.value.origem,
-      clinica: registroAghu.value.clinica,
-      tipoMaterial: registroAghu.value.tipoMaterial,
-      tipoExame: registroAghu.value.tipoExameRaw as ExamType,
-      procedimentoSus: registroAghu.value.procedimentoSus,
-      indicacaoClinica: registroAghu.value.indicacaoClinica,
-    },
-    recepcao: {
-      dataEntrada: new Date(),
-      quantidadeFrascos: quantidadeFrascos.value,
-      descricaoFisica: descricaoFisica.value,
-      frascosIds: etiquetasFrascos.value.map(e => e.identificador),
-      responsavel: authStore.user?.givenName?.[0] || authStore.user?.username || 'Recepção',
-    },
-  });
+  try {
+    // Muda o status do frasco no backend: Na Recepção → Aguardando Macroscopia.
+    await exameService.encaminharMacroscopia(frascoIdReal.value);
 
-  toast.success(`Caso ${codigoGerado.value} enviado para a Macroscopia.`);
-  codigoBusca.value = '';
-  buscou.value = false;
-  registroAghu.value = null;
-  registrado.value = false;
+    const aghu = registroAghu.value;
+    // Guarda o contexto rico (AGHU + recepção) no store, chaveado pelo nº de
+    // solicitação real, para a Macroscopia exibir a visão unificada na mesma sessão.
+    examCasesStore.upsertCase(codigoGerado.value, {
+      etapaAtual: 'Em Macroscopia',
+      urgente: urgente.value,
+      aghu: {
+        numeroSolicitacaoAghu: aghu.numeroSolicitacaoAghu,
+        nomePaciente: aghu.nomePaciente,
+        prontuario: aghu.prontuario,
+        idade: aghu.idade,
+        sexo: aghu.sexo,
+        origem: aghu.origem,
+        clinica: aghu.clinica,
+        tipoMaterial: aghu.tipoMaterial,
+        tipoExame: aghu.tipoExameRaw as ExamType,
+        procedimentoSus: aghu.procedimentoSus,
+        indicacaoClinica: aghu.indicacaoClinica,
+      },
+      recepcao: {
+        dataEntrada: new Date(),
+        quantidadeFrascos: quantidadeFrascos.value,
+        descricaoFisica: descricaoFisica.value,
+        frascosIds: etiquetasFrascos.value.map(e => e.identificador),
+        responsavel: authStore.user?.givenName?.[0] || authStore.user?.username || 'Recepção',
+      },
+    });
+
+    toast.success(`Caso ${codigoGerado.value} enviado para a Macroscopia.`);
+    codigoBusca.value = '';
+    buscou.value = false;
+    registroAghu.value = null;
+    registrado.value = false;
+    frascoIdReal.value = null;
+  } catch {
+    // O interceptor do axios já exibe o toast de erro.
+  }
 }
 </script>

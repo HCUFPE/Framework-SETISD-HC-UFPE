@@ -24,9 +24,11 @@ class FrascoDetalhe(BaseModel):
     """
 
     id_frasco: str
+    id_exame: str
     codigo_interno: str
     status: str
     numero_solicitacao: str
+    numero_exame_aghu: Optional[str] = None
     tipo_peca: Optional[str] = None
     paciente_nome: str
     data_criacao: Optional[datetime] = None

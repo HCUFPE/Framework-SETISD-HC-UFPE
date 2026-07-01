@@ -152,6 +152,11 @@ async def registrar_recebimento(
     return {"exame": exame, "frasco": frasco, "etiqueta": etiqueta}
 
 
+async def listar_pendencias_recepcao(session: AsyncSession) -> list[dict]:
+    """Frascos recebidos ainda não encaminhados à macroscopia (fila da recepção)."""
+    return await FrascoRepository(session).listar_pendencias_recepcao()
+
+
 async def encaminhar_para_macroscopia(
     session: AsyncSession,
     id_frasco: str,

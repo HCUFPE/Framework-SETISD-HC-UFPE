@@ -74,9 +74,15 @@ TRANSICOES_VALIDAS: dict[str, dict[str, set[str]]] = {
         StatusExame.NA_RECEPCAO: {StatusExame.EM_MACROSCOPIA},
         StatusExame.EM_MACROSCOPIA: {StatusExame.EM_PROCESSAMENTO},
         StatusExame.EM_PROCESSAMENTO: {StatusExame.EM_MICROSCOPIA},
-        StatusExame.EM_MICROSCOPIA: {StatusExame.LIBERADO},
+        # Microscopia pode liberar o laudo, mandar para revisão interna, ou pedir
+        # material complementar/IHQ (volta ao processamento técnico).
+        StatusExame.EM_MICROSCOPIA: {
+            StatusExame.LIBERADO,
+            StatusExame.REVISAO_PENDENTE,
+            StatusExame.EM_PROCESSAMENTO,
+        },
         StatusExame.EM_CONGELAMENTO: set(),
-        StatusExame.REVISAO_PENDENTE: {StatusExame.LIBERADO},
+        StatusExame.REVISAO_PENDENTE: {StatusExame.LIBERADO, StatusExame.EM_PROCESSAMENTO},
         StatusExame.LIBERADO: set(),
     },
     "Frasco": {

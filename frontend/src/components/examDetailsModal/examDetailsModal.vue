@@ -164,10 +164,10 @@ const processamentoFields = computed(() => {
   const p = props.detalhe?.processamentoTecnico;
   if (!p) return [];
   const fields = [
-    { label: 'Blocos Gerados', value: String(p.quantidadeBlocos) },
-    { label: 'Lâminas Geradas', value: String(p.quantidadeLaminas) },
+    { label: 'Blocos Gerados', value: String(p.blocos.length) },
+    { label: 'Lâminas Geradas', value: String(p.laminas.length) },
     { label: 'Liberado Em', value: formatDateShort(p.dataLiberacao) },
-    { label: 'Responsável', value: p.responsavel },
+    { label: 'Responsável', value: p.responsavelLiberacao ?? '—' },
   ];
   if (p.materialComplementarDataSaida) {
     fields.push({ label: 'Complemento em', value: formatDateShort(p.materialComplementarDataSaida) });

@@ -86,8 +86,12 @@
                 <div
                   v-for="cassete in casoAtual.macroscopia!.cassetes"
                   :key="cassete.id"
-                  class="flex items-center justify-between gap-3 p-2 rounded-lg"
-                  :class="cassete.id === casseteAtivo?.id ? 'bg-lab-primary/10 ring-1 ring-lab-primary/30' : 'bg-gray-50'"
+                  @click="selecionarCassete(cassete.id)"
+                  class="flex items-center justify-between gap-3 p-2 rounded-lg transition-colors"
+                  :class="[
+                    cassete.id === casseteAtivo?.id ? 'bg-lab-primary/10 ring-1 ring-lab-primary/30' : 'bg-gray-50',
+                    cassetesProcessados.includes(cassete.id) ? 'cursor-default' : 'cursor-pointer hover:bg-lab-primary/5',
+                  ]"
                 >
                   <div class="flex items-center gap-2">
                     <span class="font-mono font-bold text-xs bg-white border border-gray-200 px-2 py-1 rounded">{{ cassete.id }}</span>
@@ -222,8 +226,11 @@ import Badge from '../components/badge/badge.vue';
 import QrcodeBatchPrint from '../components/qrcode/qrcodeBatchPrint.vue';
 import { useExamCasesStore } from '../stores/examCases';
 import { useAuthStore } from '../stores/auth';
+import { exameService } from '../services/exameService';
 import { RESPONSAVEIS_PROCESSAMENTO } from '../constants/staffMembers';
 import type { ExamCaseDetail, BlocoInfo, LaminaInfo } from '../types/exam';
+
+const COLORACAO_ROTINA = 'HE (Hematoxilina-Eosina) - Rotina';
 
 const toast = useToast();
 const examCasesStore = useExamCasesStore();
@@ -232,6 +239,8 @@ const authStore = useAuthStore();
 const codigoCassete = ref('');
 const buscou = ref(false);
 const casoAtual = ref<ExamCaseDetail | null>(null);
+// Mapa letra_fragmento → UUID do cassete no backend (fila de processamento).
+const cassetesBackend = ref<Record<string, string>>({});
 
 const responsavelProcessamento = ref('');
 const dataProcessamento = ref(new Date().toISOString().slice(0, 10));
@@ -287,42 +296,135 @@ watch(casseteAtivo, () => {
   coloracoesSelecionadas.value = [...coloracaoesEspeciaisDisponiveis.value];
 });
 
-function buscarCassete() {
+async function buscarCassete() {
   buscou.value = true;
-  casoAtual.value = examCasesStore.findByCassete(codigoCassete.value.trim());
+  casoAtual.value = null;
+  cassetesBackend.value = {};
+
+  const code = codigoCassete.value.trim();
+  if (!code) return;
+
+  try {
+    const pendencias = await exameService.pendenciasProcessamento();
+
+    // Aceita tanto o código do cassete ("HP-0004/26.1-A") quanto só o nº da
+    // solicitação ("HP-0004/26.1"). Casa contra a fila real em vez de "adivinhar"
+    // onde está o traço — o próprio nº de solicitação já contém "-".
+    let alvo = pendencias.find(c => `${c.numero_solicitacao}-${c.letra_fragmento}` === code) ?? null;
+    let numeroSol = alvo?.numero_solicitacao ?? null;
+    if (!numeroSol) {
+      const daFila = pendencias.filter(c => c.numero_solicitacao === code);
+      if (daFila.length) {
+        numeroSol = code;
+        alvo = daFila[0]; // ativa o 1º cassete pendente do caso
+      }
+    }
+    if (!numeroSol || !alvo) return; // nada pendente → template mostra "não encontrado"
+
+    const doCaso = pendencias.filter(c => c.numero_solicitacao === numeroSol);
+    // Mapa letra → UUID (necessário para iniciar o lote no backend).
+    cassetesBackend.value = Object.fromEntries(doCaso.map(c => [c.letra_fragmento, c.id]));
+
+    // Normaliza o campo para o código completo do cassete ativo (casseteAtivo depende disso).
+    codigoCassete.value = `${numeroSol}-${alvo.letra_fragmento}`;
+
+    // Contexto rico da mesma sessão (Macroscopia) ou fallback sintetizado do backend.
+    if (!examCasesStore.getCase(numeroSol)) {
+      examCasesStore.upsertCase(numeroSol, {
+        etapaAtual: 'Em Processamento',
+        urgente: false,
+        aghu: {
+          numeroSolicitacaoAghu: '—',
+          nomePaciente: alvo.paciente_nome ?? '—',
+          prontuario: '—',
+          idade: 0,
+          sexo: 'M',
+          origem: 'Internado',
+          tipoMaterial: '',
+          tipoExame: 'HP',
+          procedimentoSus: '—',
+          indicacaoClinica: '—',
+        },
+        macroscopia: {
+          dataMacro: new Date(),
+          responsavel: '—',
+          descricaoMacroscopica: '—',
+          sobraMaterial: false,
+          cassetes: doCaso.map(c => ({ id: c.letra_fragmento, estrutura: '—', coloracao: COLORACAO_ROTINA })),
+        },
+      });
+    }
+
+    casoAtual.value = examCasesStore.getCase(numeroSol);
+  } catch {
+    // O interceptor do axios já exibe o toast de erro.
+  }
 }
 
-function registrarInclusao() {
+// Clique num cassete pendente da lista → torna-o o cassete ativo para inclusão.
+function selecionarCassete(id: string) {
+  if (!casoAtual.value || cassetesProcessados.value.includes(id)) return;
+  codigoCassete.value = `${casoAtual.value.codigoLocal}-${id}`;
+}
+
+async function registrarInclusao() {
   if (!podeRegistrarInclusao.value || !casoAtual.value || !casseteAtivo.value) return;
 
-  const blocoId = casseteAtivo.value.id;
-  const novoBloco: BlocoInfo = {
-    id: blocoId,
-    casseteId: casseteAtivo.value.id,
-    responsavel: responsavelProcessamento.value,
-    dataInclusao: new Date(dataProcessamento.value),
-  };
+  const blocoId = casseteAtivo.value.id; // letra do fragmento (A, B, ...)
+  const casseteUuid = cassetesBackend.value[blocoId];
+  if (!casseteUuid) {
+    toast.error('Este cassete não está na fila de processamento do backend.');
+    return;
+  }
 
-  const coloracoes = ['HE (Hematoxilina-Eosina) - Rotina', ...coloracoesSelecionadas.value];
-  const novasLaminas: LaminaInfo[] = coloracoes.map((coloracao, i) => ({
-    id: `${blocoId}-${String(i + 1).padStart(2, '0')}`,
-    blocoId,
-    coloracao,
-  }));
+  const coloracoes = [COLORACAO_ROTINA, ...coloracoesSelecionadas.value];
 
-  const atual = casoAtual.value.processamentoTecnico ?? { blocos: [], laminas: [] };
+  try {
+    // Backend: lote (1 cassete) → concluir (gera o bloco) → gerar lâminas.
+    const { lote } = await exameService.iniciarLote({
+      cassete_ids: [casseteUuid],
+      observacoes: `Inclusão ${responsavelProcessamento.value}`,
+    });
+    const { blocos } = await exameService.concluirLote(lote.id, { observacoes: 'OK' });
+    const blocoBackend = blocos[0];
+    if (blocoBackend) {
+      // gerar_laminas só pode ser chamado 1x por bloco → gera o total de uma vez.
+      await exameService.gerarLaminas(blocoBackend.id, {
+        quantidade: coloracoes.length,
+        coloracao: coloracoes[0],
+      });
+    }
 
-  examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
-    etapaAtual: 'Em Processamento',
-    processamentoTecnico: {
-      ...atual,
-      blocos: [...atual.blocos, novoBloco],
-      laminas: [...atual.laminas, ...novasLaminas],
-    },
-  });
+    // Cassete já saiu da fila de pendências no backend.
+    delete cassetesBackend.value[blocoId];
 
-  casoAtual.value = examCasesStore.getCase(casoAtual.value.codigoLocal);
-  toast.success(`Cassete ${blocoId} incluído. ${novasLaminas.length} lâmina(s) geradas.`);
+    const novoBloco: BlocoInfo = {
+      id: blocoId,
+      casseteId: casseteAtivo.value.id,
+      responsavel: responsavelProcessamento.value,
+      dataInclusao: new Date(dataProcessamento.value),
+    };
+    const novasLaminas: LaminaInfo[] = coloracoes.map((coloracao, i) => ({
+      id: `${blocoId}-${String(i + 1).padStart(2, '0')}`,
+      blocoId,
+      coloracao,
+    }));
+
+    const atual = casoAtual.value.processamentoTecnico ?? { blocos: [], laminas: [] };
+    examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
+      etapaAtual: 'Em Processamento',
+      processamentoTecnico: {
+        ...atual,
+        blocos: [...atual.blocos, novoBloco],
+        laminas: [...atual.laminas, ...novasLaminas],
+      },
+    });
+
+    casoAtual.value = examCasesStore.getCase(casoAtual.value.codigoLocal);
+    toast.success(`Cassete ${blocoId} incluído. ${novasLaminas.length} lâmina(s) geradas.`);
+  } catch {
+    // O interceptor do axios já exibe o toast de erro.
+  }
 }
 
 function enviarParaMicroscopia() {

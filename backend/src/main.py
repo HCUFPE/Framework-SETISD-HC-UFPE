@@ -65,7 +65,7 @@ if os.path.isdir("src/static/dist"):
 
 # Placeholder para incluir os roteadores da API
 from .routers import paciente, auth, admin, aih, bpa, material
-from .routers import exame, frasco, macroscopia, historico, processamento
+from .routers import exame, frasco, macroscopia, historico, processamento, microscopia
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
@@ -79,6 +79,7 @@ app.include_router(frasco.router)
 app.include_router(macroscopia.router)
 app.include_router(historico.router)
 app.include_router(processamento.router)
+app.include_router(microscopia.router)
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):

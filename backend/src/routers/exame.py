@@ -47,6 +47,17 @@ async def listar_exames(
     return await exame_controller.listar_exames(session)
 
 
+@router.get("/{id_exame}/detalhe")
+async def obter_detalhe(
+    id_exame: str,
+    session: AsyncSession = Depends(get_app_db_session),
+    current_user: dict = Depends(require_perfil()),
+):
+    """Visão unificada do caso (exame + paciente + frasco + macroscopia +
+    cassetes + blocos + lâminas) para o modal 'Ver detalhes' do dashboard."""
+    return await exame_controller.obter_detalhe(session, id_exame)
+
+
 @router.get("/{id_exame}", response_model=ExameOut)
 async def obter_exame(
     id_exame: str,
