@@ -11,6 +11,13 @@ export const RESPONSAVEIS_PROCESSAMENTO: string[] = [
   'Célia Ferreira',
 ];
 
+export const RESPONSAVEIS_MICROSCOPIA: string[] = [
+  'Dr. Marcelo Tavares',
+  'Dra. Fernanda Lopes',
+  'Residente — Rodrigo Nunes',
+  'Residente — Ana Paula Melo',
+];
+
 export const STAINING_OPTIONS: string[] = [
   'HE (Hematoxilina-Eosina) - Rotina',
   'Congelação',
