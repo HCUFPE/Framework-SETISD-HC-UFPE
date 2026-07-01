@@ -311,10 +311,11 @@ async function buscar() {
   const code = codigoBusca.value.trim();
   if (!code) return;
 
-  // 1) Caso JÁ existente no banco, procurado pelo número de solicitação AGHU.
+  // 1) Caso JÁ existente no banco, procurado pelo nº de solicitação interno
+  //    (o que aparece no dashboard, ex.: HP-0001/26.1) ou pelo nº AGHU.
   try {
     const fila = await exameService.pendenciasRecepcao();
-    const frasco = fila.find(f => f.numero_exame_aghu === code) ?? null;
+    const frasco = fila.find(f => f.numero_solicitacao === code || f.numero_exame_aghu === code) ?? null;
     if (frasco) {
       const det = await exameService.detalhe(frasco.id_exame);
       registroAghu.value = {

@@ -179,7 +179,6 @@ def construir_caso(objetos, contadores, pac, tipo, peca, topo, aghu, dias, alvo,
     # Status do exame conforme o alvo
     status_exame = {
         "recepcao": StatusExame.NA_RECEPCAO,
-        "aguardando_macro": StatusExame.NA_RECEPCAO,
         "em_macro": StatusExame.EM_MACROSCOPIA,
         "em_proc": StatusExame.EM_PROCESSAMENTO,
         "em_micro": StatusExame.EM_MICROSCOPIA,
@@ -213,7 +212,6 @@ def construir_caso(objetos, contadores, pac, tipo, peca, topo, aghu, dias, alvo,
     # Status do frasco conforme o alvo
     status_frasco = {
         "recepcao": StatusFrasco.NA_RECEPCAO,
-        "aguardando_macro": StatusFrasco.AGUARDANDO_MACROSCOPIA,
         "em_macro": StatusFrasco.EM_MACROSCOPIA,
         "congelamento": StatusFrasco.EM_MACROSCOPIA,
     }.get(alvo, StatusFrasco.PROCESSAMENTO_COMPLETO)
@@ -232,14 +230,14 @@ def construir_caso(objetos, contadores, pac, tipo, peca, topo, aghu, dias, alvo,
     )
     objetos.append(frasco)
 
-    if alvo in ("aguardando_macro", "em_macro", "em_proc", "em_micro", "liberado", "revisao"):
+    if alvo in ("em_macro", "em_proc", "em_micro", "liberado", "revisao"):
         objetos.append(_hist(exame, Etapa.TRIAGEM, None, StatusFrasco.AGUARDANDO_MACROSCOPIA, d(entry, 0), "recepcao", "Encaminhado para macroscopia"))
 
     if alvo in ("em_macro",):
         objetos.append(_hist(exame, Etapa.MACROSCOPIA, StatusExame.NA_RECEPCAO, StatusExame.EM_MACROSCOPIA, d(entry, 1), macro_resp, "Macroscopia iniciada"))
 
     # Sem cassetes ainda nesses status
-    if alvo in ("recepcao", "aguardando_macro", "em_macro", "congelamento"):
+    if alvo in ("recepcao", "em_macro", "congelamento"):
         return exame
 
     # --- macroscopia registrada (em_proc em diante) ---
@@ -343,14 +341,13 @@ def construir_caso(objetos, contadores, pac, tipo, peca, topo, aghu, dias, alvo,
 # (pac_idx, tipo, dias_atras, alvo, n_cassetes)  — material/topografia sorteados por tipo
 # Distribuição pensada para o dashboard: todos os status + SLA variando.
 CENARIOS = [
-    # recém-chegados (Na Recepção)
+    # recém-chegados (Na Recepção) — frasco ainda Na Recepção, prontos p/ encaminhar
     (0, "HP", 0, "recepcao", 3),
     (12, "HP", 1, "recepcao", 4),
     (5, "CG", 0, "recepcao", 1),
-    # aguardando macroscopia (fila do macroscopista; dashboard = Na Recepção)
-    (1, "HP", 1, "aguardando_macro", 2),
-    (9, "HPDerm", 2, "aguardando_macro", 2),
-    (14, "HP", 2, "aguardando_macro", 5),
+    (1, "HP", 1, "recepcao", 2),
+    (9, "HPDerm", 2, "recepcao", 2),
+    (14, "HP", 2, "recepcao", 5),
     # em macroscopia
     (2, "HP", 2, "em_macro", 6),
     (7, "IHQ", 3, "em_macro", 2),
@@ -475,7 +472,7 @@ async def main():
             aghu = str(1370000 + len(objetos))
             construir_caso(objetos, contadores, pac_objs[pac_idx], tipo, peca, topo, aghu, dias, alvo, ncas)
 
-        # Amostras reais do CSV (bagunçadas) — chegam "Na Recepção" / aguardando macro
+        # Amostras reais do CSV (bagunçadas) — chegam "Na Recepção", prontas p/ encaminhar
         reais = _amostras_reais(6)
         for i, r in enumerate(reais):
             p = PacienteLocal(
@@ -489,8 +486,7 @@ async def main():
                 criado_por="seed_apresentacao(AGHU)",
             )
             objetos.append(p)
-            alvo = "recepcao" if i % 2 == 0 else "aguardando_macro"
-            construir_caso(objetos, contadores, p, r["tipo"], r["peca"], "AGHU (importado)", f"{1380000 + i}", i % 3, alvo, 1)
+            construir_caso(objetos, contadores, p, r["tipo"], r["peca"], "AGHU (importado)", f"{1380000 + i}", i % 3, "recepcao", 1)
 
         session.add_all(objetos)
         await session.commit()
@@ -524,6 +520,19 @@ async def main():
     ]:
         print(f"    {st:22s} {por_status.get(st, 0)}")
     print(f"\n  Casos ativos ATRASADOS (SLA > 20 dias): {atrasados}")
+
+    # Cola prática para o demo: casos que ficam NA RECEPÇÃO (frasco Na Recepção),
+    # prontos para serem abertos/encaminhados na tela de Recepção. A busca aceita
+    # tanto o nº de solicitação (mostrado no dashboard) quanto o nº AGHU.
+    pac_nome = {p.id: p.nome for p in objetos if isinstance(p, PacienteLocal)}
+    na_recepcao = sorted(
+        (e for e in exames if e.status == StatusExame.NA_RECEPCAO),
+        key=lambda e: e.numero_solicitacao,
+    )
+    print(f"\n  Na Recepção (busque por estes números na tela de Recepção): {len(na_recepcao)}")
+    for e in na_recepcao:
+        print(f"    {e.numero_solicitacao:16s} AGHU {e.numero_exame_aghu or '—':8s} {pac_nome.get(e.id_paciente, '—')}")
+
     print("\n  Dashboard: GET /api/exames/dashboard")
 
 
