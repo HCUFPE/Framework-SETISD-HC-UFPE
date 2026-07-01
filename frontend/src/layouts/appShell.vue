@@ -92,7 +92,7 @@ import {
   Bars3Icon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/vue/24/outline';
-import { Microscope, FlaskConical, Cog } from 'lucide-vue-next';
+import { Microscope, FlaskConical, Cog, Snowflake } from 'lucide-vue-next';
 import ProfileDropdown from '../components/profileDropdown/profileDropdown.vue';
 import Button from '../components/button/button.vue';
 import { useAuthStore } from '../stores/auth';
@@ -108,6 +108,7 @@ const SECTOR_NAV: Record<string, { path: string; label: string; icon: any }> = {
   macroscopia: { path: '/macroscopia', label: 'Macroscopia', icon: FlaskConical },
   processamento_tecnico: { path: '/processamento-tecnico', label: 'Processamento Técnico', icon: Cog },
   microscopia: { path: '/microscopia', label: 'Microscopia', icon: Microscope },
+  congelamento: { path: '/congelamento', label: 'Congelamento', icon: Snowflake },
 };
 
 const isAdmin = computed(() => authStore.user?.setor === 'admin');
