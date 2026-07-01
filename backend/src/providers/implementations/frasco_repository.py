@@ -26,16 +26,28 @@ class FrascoRepository:
         return (
             select(
                 Frasco.id.label("id_frasco"),
+                Exame.id.label("id_exame"),
                 Frasco.codigo_interno,
                 Frasco.status,
                 Frasco.data_criacao,
                 Exame.numero_solicitacao,
+                Exame.numero_exame_aghu,
                 Exame.tipo_peca,
                 PacienteLocal.nome.label("paciente_nome"),
             )
             .join(Exame, Frasco.id_exame == Exame.id)
             .join(PacienteLocal, Exame.id_paciente == PacienteLocal.id)
         )
+
+    async def listar_pendencias_recepcao(self) -> List[Dict]:
+        """Frascos recebidos que ainda não foram encaminhados à macroscopia."""
+        stmt = (
+            self._select_detalhe()
+            .where(Frasco.status == StatusFrasco.NA_RECEPCAO)
+            .order_by(Frasco.data_criacao.asc())
+        )
+        rows = (await self.session.execute(stmt)).mappings().all()
+        return [dict(r) for r in rows]
 
     async def listar_pendencias_macroscopia(self) -> List[Dict]:
         stmt = (

@@ -348,16 +348,17 @@ import {
 import Card from '../components/card/card.vue';
 import Button from '../components/button/button.vue';
 import Badge from '../components/badge/badge.vue';
-import { useExamCasesStore } from '../stores/examCases';
+import { exameService, mapExameDetalhe } from '../services/exameService';
 import { RESPONSAVEIS_MICROSCOPIA } from '../constants/staffMembers';
 import type { ExamCaseDetail } from '../types/exam';
 
 const toast = useToast();
-const examCasesStore = useExamCasesStore();
 
 const codigoLamina = ref('');
 const buscou = ref(false);
 const casoAtual = ref<ExamCaseDetail | null>(null);
+// ID (UUID) real do exame no backend (resolvido na busca) — usado nas ações.
+const exameIdReal = ref<string | null>(null);
 const papel = ref<'residente' | 'patologista'>('residente');
 
 const responsavelMicroscopia = ref('');
@@ -386,100 +387,121 @@ const podeEnviarLaudo = computed(() => {
   return laudoPrevio.value.trim().length > 0;
 });
 
-function buscarLamina() {
+async function recarregarCaso() {
+  if (!exameIdReal.value) return;
+  const det = await exameService.detalhe(exameIdReal.value);
+  casoAtual.value = mapExameDetalhe(det);
+}
+
+async function buscarLamina() {
   buscou.value = true;
   laudoEnviado.value = false;
   casoEncerrado.value = false;
   acaoPatologista.value = null;
   responsavelMicroscopia.value = '';
+  casoAtual.value = null;
+  exameIdReal.value = null;
 
-  // Busca o caso que contém a lâmina pelo código completo.
-  casoAtual.value = Object.values(examCasesStore.cases).find(c =>
-    c.processamentoTecnico?.laminas.some(l =>
-      `${c.codigoLocal}-${l.id}` === codigoLamina.value.trim()
-    )
-  ) ?? null;
-}
+  const code = codigoLamina.value.trim();
+  if (!code) return;
 
-function enviarLaudoResidente() {
-  if (!podeEnviarLaudo.value || !casoAtual.value) return;
+  try {
+    // Fila da microscopia (backend): exames Em Microscopia / Revisão Pendente.
+    // Aceita o código da lâmina, do bloco ou só o nº de solicitação — casa pelo
+    // exame cujo nº de solicitação é prefixo do que foi digitado.
+    const fila = await exameService.pendenciasMicroscopia();
+    const alvo = fila.find(e => e.numero_solicitacao === code || code.startsWith(e.numero_solicitacao + '-')) ?? null;
+    if (!alvo) return; // não está na fila da microscopia → template mostra "não encontrada"
 
-  if (precisaComplementoPreLaudo.value) {
-    examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
-      etapaAtual: 'Em Processamento',
-      microscopia: {
-        dataRecebimento: new Date(),
-        laudo: laudoPrevio.value,
-        solicitouComplemento: true,
-      },
-    });
-    toast.warning(`Complemento solicitado (${marcadoresPreLaudo.value}). Caso voltou para Processamento Técnico.`);
-  } else {
-    examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
-      etapaAtual: 'Revisão Pendente',
-      microscopia: {
-        dataRecebimento: new Date(),
-        laudo: laudoPrevio.value,
-        solicitouComplemento: false,
-      },
-    });
-    toast.success('Laudo prévio encaminhado para revisão do patologista.');
+    exameIdReal.value = alvo.id;
+    await recarregarCaso(); // carrega a cadeia completa do banco (detalhe agregado)
+  } catch {
+    // O interceptor do axios já exibe o toast de erro.
   }
-
-  casoAtual.value = examCasesStore.getCase(casoAtual.value.codigoLocal);
-  laudoEnviado.value = true;
 }
 
-function aprovarLaudo() {
-  if (!casoAtual.value) return;
+async function enviarLaudoResidente() {
+  if (!podeEnviarLaudo.value || !casoAtual.value || !exameIdReal.value) return;
 
-  const laudoFinal = [
-    casoAtual.value.microscopia?.laudo,
-    obsPatologista.value.trim() || null,
-  ].filter(Boolean).join('\n\n');
+  const complemento = precisaComplementoPreLaudo.value;
+  const acao = complemento ? 'complemento' : 'revisao';
+  const laudoTxt = complemento ? `Complemento solicitado: ${marcadoresPreLaudo.value}` : laudoPrevio.value;
 
-  examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
-    etapaAtual: 'Liberado',
-    microscopia: {
-      ...(casoAtual.value.microscopia ?? { dataRecebimento: new Date(), solicitouComplemento: false }),
-      laudo: laudoFinal,
-      dataLiberacaoLaudo: new Date(),
-      responsavelLiberacao: responsavelMicroscopia.value,
-    },
-  });
-
-  casoAtual.value = examCasesStore.getCase(casoAtual.value.codigoLocal);
-  casoEncerrado.value = true;
-  toast.success(`Caso ${casoAtual.value?.codigoLocal} liberado. Registre e libere o laudo no AGHU.`);
+  try {
+    await exameService.registrarLaudo(exameIdReal.value, {
+      acao,
+      responsavel: responsavelMicroscopia.value,
+      laudo: laudoTxt,
+    });
+    if (complemento) {
+      toast.warning(`Complemento solicitado (${marcadoresPreLaudo.value}). Caso voltou para Processamento Técnico.`);
+    } else {
+      toast.success('Laudo prévio encaminhado para revisão do patologista.');
+      await recarregarCaso();
+    }
+    laudoEnviado.value = true;
+  } catch {
+    // interceptor exibe erro
+  }
 }
 
-function solicitarIhq() {
-  if (!casoAtual.value || !marcadoresIhq.value.trim()) return;
+async function aprovarLaudo() {
+  if (!casoAtual.value || !exameIdReal.value) return;
 
-  examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
-    etapaAtual: 'Em Processamento',
-    microscopia: {
-      ...(casoAtual.value.microscopia ?? { dataRecebimento: new Date(), solicitouComplemento: false, laudo: '' }),
-      solicitouComplemento: true,
-    },
-  });
+  const laudoFinal = [casoAtual.value.microscopia?.laudo, obsPatologista.value.trim() || null]
+    .filter(Boolean)
+    .join('\n\n');
 
-  casoAtual.value = examCasesStore.getCase(casoAtual.value.codigoLocal);
-  toast.warning(`IHQ solicitada (${marcadoresIhq.value}). Caso retornou para Processamento Técnico.`);
-  acaoPatologista.value = null;
-  marcadoresIhq.value = '';
+  try {
+    await exameService.registrarLaudo(exameIdReal.value, {
+      acao: 'liberar',
+      responsavel: responsavelMicroscopia.value,
+      laudo: laudoFinal || undefined,
+    });
+    await recarregarCaso();
+    casoEncerrado.value = true;
+    toast.success(`Caso ${casoAtual.value?.codigoLocal} liberado. Registre e libere o laudo no AGHU.`);
+  } catch {
+    // interceptor exibe erro
+  }
 }
 
-function solicitarRevisao() {
-  if (!casoAtual.value || !obsRevisao.value.trim()) return;
+async function solicitarIhq() {
+  if (!casoAtual.value || !exameIdReal.value || !marcadoresIhq.value.trim()) return;
 
-  examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
-    etapaAtual: 'Revisão Pendente',
-  });
+  try {
+    await exameService.registrarLaudo(exameIdReal.value, {
+      acao: 'complemento',
+      responsavel: responsavelMicroscopia.value,
+      observacoes: `IHQ/complemento: ${marcadoresIhq.value}`,
+    });
+    toast.warning(`IHQ solicitada (${marcadoresIhq.value}). Caso retornou para Processamento Técnico.`);
+    // saiu da fila da microscopia → limpa a tela
+    acaoPatologista.value = null;
+    marcadoresIhq.value = '';
+    casoAtual.value = null;
+    buscou.value = false;
+    codigoLamina.value = '';
+  } catch {
+    // interceptor exibe erro
+  }
+}
 
-  casoAtual.value = examCasesStore.getCase(casoAtual.value.codigoLocal);
-  toast.info('Caso encaminhado para revisão interna.');
-  acaoPatologista.value = null;
-  obsRevisao.value = '';
+async function solicitarRevisao() {
+  if (!casoAtual.value || !exameIdReal.value || !obsRevisao.value.trim()) return;
+
+  try {
+    await exameService.registrarLaudo(exameIdReal.value, {
+      acao: 'revisao',
+      responsavel: responsavelMicroscopia.value,
+      observacoes: obsRevisao.value,
+    });
+    toast.info('Caso encaminhado para revisão interna.');
+    acaoPatologista.value = null;
+    obsRevisao.value = '';
+    await recarregarCaso();
+  } catch {
+    // interceptor exibe erro
+  }
 }
 </script>

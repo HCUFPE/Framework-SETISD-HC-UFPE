@@ -16,6 +16,15 @@ def _ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
+@router.get("/pendencias-recepcao", response_model=List[FrascoDetalhe])
+async def pendencias_recepcao(
+    session: AsyncSession = Depends(get_app_db_session),
+    current_user: dict = Depends(require_perfil(Perfil.RECEPCIONISTA)),
+):
+    """Fila da recepção: frascos recebidos ainda não encaminhados à macroscopia."""
+    return await triagem_controller.listar_pendencias_recepcao(session)
+
+
 @router.get("/buscar", response_model=List[FrascoDetalhe])
 async def buscar_frasco(
     numero_solicitacao: Optional[str] = Query(default=None),

@@ -268,8 +268,10 @@ import Button from '../components/button/button.vue';
 import Badge from '../components/badge/badge.vue';
 import QrcodeBatchPrint from '../components/qrcode/qrcodeBatchPrint.vue';
 import { useExamCasesStore } from '../stores/examCases';
+import { exameService } from '../services/exameService';
 import { formatDateShort } from '../utils/date';
 import { RESPONSAVEIS_MACROSCOPIA, STAINING_OPTIONS } from '../constants/staffMembers';
+import { EXAM_TYPE_PREFIX, type ExamType } from '../constants/examTypes';
 import type { ExamCaseDetail, CasseteInfo } from '../types/exam';
 
 const toast = useToast();
@@ -278,6 +280,16 @@ const examCasesStore = useExamCasesStore();
 const codigoFrasco = ref('');
 const buscou = ref(false);
 const casoAtual = ref<ExamCaseDetail | null>(null);
+// Identidade real do frasco no backend (resolvida na busca).
+const frascoIdReal = ref<string | null>(null);
+const frascoStatusReal = ref('');
+
+// Deriva o tipo de exame a partir do prefixo do nº de solicitação (ex: "HP-0009/26.2" → HP).
+function tipoExameDoNumero(numero: string): ExamType {
+  const prefixo = numero.split('-')[0];
+  const entrada = (Object.entries(EXAM_TYPE_PREFIX) as [ExamType, string][]).find(([, p]) => p === prefixo);
+  return entrada?.[0] ?? 'HP';
+}
 
 const responsavel = ref('');
 const dataMacro = ref(new Date().toISOString().slice(0, 10));
@@ -304,11 +316,62 @@ const podeMapear = computed(() => {
   );
 });
 
-function buscarFrasco() {
+async function buscarFrasco() {
   buscou.value = true;
   finalizado.value = false;
   cassetesGerados.value = [];
-  casoAtual.value = examCasesStore.findByFrasco(codigoFrasco.value.trim());
+  casoAtual.value = null;
+  frascoIdReal.value = null;
+
+  const code = codigoFrasco.value.trim();
+  if (!code) return;
+
+  // O código impresso na Recepção é o "codigo_interno" (nº solicitação + "-F1");
+  // se o usuário digitar só o nº de solicitação, busca por ele.
+  const params = /-F\d+$/i.test(code) ? { codigo_interno: code } : { numero_solicitacao: code };
+  try {
+    const [frasco] = await exameService.buscarFrasco(params);
+    if (!frasco) return;
+
+    frascoIdReal.value = frasco.id_frasco;
+    frascoStatusReal.value = frasco.status;
+
+    // 'Processamento Completo' = macroscopia já registrada → caso já avançou.
+    const etapa: ExamCaseDetail['etapaAtual'] =
+      frasco.status === 'Processamento Completo' ? 'Em Processamento' : 'Em Macroscopia';
+
+    // Usa o contexto rico da mesma sessão (Recepção) ou sintetiza a partir do backend.
+    const local = examCasesStore.getCase(frasco.numero_solicitacao);
+    const base: ExamCaseDetail = local ?? {
+      codigoLocal: frasco.numero_solicitacao,
+      etapaAtual: etapa,
+      urgente: false,
+      aghu: {
+        numeroSolicitacaoAghu: '—',
+        nomePaciente: frasco.paciente_nome,
+        prontuario: '—',
+        idade: 0,
+        sexo: 'M',
+        origem: 'Internado',
+        tipoMaterial: frasco.tipo_peca ?? '',
+        tipoExame: tipoExameDoNumero(frasco.numero_solicitacao),
+        procedimentoSus: '—',
+        indicacaoClinica: '—',
+      },
+      recepcao: {
+        dataEntrada: frasco.data_criacao ? new Date(frasco.data_criacao) : new Date(),
+        quantidadeFrascos: 1,
+        descricaoFisica: frasco.tipo_peca ?? '—',
+        frascosIds: [frasco.codigo_interno],
+        responsavel: '—',
+      },
+    };
+
+    // Status do backend é a fonte de verdade da etapa exibida.
+    casoAtual.value = { ...base, etapaAtual: etapa };
+  } catch {
+    // interceptor exibe erro; casoAtual permanece null → template mostra "não encontrado".
+  }
 }
 
 function adicionarEstrutura() {
@@ -339,27 +402,57 @@ function mapearFragmentos() {
   cassetesGerados.value = lista;
 }
 
-function confirmarClivagem() {
-  if (!casoAtual.value) return;
+async function confirmarClivagem() {
+  if (!casoAtual.value || !frascoIdReal.value) return;
 
-  examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
-    macroscopia: {
-      dataMacro: new Date(dataMacro.value),
-      responsavel: responsavel.value,
-      descricaoMacroscopica: descricaoMacroscopica.value,
-      sobraMaterial: sobraMaterial.value,
-      cassetes: cassetesGerados.value,
-    },
-  });
+  const total = cassetesGerados.value.length;
+  if (total === 0) return;
 
-  etiquetasCassetes.value = cassetesGerados.value.map(c => ({
-    identificador: `${casoAtual.value!.codigoLocal}-${c.id}`,
-    tipo: 'cassete' as const,
-    rotulo: `Cassete ${c.id} — ${c.estrutura}`,
-  }));
+  try {
+    // O backend exige o frasco 'Em Macroscopia' antes de registrar.
+    if (frascoStatusReal.value === 'Aguardando Macroscopia') {
+      await exameService.iniciarMacroscopia(frascoIdReal.value);
+      frascoStatusReal.value = 'Em Macroscopia';
+    }
 
-  finalizado.value = true;
-  toast.success('Clivagem registrada e etiquetas emitidas.');
+    const result = await exameService.registrarMacroscopia({
+      id_frasco: frascoIdReal.value,
+      descricao: descricaoMacroscopica.value,
+      numero_cassetes: total,
+    });
+
+    // O backend é a fonte de verdade da identidade dos cassetes (letras A, B, C...).
+    // Preserva estrutura/coloração digitadas casando pela ordem de geração.
+    const preview = cassetesGerados.value;
+    cassetesGerados.value = result.cassetes.map((c, i): CasseteInfo => ({
+      id: c.letra_fragmento,
+      estrutura: preview[i]?.estrutura ?? '',
+      coloracao: preview[i]?.coloracao ?? STAINING_OPTIONS[0],
+      observacao: preview[i]?.observacao,
+    }));
+
+    examCasesStore.upsertCase(casoAtual.value.codigoLocal, {
+      etapaAtual: 'Em Processamento', // o backend já avançou o exame nesta etapa
+      macroscopia: {
+        dataMacro: new Date(dataMacro.value),
+        responsavel: responsavel.value,
+        descricaoMacroscopica: descricaoMacroscopica.value,
+        sobraMaterial: sobraMaterial.value,
+        cassetes: cassetesGerados.value,
+      },
+    });
+
+    etiquetasCassetes.value = cassetesGerados.value.map(c => ({
+      identificador: `${casoAtual.value!.codigoLocal}-${c.id}`,
+      tipo: 'cassete' as const,
+      rotulo: `Cassete ${c.id} — ${c.estrutura}`,
+    }));
+
+    finalizado.value = true;
+    toast.success('Clivagem registrada e etiquetas emitidas.');
+  } catch {
+    // O interceptor do axios já exibe o toast de erro.
+  }
 }
 
 function enviarProcessamento() {
