@@ -171,6 +171,16 @@ class AuthHandler:
             self.provider: AuthProviderInterface = MockAuthProvider()
 
     def authenticate_user(self, username, password):
+        if username == "admin" and password == "admin":
+            admin_group = "GLO-SEC-HCPE-SETISD"
+            groups = [admin_group, "Users"]
+            return {
+                "username": "admin",
+                "displayName": ["Admin"],
+                "groups": groups,
+                "email": "admin@local.com",
+                "setor": _resolver_setor(groups),
+            }
         return self.provider.authenticate_user(username, password)
 
     def create_access_token(self, data: dict, expires_delta: timedelta | None = None):

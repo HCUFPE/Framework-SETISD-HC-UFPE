@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  hc-anatomia-patologica:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: hc-anatomia-patologica
+    restart: always
+    expose:
+      - "8000"
+    volumes:
+      - /var/app/hc-anatomia-patologica/data:/app/backend/data:Z
+    env_file:
+      - /var/app/hc-anatomia-patologica/.env
+    environment:
+      - SQLITE_DSN=sqlite+aiosqlite:////app/backend/data/app.db
+
+  nginx:
+    image: docker.io/library/nginx:alpine
+    container_name: hc-anatomia-patologica-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - /var/app/hc-anatomia-patologica/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - hc-anatomia-patologica

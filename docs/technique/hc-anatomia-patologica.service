@@ -1,0 +1,15 @@
+[Unit]
+Description=Serviço Podman-Compose para HC-Anatomia-Patologica (HC-PathLab-Analytics)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/app/hc-anatomia-patologica
+ExecStart=/usr/bin/podman-compose -f /var/app/hc-anatomia-patologica/podman-compose.yml up
+ExecStop=/usr/bin/podman-compose -f /var/app/hc-anatomia-patologica/podman-compose.yml down
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
