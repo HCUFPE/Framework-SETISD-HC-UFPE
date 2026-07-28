@@ -202,22 +202,39 @@ async def obter_detalhe(session: AsyncSession, id_exame: str) -> dict:
     }
 
 
-async def listar_dashboard(session: AsyncSession) -> list[dict]:
+async def listar_dashboard(
+    session: AsyncSession,
+    etapa: str | None = None,
+    codigo_aghu: str | None = None,
+    codigo_interno: str | None = None,
+    nome_paciente: str | None = None,
+) -> list[dict]:
     """
-    Retorna exames com nome do paciente e flag de SLA para o dashboard do frontend.
-    Estrutura alinhada com o mock de dashboard.vue.
+    Retorna exames com nome do paciente e flag de SLA para o dashboard do frontend,
+    aplicando filtros por etapa, código AGHU, código interno e nome do paciente.
     """
     stmt = (
         select(
             Exame.id,
             Exame.numero_solicitacao,
+            Exame.numero_exame_aghu,
             Exame.status,
             Exame.data_recebimento,
             PacienteLocal.nome.label("nome_paciente"),
         )
         .join(PacienteLocal, Exame.id_paciente == PacienteLocal.id)
-        .order_by(Exame.data_recebimento.desc())
     )
+
+    if etapa:
+        stmt = stmt.where(Exame.status == etapa)
+    if codigo_aghu:
+        stmt = stmt.where(Exame.numero_exame_aghu.ilike(f"%{codigo_aghu.strip()}%"))
+    if codigo_interno:
+        stmt = stmt.where(Exame.numero_solicitacao.ilike(f"%{codigo_interno.strip()}%"))
+    if nome_paciente:
+        stmt = stmt.where(PacienteLocal.nome.ilike(f"%{nome_paciente.strip()}%"))
+
+    stmt = stmt.order_by(Exame.data_recebimento.desc())
     rows = (await session.execute(stmt)).all()
 
     result = []
@@ -227,6 +244,7 @@ async def listar_dashboard(session: AsyncSession) -> list[dict]:
             {
                 "id": row.id,
                 "solicitacao": row.numero_solicitacao,
+                "codigo_aghu": row.numero_exame_aghu,
                 "paciente": row.nome_paciente or "",
                 "etapa": row.status,
                 "data_entrada": row.data_recebimento,
@@ -234,3 +252,4 @@ async def listar_dashboard(session: AsyncSession) -> list[dict]:
             }
         )
     return result
+

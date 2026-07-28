@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.perfis import Perfil, require_perfil
@@ -31,12 +31,24 @@ async def registrar_recebimento(
 
 
 @router.get("/dashboard", response_model=List[DashboardExameOut])
+
 async def listar_dashboard(
+    etapa: str | None = Query(None, description="Filtra por etapa do processo"),
+    codigo_aghu: str | None = Query(None, description="Filtra por código do AGHU"),
+    codigo_interno: str | None = Query(None, description="Filtra por código interno/solicitação"),
+    nome_paciente: str | None = Query(None, description="Filtra por nome do paciente"),
     session: AsyncSession = Depends(get_app_db_session),
     current_user: dict = Depends(require_perfil()),
 ):
-    """Dashboard: lista exames com nome do paciente e flag de SLA."""
-    return await exame_controller.listar_dashboard(session)
+    """Dashboard: lista exames com nome do paciente e flag de SLA com opção de filtros."""
+    return await exame_controller.listar_dashboard(
+        session,
+        etapa=etapa,
+        codigo_aghu=codigo_aghu,
+        codigo_interno=codigo_interno,
+        nome_paciente=nome_paciente,
+    )
+
 
 
 @router.get("", response_model=List[ExameOut])

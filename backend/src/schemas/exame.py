@@ -39,3 +39,5 @@ class DashboardExameOut(BaseModel):
     etapa: str              # status do exame (bate com ExamStatus do frontend)
     data_entrada: datetime  # data_recebimento — frontend calcula SLA e tempoNaEtapa a partir daqui
     atrasado: bool          # SLA >= 20 dias (calculado pelo backend para facilitar)
+    codigo_aghu: Optional[str] = None
+

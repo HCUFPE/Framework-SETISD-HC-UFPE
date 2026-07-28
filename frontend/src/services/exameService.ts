@@ -5,11 +5,20 @@ import type { ExamType } from '../constants/examTypes';
 export interface DashboardExame {
   id: string;
   solicitacao: string;
+  codigo_aghu?: string | null;
   paciente: string;
   etapa: string;
   data_entrada: string;
   atrasado: boolean;
 }
+
+export interface DashboardFilterParams {
+  etapa?: string;
+  codigo_aghu?: string;
+  codigo_interno?: string;
+  nome_paciente?: string;
+}
+
 
 export interface ExameCreate {
   paciente: { cpf?: string; cns?: string; nome: string; data_nascimento?: string; origem?: string };
@@ -168,10 +177,11 @@ export function mapExameDetalhe(d: ExameDetalheApi): ExamCaseDetail {
 
 export const exameService = {
   // --- Dashboard ---
-  async dashboard(): Promise<DashboardExame[]> {
-    const { data } = await api.get('/api/exames/dashboard');
+  async dashboard(params?: DashboardFilterParams): Promise<DashboardExame[]> {
+    const { data } = await api.get('/api/exames/dashboard', { params });
     return data;
   },
+
   async detalhe(id: string): Promise<ExameDetalheApi> {
     const { data } = await api.get(`/api/exames/${id}/detalhe`);
     return data;
