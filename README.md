@@ -1,73 +1,130 @@
-# Framework-SETISD-HC-UFPE (Python/FastAPI + Vue.js)
+# Framework-SETISD-HC-UFPE
 
-Este projeto é um framework robusto e flexível para aplicações web modernas, construído com FastAPI no backend e Vue.js (Vite) no frontend. Ele foi projetado com uma arquitetura limpa e desacoplada, pronta para ser estendida e adaptada a diversas necessidades.
+> **Arquitetura Web Full-Stack de Referência (Python / FastAPI + Vue 3 / Vite)**  
+> *Padrão Oficial de Desenvolvimento de Sistemas para o Hospital das Clínicas da UFPE (HC-UFPE / EBSERH).*
 
-## Principais Características
+---
 
-- **Backend Moderno:** Construído com FastAPI, oferecendo alta performance, código assíncrono e documentação de API automática (Swagger/OpenAPI).
-- **Frontend Reativo:** Utiliza Vue 3 com Vite para uma experiência de desenvolvimento rápida e uma interface de usuário reativa.
-- **Arquitetura de Provedores:** Design flexível que permite trocar a fonte de dados de um domínio (ex: PostgreSQL, CSV) alterando uma única variável de configuração no arquivo do roteador, sem modificar o código de negócio.
-- **Autenticação Híbrida:** Suporte nativo para autenticação via Active Directory (AD) em produção e um provedor "mock" para desenvolvimento offline (sem necessidade de credenciais de AD).
-- **Estrutura Escalável:** Organização de projeto clara que separa responsabilidades (`routers`, `controllers`, `providers`), facilitando a manutenção e a adição de novas funcionalidades.
+## 🏛️ Visão Geral
 
-## Estrutura do Projeto
+O **Framework-SETISD-HC-UFPE** é a base arquitetural monolítica limpa, desacoplada e padronizada para a criação de novas aplicações web corporativas no HC-UFPE. 
 
-A estrutura do projeto é projetada para separar claramente as responsabilidades entre backend, frontend e documentação.
+Ele consolida as melhores práticas de engenharia de software da equipe de TI (SETISD), garantindo que todos os novos sistemas sigam os mesmos padrões de **tecnologia, segurança, acesso a dados (AGHU), interface visual e conteinerização (Podman)**.
 
+---
+
+## 🚀 Pilares da Arquitetura
+
+- **🛡️ Autenticação Híbrida & Segurança Corporativa:**
+  - Suporte nativo ao **Active Directory (AD/LDAP Ebserh)** em produção.
+  - Provedor **Mock** automático para desenvolvimento local sem dependência de rede.
+  - Controle de sessão via **JWT Access Tokens** e **Refresh Tokens HttpOnly** com auto-renovação transparente no frontend.
+- **⚡ Backend Moderno e Assíncrono (FastAPI):**
+  - Construído com Python 3.12+, FastAPI e SQLAlchemy 2.0 com pools de conexões assíncronas para o **PostgreSQL do AGHU**.
+  - Documentação interativa **Swagger UI (`/docs`)** com autenticação integrada via botão cadeado (**Authorize**).
+  - Manipulador global de erros garantindo respostas padronizadas em formato JSON (`{"detail": "..."}`).
+- **🎨 Frontend Reativo & UI Standard (Vue 3 / Vite):**
+  - Vue 3 (Composition API / TypeScript) empacotado e servido diretamente pelo FastAPI.
+  - Interceptadores Axios automáticos para injeção de tokens `Bearer` e renovação de sessão sem deslogar o usuário.
+  - Biblioteca de componentes base reusáveis (`DataTable`, `Modal`, `Button`, `Card`, `ProfileDropdown`).
+- **🩺 Monitoramento & Resiliência:**
+  - Rota dedicada de diagnóstico de infraestrutura `GET /api/health` para sondagem de status do servidor e dos bancos de dados.
+- **🧪 Garantia de Qualidade & Testes Automatizados:**
+  - Suíte de testes integrada com `pytest` e `httpx` para validação imediata de status do servidor, autenticação e rotas.
+- **🐳 DevOps & Conteinerização (Podman / Docker):**
+  - `Dockerfile` multi-stage (Build Vue 3 + Runtime Python 3.12) e `compose.yaml` otimizados para deploy em homologação e produção nas VMs do hospital.
+
+---
+
+## 📂 Estrutura do Projeto
+
+```text
+Framework-SETISD-HC-UFPE/
+├── .env.example          # Modelo de variáveis de ambiente
+├── Dockerfile            # Receita de build multi-estágio (Podman / Docker)
+├── compose.yaml          # Orquestração do contêiner para VMs
+├── pyproject.toml        # Dependências e configurações do projeto Python (uv)
+├── requirements.txt      # Lista congelada de pacotes Python
+├── dev.sh                # Script de execução paralela para desenvolvimento
+├── start.sh              # Script de build e execução local do servidor
+├── docs/                 # Documentação detalhada da arquitetura e manuais
+│   ├── ARCHITECTURE.md   # Arquitetura em camadas e padrão Provider
+│   ├── AUTHENTICATION.md # Sistema de Autenticação (AD / Mock / JWT)
+│   ├── GUIA_DESENVOLVIMENTO.md # Tutorial passo a passo para criar novas telas/rotas
+│   └── SETUP.md          # Guia de instalação, testes e deploy
+├── frontend/             # Aplicação SPA Vue 3 (Vite + TypeScript)
+│   ├── src/
+│   │   ├── components/   # Componentes visuais reusáveis (DataTable, Modal, etc.)
+│   │   ├── layouts/      # Layouts de página (DefaultLayout, LoginLayout)
+│   │   ├── services/     # Serviços HTTP (api.ts com Axios Interceptors)
+│   │   └── stores/       # Gerenciamento de estado (Pinia)
+├── src/                  # Backend FastAPI (API REST)
+│   ├── auth/             # Provedores de Autenticação (Active Directory, Mock, JWT)
+│   ├── controllers/      # Regras de negócio da aplicação
+│   ├── dependencies.py   # Fábrica de injeção de dependências
+│   ├── main.py           # Ponto de entrada do FastAPI, CORS, middlewares e erros
+│   ├── models/           # Modelos ORM (SQLAlchemy) e Schemas (Pydantic)
+│   ├── providers/        # Camada de acesso a dados (PostgreSQL AGHU, CSV)
+│   ├── resources/        # Gerenciamento de conexões com banco de dados (database.py)
+│   └── routers/          # Definição dos endpoints da API (/api/*)
+└── tests/                # Suíte de testes automatizados oficial (pytest)
+    ├── conftest.py       # Fixtures de teste do FastAPI TestClient
+    ├── test_auth.py      # Testes de login Mock e validação de tokens
+    └── test_status_servidor.py # Testes de status da aplicação e infraestrutura
 ```
-.
-├── data/                 # Dados estáticos (ex: arquivos CSV)
-├── docs/                 # Documentação detalhada do projeto
-│   ├── ARCHITECTURE.md   # Explicação da arquitetura e padrões
-│   ├── AUTHENTICATION.md # Detalhes sobre o sistema de autenticação
-│   └── SETUP.md          # Guia de instalação e execução
-├── frontend/             # Código-fonte da aplicação Vue.js
-├── src/                  # Código-fonte do backend FastAPI
-│   ├── auth/             # Lógica de autenticação (AD, Mock, JWT)
-│   ├── controllers/      # Lógica de negócio e orquestração
-│   ├── dependencies.py   # Fábrica de injeção de dependência
-│   ├── models/           # Modelos de dados (SQLAlchemy)
-│   ├── providers/        # Camada de acesso a dados (Postgres, CSV, etc.)
-│   │   ├── implementations/
-│   │   └── interfaces/
-│   ├── resources/        # Configuração de recursos (ex: conexão com DB)
-│   └── routers/          # Definição dos endpoints da API
-├── .env.example          # Arquivo de exemplo para variáveis de ambiente
-└── README.md             # Esta documentação
+
+---
+
+## 🚦 Início Rápido (Quick Start)
+
+### 1. Configuração do Ambiente
+```bash
+# Clone o repositório
+git clone https://github.com/HCUFPE/Framework-SETISD-HC-UFPE.git
+cd Framework-SETISD-HC-UFPE
+
+# Copie o arquivo de exemplo de ambiente
+cp .env.example .env
 ```
 
-## Primeiros Passos
+### 2. Executar em Modo Desenvolvimento (Hot Reload)
+Executa o Backend (`http://localhost:8000`) e o Frontend Vite (`http://localhost:5173`) em paralelo:
+```bash
+./dev.sh
+```
 
-Para instalar e executar a aplicação, siga o guia de configuração detalhado:
+### 3. Rodar a Suíte de Testes Automatizados
+```bash
+uv run pytest
+```
 
-- **[Guia de Instalação e Execução (SETUP.md)](./docs/SETUP.md)**
+---
 
-## Início Rápido (Quick Start)
+## 🐳 Deploy nas VMs com Podman / Docker
 
-Este projeto utiliza scripts automatizados para facilitar o ambiente:
+Para realizar o build e executar a aplicação em contêiner na VM oficial do hospital:
 
-1. **Configuração Inicial:**
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+# 1. Build da imagem e inicialização do contêiner em background
+podman compose up -d --build
 
-2. **Modo Produção Local (Build & Run):**
-   Gera o build do frontend e sobe o servidor FastAPI consolidado.
-   ```bash
-   ./start.sh
-   ```
+# 2. Verificar os logs da aplicação
+podman compose logs -f
+```
 
-3. **Modo Desenvolvimento (Hot Reload):**
-   Sobe o Backend e o Frontend (Vite) em paralelo com atualização instantânea.
-   ```bash
-   ./dev.sh
-   ```
+A aplicação ficará disponível consolidada em `http://IP-DA-VM:8000/`.
 
-A aplicação estará disponível em `http://localhost:8000` (via start.sh) ou `http://localhost:5173` (via dev.sh).
+---
 
-## Aprofundamento
+## 📚 Documentação Detalhada
 
-Para entender a fundo os conceitos e padrões utilizados neste framework, consulte a documentação específica:
+Para se aprofundar nos padrões arquiteturais do hospital, consulte a documentação oficial na pasta `docs/`:
 
-- **[Arquitetura do Projeto (ARCHITECTURE.md)](./docs/ARCHITECTURE.md)**
-- **[Sistema de Autenticação (AUTHENTICATION.md)](./docs/AUTHENTICATION.md)**
+- **[ Guia de Instalação, Execução e Deploy (`docs/SETUP.md`)](./docs/SETUP.md)**
+- **[ Arquitetura em Camadas e Padrão Provider (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)**
+- **[ Manual de Autenticação AD, Mock e JWT (`docs/AUTHENTICATION.md`)](./docs/AUTHENTICATION.md)**
+- **[ Tutorial de Criação de Novas Funcionalidades (`docs/GUIA_DESENVOLVIMENTO.md`)](./docs/GUIA_DESENVOLVIMENTO.md)**
+
+---
+
+**SETISD - Setor de TI e Saúde Digital | HC-UFPE (EBSERH)**
