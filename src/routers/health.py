@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 from sqlalchemy import text
 
-from ..version import VERSION, APP_NAME, ORGANIZATION
+from ..version import VERSION, APP_NAME, SYSTEM_TITLE, ORGANIZATION, DEPARTMENT
 
 router = APIRouter(prefix="/api", tags=["Health & Monitoring"])
 
@@ -48,8 +48,10 @@ async def health_check(request: Request):
     response_payload = {
         "status": "healthy" if is_healthy else "unhealthy",
         "app_name": APP_NAME,
+        "system_title": SYSTEM_TITLE,
         "version": VERSION,
         "organization": ORGANIZATION,
+        "department": DEPARTMENT,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "databases": db_status
     }
