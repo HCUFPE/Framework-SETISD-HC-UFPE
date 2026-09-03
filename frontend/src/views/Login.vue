@@ -52,7 +52,7 @@
     <!-- Rodapé de Versão -->
     <div class="mt-6 text-center text-xs text-gray-400 space-y-1">
       <p class="font-semibold text-gray-300">Hospital das Clínicas da UFPE (HC-UFPE / EBSERH)</p>
-      <p class="text-gray-400">Setor de TI e Saúde Digital — SETISD | Versão v1.0.0</p>
+      <p class="text-gray-400">Setor de Tecnologia da Informação e Saúde Digital — SETISD | Versão 1.0.0</p>
     </div>
   </div>
 </template>

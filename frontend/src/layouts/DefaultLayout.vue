@@ -9,7 +9,7 @@
     </div>
 
     <!-- Sidebar -->
-    <aside :class="{ '-translate-x-full': !sidebarOpen }" class="bg-paper-sidebar text-gray-100 w-64 py-7 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-200 ease-in-out z-20 h-full shrink-0 flex flex-col justify-between">
+    <aside :class="{ '-translate-x-full': !sidebarOpen }" class="bg-paper-sidebar text-gray-100 w-64 pt-7 pb-2 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-200 ease-in-out z-20 h-full shrink-0 flex flex-col justify-between">
       <div>
         <div @click="() => router.push('/')" class="cursor-pointer text-white flex items-center space-x-2 px-4 mb-6">
           <CubeTransparentIcon class="h-8 w-8"/>
@@ -43,9 +43,9 @@
       </div>
 
       <!-- Rodapé de Versão da Sidebar -->
-      <div class="px-4 pt-4 pb-2 border-t border-white/10 text-xs text-gray-400 mt-auto">
-        <p class="font-bold text-gray-200">Framework SETISD</p>
-        <p class="text-[11px] text-gray-400">Versão v1.0.0 | HC-UFPE</p>
+      <div class="px-4 pt-3 pb-1 border-t border-white/10 text-xs text-gray-400 mt-auto">
+        <p class="font-semibold text-gray-200">Framework SETISD</p>
+        <p class="text-[11px] text-gray-400">Versão 1.0.0 | HC-UFPE</p>
       </div>
     </aside>
 
