@@ -67,3 +67,11 @@ A principal característica arquitetural do framework é a capacidade de trocar 
 - **Desacoplamento Real:** A lógica de negócio no controller nunca é afetada pela fonte de dados.
 - **Clareza:** Fica explícito no roteador qual fonte de dados está sendo utilizada para aquele domínio.
 - **Eficiência:** Recursos como pools de conexão com o banco de dados só são inicializados se forem realmente necessários para a estratégia selecionada.
+
+## Estratégia Híbrida de Segurança (Autenticação AD + RBAC Local)
+
+A arquitetura de segurança do framework combina **autenticação corporativa centralizada** com **autorização local descentralizada**:
+
+1. **Autenticação no Active Directory (AD):** Validação da conta corporativa da Ebserh (`EBSERHNET`). Se o funcionário for desligado, a TI desativa no AD e o acesso cessa em todos os sistemas do hospital.
+2. **Autorização por Perfis (RBAC em `data/app.db`):** Tabela de usuários autorizados no banco local do sistema. A chefia do setor inclui o colaborador pelo seu login de rede e atribui o perfil de acesso adequado.
+
