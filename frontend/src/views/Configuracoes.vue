@@ -47,10 +47,10 @@
             <div>
               <h2 class="text-lg font-bold text-paper-text flex items-center gap-2">
                 <UserGroupIcon class="h-6 w-6 text-gray-600" />
-                Usuários Autorizados no Sistema (RBAC Local)
+                Usuários do Sistema (RBAC Local)
               </h2>
               <p class="text-xs text-gray-500 mt-0.5">
-                Inclua o login do Active Directory (AD) de um funcionário para autorizar o acesso a este sistema.
+                Inclua o login do Active Directory (AD) de um colaborador para autorizar o acesso a este sistema.
               </p>
             </div>
             <Button variant="primary" @click="showAddUserModal = true">
@@ -157,10 +157,10 @@
             v-model="newUser.username" 
             type="text" 
             required 
-            placeholder="Ex: usuario.ad"
+            placeholder="Ex: nome.sobrenome"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm"
           />
-          <p class="text-xs text-gray-400 mt-1">Insira o login de rede do colaborador (ex: `usuario.ad`).</p>
+          <p class="text-xs text-gray-400 mt-1">Insira o login de rede do colaborador (ex: `nome.sobrenome`).</p>
         </div>
 
         <div>
@@ -275,7 +275,7 @@ const usersList = ref<UserRBAC[]>([
 const newUser = ref({
   username: '',
   nome: '',
-  perfil: 'CONSULTA'
+  perfil: availableRoles[0].nome
 });
 
 const editingUser = ref<UserRBAC | null>(null);
@@ -287,7 +287,7 @@ const getRoleBadgeClass = (perfil: string) => {
 
 const closeAddModal = () => {
   showAddUserModal.value = false;
-  newUser.value = { username: '', nome: '', perfil: 'CONSULTA' };
+  newUser.value = { username: '', nome: '', perfil: availableRoles[0].nome };
 };
 
 const closeEditModal = () => {
