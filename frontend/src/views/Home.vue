@@ -34,7 +34,7 @@
               <Cog6ToothIcon class="h-5 w-5 text-gray-600" />
               Configurações
             </h3>
-            <p class="text-xs text-gray-500">Acesse <strong>Configurações</strong> para ver o perfil do usuário logado no Active Directory.</p>
+            <p class="text-xs text-gray-500">Acesse <strong>Configurações</strong> para gerenciar o perfil do usuário, grupos de acesso e informações do sistema.</p>
           </div>
         </div>
       </div>
