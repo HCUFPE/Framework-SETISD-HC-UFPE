@@ -28,7 +28,51 @@ Antes de gerar qualquer código ou implementar uma nova funcionalidade no sistem
 
 ---
 
-## 3. Arquitetura em Camadas e Fluxo de Dados
+## 3. Estrutura Recomendada de Diretórios
+
+```text
+src/
+├── main.py
+├── dependencies.py
+├── auth/
+│   └── auth.py
+├── routers/
+│   ├── health.py
+│   ├── paciente.py
+│   ├── auth.py
+│   ├── admin.py
+│   ├── aih.py
+│   ├── bpa.py
+│   └── material.py
+├── controllers/
+│   ├── paciente_controller.py
+│   ├── aih_controller.py
+│   ├── bpa_controller.py
+│   └── material_controller.py
+├── providers/
+│   ├── interfaces/
+│   ├── implementations/
+│   └── sql/
+│       ├── bpa/
+│       └── material/
+├── resources/
+│   ├── database.py
+│   └── postgres.py
+├── models/
+│   ├── base.py
+│   └── refresh_token.py
+├── helpers/
+│   ├── csv_helper.py
+│   ├── string_helper.py
+│   ├── sql_helper.py
+│   └── sigtap_helper.py
+└── static/
+    └── dist/   ← (build do Vue 3)
+```
+
+---
+
+## 4. Arquitetura em Camadas e Fluxo de Dados
 
 O fluxo de dados no backend é **estritamente unidirecional**:
 $$\text{SQL Template} \longrightarrow \text{Resource} \longrightarrow \text{Provider} \longrightarrow \text{Controller} \longrightarrow \text{Router}$$
@@ -43,7 +87,31 @@ $$\text{SQL Template} \longrightarrow \text{Resource} \longrightarrow \text{Prov
 
 ---
 
-## 4. Convenções de Código e Respostas de Erro
+## 5. Domínios de Negócio e Escopo Hospitalar
+
+| Domínio | Controllers / Providers | Função Principal |
+| :--- | :--- | :--- |
+| **Faturamento SUS** | `aih_controller.py`, `bpa_controller.py` | Geração de AIH, BPA e arquivos magnéticos SUS. |
+| **Inventário / Estoque** | `material_controller.py`, `material_estoque_controller.py` | Dados de estoque e insumos do AGHU. |
+| **Internação / Leitos** | `internacao_controller.py`, `leito_controller.py` | Censo diário, gestão de leitos e relatórios UTI/Clínica. |
+| **Medicamentos** | `medicamentos_controller.py`, `antimicrobianos_controller.py` | Controle de dispensação e uso controlado. |
+| **BI / Dashboard** | `metabase_controller.py` | Integrações com Metabase e relatórios gerenciais. |
+| **Prontuário / Atendimento** | `prontuario_controller.py`, `atendimento_controller.py` | Histórico clínico de pacientes e atendimentos. |
+
+---
+
+## 6. Helpers e Funções Utilitárias
+
+| Arquivo | Função | Propósito |
+| :--- | :--- | :--- |
+| `sql_helper.py` | `create_query()` | Substitui placeholders SQL (`#startDate`, `#cod_prontuario`). |
+| `string_helper.py` | `remove_accents()`, `pad_start()`, `validate_cpf()` | Formatação e validações de documentos de saúde. |
+| `csv_helper.py` | `convert_to_csv()`, `convert_to_tsv()` | Conversão JSON ➔ CSV/TSV para exportação. |
+| `sigtap_helper.py` | Lookup SIGTAP | Validação e enriquecimento de procedimentos SUS. |
+
+---
+
+## 7. Convenções de Código e Respostas de Erro
 
 - **Padrões de Nomes:** Use `snake_case` para arquivos e variáveis em Python, e `camelCase` para TypeScript no Vue.
 - **Tipagem & Async:** Use **`async/await`**, **`type hints`** do Python e **docstrings** em todas as funções.
