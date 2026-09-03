@@ -41,6 +41,7 @@ Ele consolida as melhores práticas de engenharia de software da equipe de TI (S
 ```text
 Framework-SETISD-HC-UFPE/
 ├── .env.example          # Modelo de variáveis de ambiente
+├── AGENTS.md             # Diretrizes universais para Agentes de IA (Gemini, Claude, ChatGPT, Cursor)
 ├── Dockerfile            # Receita de build multi-estágio (Podman / Docker)
 ├── compose.yaml          # Orquestração do contêiner para VMs
 ├── pyproject.toml        # Dependências e configurações do projeto Python (uv)
