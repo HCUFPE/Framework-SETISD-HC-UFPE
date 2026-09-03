@@ -124,6 +124,7 @@ Para se aprofundar nos padrões arquiteturais do hospital, consulte a documenta�
 
 - **[ Guia de Instalação, Execução e Deploy (`docs/SETUP.md`)](./docs/SETUP.md)**
 - **[ Gabarito de Especificação de Requisitos - SDD (`docs/especificacao/README.md`)](./docs/especificacao/README.md)**
+- **[ Diretrizes e Regras para Agentes de IA (`AGENTS.md`)](./AGENTS.md)**
 - **[ Arquitetura em Camadas e Padrão Provider (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)**
 - **[ Manual de Autenticação AD, Mock e JWT (`docs/AUTHENTICATION.md`)](./docs/AUTHENTICATION.md)**
 - **[ Tutorial de Criação de Novas Funcionalidades (`docs/GUIA_DESENVOLVIMENTO.md`)](./docs/GUIA_DESENVOLVIMENTO.md)**
