@@ -50,14 +50,14 @@
                 Usuários Autorizados no Sistema (RBAC Local)
               </h2>
               <p class="text-xs text-gray-500 mt-0.5">
-                Vincule o login do Active Directory (AD) de um funcionário para conceder acesso a este sistema.
+                Inclua o login do Active Directory (AD) de um funcionário para autorizar o acesso a este sistema.
               </p>
             </div>
             <Button variant="primary" @click="showAddUserModal = true">
               <template #icon>
                 <UserPlusIcon class="h-5 w-5" />
               </template>
-              Vincular Usuário AD
+              Incluir Usuário
             </Button>
           </div>
 
@@ -92,18 +92,25 @@
                   </td>
                   <td class="py-3 px-4 text-right space-x-2">
                     <button 
-                      @click="editUserRole(user)" 
+                      @click="openEditModal(user)" 
                       title="Alterar Perfil" 
-                      class="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition"
+                      class="px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md transition"
                     >
                       Alterar Perfil
                     </button>
                     <button 
                       @click="toggleUserStatus(user)" 
-                      :class="user.ativo ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'"
-                      class="px-2 py-1 text-xs font-medium rounded transition"
+                      :class="user.ativo ? 'text-red-600 hover:bg-red-50 border-red-200' : 'text-emerald-600 hover:bg-emerald-50 border-emerald-200'"
+                      class="px-2.5 py-1 text-xs font-semibold border rounded-md transition"
                     >
                       {{ user.ativo ? 'Inativar' : 'Ativar' }}
+                    </button>
+                    <button 
+                      @click="removeUser(user.id)" 
+                      title="Excluir Usuário"
+                      class="px-2 py-1 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition"
+                    >
+                      Excluir
                     </button>
                   </td>
                 </tr>
@@ -140,8 +147,9 @@
       </div>
     </Card>
 
-    <!-- Modal de Vincular Novo Usuário AD -->
-    <Modal :is-open="showAddUserModal" title="Vincular Usuário do Active Directory (AD)" @close="closeModal">
+    <!-- Modal 1: Incluir Novo Usuário AD -->
+    <Modal :show="showAddUserModal" @close="closeAddModal">
+      <template #header>Incluir Usuário no Sistema (AD)</template>
       <form @submit.prevent="saveUser" class="space-y-4">
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">Login do AD (Usuário)</label>
@@ -152,11 +160,11 @@
             placeholder="Ex: daniel.turmina ou 1234567"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm"
           />
-          <p class="text-xs text-gray-400 mt-1">Digite a conta corporativa da Ebserh sem a barra (ex: `daniel.turmina`).</p>
+          <p class="text-xs text-gray-400 mt-1">Digite a conta corporativa da Ebserh (ex: `daniel.turmina`).</p>
         </div>
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Completo do Funcionário</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Completo do Colaborador</label>
           <input 
             v-model="newUser.nome" 
             type="text" 
@@ -181,8 +189,37 @@
         </div>
 
         <div class="flex justify-end space-x-3 pt-4 border-t">
-          <Button variant="secondary" type="button" @click="closeModal">Cancelar</Button>
-          <Button variant="primary" type="submit">Salvar Acesso</Button>
+          <Button variant="secondary" type="button" @click="closeAddModal">Cancelar</Button>
+          <Button variant="primary" type="submit">Incluir Usuário</Button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Modal 2: Alterar Perfil do Usuário -->
+    <Modal :show="showEditUserModal" @close="closeEditModal">
+      <template #header>Alterar Perfil de Acesso</template>
+      <form v-if="editingUser" @submit.prevent="updateUserRole" class="space-y-4">
+        <div class="p-3 bg-gray-50 border rounded-lg space-y-1 text-sm">
+          <p><strong class="text-gray-700">Login AD:</strong> <span class="font-bold text-gray-900">{{ editingUser.username }}</span></p>
+          <p><strong class="text-gray-700">Nome:</strong> {{ editingUser.nome }}</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Selecione o Novo Perfil de Acesso</label>
+          <select 
+            v-model="editingUser.perfil" 
+            required 
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm bg-white"
+          >
+            <option v-for="role in availableRoles" :key="role.nome" :value="role.nome">
+              {{ role.nome }} — {{ role.descricao }}
+            </option>
+          </select>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4 border-t">
+          <Button variant="secondary" type="button" @click="closeEditModal">Cancelar</Button>
+          <Button variant="primary" type="submit">Salvar Perfil</Button>
         </div>
       </form>
     </Modal>
@@ -206,6 +243,7 @@ import {
 
 const authStore = useAuthStore();
 const showAddUserModal = ref(false);
+const showEditUserModal = ref(false);
 
 interface UserRBAC {
   id: number;
@@ -239,14 +277,21 @@ const newUser = ref({
   perfil: 'CONSULTA'
 });
 
+const editingUser = ref<UserRBAC | null>(null);
+
 const getRoleBadgeClass = (perfil: string) => {
   const role = availableRoles.find(r => r.nome === perfil);
   return role ? role.badgeClass : 'bg-gray-100 text-gray-700';
 };
 
-const closeModal = () => {
+const closeAddModal = () => {
   showAddUserModal.value = false;
   newUser.value = { username: '', nome: '', perfil: 'CONSULTA' };
+};
+
+const closeEditModal = () => {
+  showEditUserModal.value = false;
+  editingUser.value = null;
 };
 
 const saveUser = () => {
@@ -260,16 +305,30 @@ const saveUser = () => {
     ativo: true
   });
 
-  closeModal();
+  closeAddModal();
+};
+
+const openEditModal = (user: UserRBAC) => {
+  editingUser.value = { ...user };
+  showEditUserModal.value = true;
+};
+
+const updateUserRole = () => {
+  if (!editingUser.value) return;
+
+  const index = usersList.value.findIndex(u => u.id === editingUser.value?.id);
+  if (index !== -1) {
+    usersList.value[index].perfil = editingUser.value.perfil;
+  }
+
+  closeEditModal();
 };
 
 const toggleUserStatus = (user: UserRBAC) => {
   user.ativo = !user.ativo;
 };
 
-const editUserRole = (user: UserRBAC) => {
-  const currentIndex = availableRoles.findIndex(r => r.nome === user.perfil);
-  const nextIndex = (currentIndex + 1) % availableRoles.length;
-  user.perfil = availableRoles[nextIndex].nome;
+const removeUser = (userId: number) => {
+  usersList.value = usersList.value.filter(u => u.id !== userId);
 };
 </script>
