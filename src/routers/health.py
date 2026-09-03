@@ -41,7 +41,6 @@ async def health_check(request: Request):
             db_status["aghu_postgres"] = "connected"
         except Exception as e:
             db_status["aghu_postgres"] = f"error: {str(e)}"
-            is_healthy = False
     else:
         db_status["aghu_postgres"] = "disabled_or_not_configured"
 
