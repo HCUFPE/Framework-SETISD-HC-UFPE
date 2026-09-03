@@ -1,4 +1,4 @@
-# Esqueleto de Aplicação Web Full-Stack (Python/FastAPI + Vue.js)
+# Framework-SETISD-HC-UFPE (Python/FastAPI + Vue.js)
 
 Este projeto é um framework robusto e flexível para aplicações web modernas, construído com FastAPI no backend e Vue.js (Vite) no frontend. Ele foi projetado com uma arquitetura limpa e desacoplada, pronta para ser estendida e adaptada a diversas necessidades.
 

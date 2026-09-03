@@ -1,5 +1,5 @@
 def main():
-    print("Hello from appstart!")
+    print("Hello from Framework-SETISD-HC-UFPE!")
 
 
 if __name__ == "__main__":
