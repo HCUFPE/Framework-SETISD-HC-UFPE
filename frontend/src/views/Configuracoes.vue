@@ -183,7 +183,7 @@
           >
             <option value="" disabled>Selecione um perfil...</option>
             <option v-for="role in availableRoles" :key="role.nome" :value="role.nome">
-              {{ role.nome }} — {{ role.descricao }}
+              {{ role.nome }}
             </option>
           </select>
         </div>
@@ -212,7 +212,7 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm bg-white"
           >
             <option v-for="role in availableRoles" :key="role.nome" :value="role.nome">
-              {{ role.nome }} — {{ role.descricao }}
+              {{ role.nome }}
             </option>
           </select>
         </div>
