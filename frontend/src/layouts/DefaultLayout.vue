@@ -24,7 +24,7 @@
           class="cursor-pointer text-white flex items-center space-x-3 px-3 mb-6 hover:opacity-90 transition duration-150 group"
         >
           <CubeTransparentIcon class="h-8 w-8 shrink-0 group-hover:scale-105 transition-transform" />
-          <span v-if="!isCollapsed" class="text-xl font-extrabold truncate transition-all duration-200">
+          <span v-if="!isCollapsed" class="text-lg font-extrabold leading-tight select-none">
             {{ SYSTEM_TITLE }}
           </span>
         </div>
