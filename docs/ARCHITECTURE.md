@@ -17,8 +17,19 @@ O fluxo de uma requisição na aplicação segue um padrão claro e unidireciona
     - **Função:** Recebe as dependências já prontas do roteador. Ele não sabe (e não deve saber) qual implementação concreta está sendo usada (ex: se os dados vêm de um banco ou de um CSV). Ele apenas utiliza os métodos definidos pela interface do provedor.
 
 3.  **Provedor (`src/providers/`)**
-    - **Responsabilidade:** Camada de acesso a dados. É a única parte do sistema que sabe como obter ou persistir dados em uma fonte específica (PostgreSQL, Oracle, CSV, API externa, etc.).
+    - **Responsabilidade:** Camada de acesso a dados. É a única parte do sistema que sabe como obter ou persistir dados em uma fonte específica (PostgreSQL AGHU, SQLite Local, CSV, Oracle, etc.).
     - **Função:** Implementa uma interface (contrato) definida em `src/providers/interfaces/`. Cada implementação concreta (ex: `PacientePostgresProvider`, `PacienteCsvProvider`) contém a lógica específica para uma fonte de dados.
+
+## Estratégia de Bancos de Dados
+
+O framework trabalha com três papéis claros para armazenamento de dados:
+
+1. **Banco Interno da Aplicação (SQLite `APP_DB_URL`):**
+   - Banco de dados padrão da aplicação para salvar estados locais, sessões e tabelas nativas do novo sistema.
+2. **Banco Corporativo do Hospital (PostgreSQL `POSTGRES_DSN`):**
+   - Banco oficial de produção para **consultar dados do AGHU** (leitos, prontuários, faturamento).
+3. **Provedor de Desenvolvimento Offline (CSV `data/pacientes.csv`):**
+   - Provedor secundário ativado em desenvolvimento local sem acesso à rede do hospital.
 
 ## Padrão de Provedor com Seleção de Estratégia
 

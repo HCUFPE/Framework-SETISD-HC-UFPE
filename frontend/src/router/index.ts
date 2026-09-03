@@ -10,7 +10,7 @@ import Pacientes from '../views/Pacientes.vue';
 const routes = [
   {
     path: '/',
-    name: 'Home',
+    name: 'Início',
     component: Home,
   },
   {
@@ -20,21 +20,20 @@ const routes = [
     meta: { layout: 'LoginLayout' },
   },
   {
-    path: '/configuracoes',
-    name: 'Configuracoes',
-    component: Configuracoes,
-    meta: { requiresAuth: true },
-  },
-
-  {
-    path: '/exemplos',
-    name: 'Exemplos',
+    path: '/componentes',
+    name: 'Componentes',
     component: Exemplos,
   },
   {
-    path: '/pacientes',
-    name: 'Pacientes',
+    path: '/exemplo',
+    name: 'Exemplo',
     component: Pacientes,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/configuracoes',
+    name: 'Configuracoes',
+    component: Configuracoes,
     meta: { requiresAuth: true },
   },
 ];
