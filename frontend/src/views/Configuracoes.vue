@@ -259,7 +259,7 @@ const availableRoles = [
   { nome: 'ENFERMAGEM', descricao: 'Acesso ao censo diário de leitos, checagem e sinais vitais.', badgeClass: 'bg-emerald-100 text-emerald-800' },
   { nome: 'FARMACEUTICO', descricao: 'Acesso à dispensação de medicamentos e controle de estoque.', badgeClass: 'bg-amber-100 text-amber-800' },
   { nome: 'GESTOR_UNIDADE', descricao: 'Acesso a relatórios estratégicos, indicadores e dashboards do setor.', badgeClass: 'bg-indigo-100 text-indigo-800' },
-  { nome: 'CONSULTA', descricao: 'Acesso estritamente somente-leitura (Read-Only) para auditoria.', badgeClass: 'bg-gray-100 text-gray-800' }
+  { nome: 'CONSULTA', descricao: 'Acesso estritamente somente-leitura (Read-Only) para consulta.', badgeClass: 'bg-gray-100 text-gray-800' }
 ];
 
 // Lista Inicial Simulada de Usuários RBAC Autorizados no Banco Local (data/app.db)

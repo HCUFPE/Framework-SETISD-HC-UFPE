@@ -140,5 +140,5 @@ Cada sistema definirá seus próprios perfis no banco local de acordo com suas r
 - `ENFERMAGEM`: Acesso ao censo diário de leitos, checagem e sinais vitais.
 - `FARMACEUTICO`: Acesso a dispensação de medicamentos e estoque.
 - `GESTOR_UNIDADE`: Acesso a relatórios estratégicos, indicadores e dashboards.
-- `CONSULTA`: Acesso estritamente somente-leitura (Read-Only) para auditoria.
+- `CONSULTA`: Acesso estritamente somente-leitura (Read-Only) para consulta.
 

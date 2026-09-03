@@ -73,5 +73,5 @@ Cada sistema construído com o framework definirá seus próprios perfis de acor
 3. 🩺 **`ENFERMAGEM`**: Acesso ao censo diário de leitos, checagem e sinais vitais.
 4. 💊 **`FARMACEUTICO`**: Acesso à dispensação de medicamentos e controle de estoque.
 5. 📊 **`GESTOR_UNIDADE`**: Acesso a relatórios estratégicos, indicadores e dashboards.
-6. 👁️ **`CONSULTA`**: Acesso estritamente somente-leitura (Read-Only) para auditoria.
+6. 👁️ **`CONSULTA`**: Acesso estritamente somente-leitura (Read-Only) para consulta.
 
