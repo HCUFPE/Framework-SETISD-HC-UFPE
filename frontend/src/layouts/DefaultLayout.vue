@@ -2,7 +2,7 @@
   <div class="relative h-screen overflow-hidden md:flex">
     <!-- Mobile Menu -->
     <div class="bg-paper-sidebar text-gray-100 flex justify-between md:hidden shrink-0">
-      <router-link to="/" class="block p-4 text-white font-bold">My App</router-link>
+      <router-link to="/" class="block p-4 text-white font-bold">Nome do Sistema</router-link>
       <button @click="sidebarOpen = !sidebarOpen" class="p-4 focus:outline-none focus:bg-paper-active-link">
         <Bars3Icon class="h-6 w-6" />
       </button>
@@ -12,7 +12,7 @@
     <aside :class="{ '-translate-x-full': !sidebarOpen }" class="bg-paper-sidebar text-gray-100 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-200 ease-in-out z-20 h-full shrink-0">
       <div @click="() => router.push('/')" class="cursor-pointer text-white flex items-center space-x-2 px-4">
         <CubeTransparentIcon class="h-8 w-8"/>
-        <span class="text-2xl font-extrabold">My App</span>
+        <span class="text-2xl font-extrabold">Nome do Sistema</span>
       </div>
       <div class="px-4 my-6">
         <div class="border-t border-white border-opacity-20"></div>

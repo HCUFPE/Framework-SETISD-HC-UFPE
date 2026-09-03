@@ -4,12 +4,12 @@
       <template #header>
         <div class="flex items-center space-x-3">
           <HomeIcon class="h-7 w-7 text-paper-text" />
-          <h1 class="text-2xl font-bold text-paper-text">Painel Inicial (Início)</h1>
+          <h1 class="text-2xl font-bold text-paper-text">Pégina Inicial</h1>
         </div>
       </template>
       <div class="space-y-4">
         <p class="text-gray-700 leading-relaxed">
-          Bem-vindo ao **Framework-SETISD-HC-UFPE**! Esta é a página inicial padrão (Início) do seu novo sistema.
+          Bem-vindo ao **Framework-SETISD-HC-UFPE**! Esta é a página inicial padrão do seu novo sistema.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
