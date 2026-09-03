@@ -87,7 +87,7 @@ const handleLogin = async () => {
   error.value = '';
   try {
     await authStore.login(username.value, password.value, rememberMe.value);
-    await router.push('/admin'); // Or wherever you want to redirect after login
+    await router.push('/');
   } catch (e: any) {
     error.value = e.response?.data?.detail || e.message || 'An unknown error occurred';
   } finally {

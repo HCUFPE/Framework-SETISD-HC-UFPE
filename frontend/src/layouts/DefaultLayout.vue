@@ -35,9 +35,9 @@
               <span>Pacientes</span>
             </router-link>
         
-        <router-link v-if="authStore.isAdmin" to="/admin" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <ShieldCheckIcon class="h-6 w-6"/>
-          <span>Admin</span>
+        <router-link v-if="authStore.isAuthenticated" to="/configuracoes" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
+          <Cog6ToothIcon class="h-6 w-6"/>
+          <span>Configurações</span>
         </router-link>
 
 
@@ -78,7 +78,7 @@ import {
   HomeIcon,
   BeakerIcon,
   UsersIcon,
-  ShieldCheckIcon,
+  Cog6ToothIcon,
   CubeTransparentIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
