@@ -48,6 +48,7 @@ Framework-SETISD-HC-UFPE/
 ├── dev.sh                # Script de execução paralela para desenvolvimento
 ├── start.sh              # Script de build e execução local do servidor
 ├── docs/                 # Documentação detalhada da arquitetura e manuais
+│   ├── especificacao/    # Gabarito oficial de Especificação de Software (Visão, Requisitos, SDD)
 │   ├── ARCHITECTURE.md   # Arquitetura em camadas e padrão Provider
 │   ├── AUTHENTICATION.md # Sistema de Autenticação (AD / Mock / JWT)
 │   ├── GUIA_DESENVOLVIMENTO.md # Tutorial passo a passo para criar novas telas/rotas
@@ -121,6 +122,7 @@ A aplicação ficará disponível consolidada em `http://IP-DA-VM:8000/`.
 Para se aprofundar nos padrões arquiteturais do hospital, consulte a documentação oficial na pasta `docs/`:
 
 - **[ Guia de Instalação, Execução e Deploy (`docs/SETUP.md`)](./docs/SETUP.md)**
+- **[ Gabarito de Especificação de Requisitos - SDD (`docs/especificacao/README.md`)](./docs/especificacao/README.md)**
 - **[ Arquitetura em Camadas e Padrão Provider (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)**
 - **[ Manual de Autenticação AD, Mock e JWT (`docs/AUTHENTICATION.md`)](./docs/AUTHENTICATION.md)**
 - **[ Tutorial de Criação de Novas Funcionalidades (`docs/GUIA_DESENVOLVIMENTO.md`)](./docs/GUIA_DESENVOLVIMENTO.md)**
