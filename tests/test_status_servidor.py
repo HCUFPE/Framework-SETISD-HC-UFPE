@@ -1,8 +1,8 @@
-# tests/test_health.py
+# tests/test_status_servidor.py
 
-def test_health_check_endpoint(client):
+def test_status_servidor_e_bancos(client):
     """
-    Testa se a rota /api/health responde status 200 e traz as informações de saúde.
+    Testa se o servidor web FastAPI e a infraestrutura de banco de dados estão online e respondendo (Status Check).
     """
     response = client.get("/api/health")
     assert response.status_code == 200
