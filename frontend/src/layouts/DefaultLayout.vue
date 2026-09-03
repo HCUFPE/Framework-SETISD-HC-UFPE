@@ -9,36 +9,44 @@
     </div>
 
     <!-- Sidebar -->
-    <aside :class="{ '-translate-x-full': !sidebarOpen }" class="bg-paper-sidebar text-gray-100 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-200 ease-in-out z-20 h-full shrink-0">
-      <div @click="() => router.push('/')" class="cursor-pointer text-white flex items-center space-x-2 px-4">
-        <CubeTransparentIcon class="h-8 w-8"/>
-        <span class="text-2xl font-extrabold">Nome do Sistema</span>
+    <aside :class="{ '-translate-x-full': !sidebarOpen }" class="bg-paper-sidebar text-gray-100 w-64 py-7 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-200 ease-in-out z-20 h-full shrink-0 flex flex-col justify-between">
+      <div>
+        <div @click="() => router.push('/')" class="cursor-pointer text-white flex items-center space-x-2 px-4 mb-6">
+          <CubeTransparentIcon class="h-8 w-8"/>
+          <span class="text-2xl font-extrabold">Nome do Sistema</span>
+        </div>
+        <div class="px-4 my-4">
+          <div class="border-t border-white border-opacity-20"></div>
+        </div>
+
+        <nav class="space-y-2">
+          <router-link to="/" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
+            <HomeIcon class="h-6 w-6"/>
+            <span>Início</span>
+          </router-link>
+
+          <router-link to="/componentes" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
+            <CubeIcon class="h-6 w-6" />
+            <span>Componentes</span>
+          </router-link>
+
+          <router-link v-if="authStore.isAuthenticated" to="/exemplo" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
+            <DocumentTextIcon class="h-6 w-6" />
+            <span>Exemplo</span>
+          </router-link>
+          
+          <router-link v-if="authStore.isAuthenticated" to="/configuracoes" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
+            <Cog6ToothIcon class="h-6 w-6"/>
+            <span>Configurações</span>
+          </router-link>
+        </nav>
       </div>
-      <div class="px-4 my-6">
-        <div class="border-t border-white border-opacity-20"></div>
+
+      <!-- Rodapé de Versão da Sidebar -->
+      <div class="px-4 pt-4 pb-2 border-t border-white/10 text-xs text-gray-400 mt-auto">
+        <p class="font-bold text-gray-200">Framework SETISD</p>
+        <p class="text-[11px] text-gray-400">Versão v1.0.0 | HC-UFPE</p>
       </div>
-
-      <nav>
-        <router-link to="/" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <HomeIcon class="h-6 w-6"/>
-          <span>Início</span>
-        </router-link>
-
-        <router-link to="/componentes" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <CubeIcon class="h-6 w-6" />
-          <span>Componentes</span>
-        </router-link>
-
-        <router-link v-if="authStore.isAuthenticated" to="/exemplo" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <DocumentTextIcon class="h-6 w-6" />
-          <span>Exemplo</span>
-        </router-link>
-        
-        <router-link v-if="authStore.isAuthenticated" to="/configuracoes" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <Cog6ToothIcon class="h-6 w-6"/>
-          <span>Configurações</span>
-        </router-link>
-      </nav>
     </aside>
 
     <!-- Content -->

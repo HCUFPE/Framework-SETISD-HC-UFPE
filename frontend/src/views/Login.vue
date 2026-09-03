@@ -48,6 +48,12 @@
       <strong class="font-bold">Erro: </strong>
       <span class="block sm:inline">{{ error }}</span>
     </div>
+
+    <!-- Rodapé de Versão -->
+    <div class="mt-6 text-center text-xs text-gray-400 space-y-1">
+      <p class="font-semibold text-gray-300">Hospital das Clínicas da UFPE (HC-UFPE / EBSERH)</p>
+      <p class="text-gray-400">Setor de TI e Saúde Digital — SETISD | Versão v1.0.0</p>
+    </div>
   </div>
 </template>
 
