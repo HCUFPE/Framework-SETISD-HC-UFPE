@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 import os
@@ -47,10 +48,23 @@ async def lifespan(app: FastAPI):
         print("App SQLite connection pool closed.")
 
 app = FastAPI(
-    title="Esqueleto de Aplicação Web Full-Stack",
-    description="Aplicação Backend monolítica (API REST) em Python/FastAPI, com foco em acesso e agregação de dados heterogêneos.",
+    title="Framework-SETISD-HC-UFPE",
+    description="Framework Monolítico Padrão (API REST FastAPI + Vue 3 SPA) para desenvolvimento de sistemas no HC-UFPE.",
     version="1.0.0",
+    swagger_ui_parameters={"persistAuthorization": True},
     lifespan=lifespan,
+)
+
+# Configuração de CORS (Cross-Origin Resource Sharing)
+raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins if allowed_origins else ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Serve o frontend Vue 3 empacotado
@@ -58,8 +72,9 @@ app.mount("/assets", StaticFiles(directory="src/static/dist/assets"), name="asse
 # Outros arquivos estáticos na raiz do dist (como favicon.ico)
 app.mount("/static", StaticFiles(directory="src/static/dist"), name="static")
 
-# Placeholder para incluir os roteadores da API
-from .routers import paciente, auth, admin, aih, bpa, material
+# Roteadores da API
+from .routers import paciente, auth, admin, aih, bpa, material, health
+app.include_router(health.router)
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
