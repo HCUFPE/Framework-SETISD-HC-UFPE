@@ -5,7 +5,7 @@
       <template #header>
         <div class="flex items-center space-x-3">
           <Cog6ToothIcon class="h-7 w-7 text-paper-text" />
-          <h1 class="text-2xl font-bold text-paper-text">Configurações & Gestão de Acessos</h1>
+          <h1 class="text-2xl font-bold text-paper-text">Configurações</h1>
         </div>
       </template>
 
@@ -264,11 +264,12 @@ const availableRoles = [
 
 // Lista Inicial Simulada de Usuários RBAC Autorizados no Banco Local (data/app.db)
 const usersList = ref<UserRBAC[]>([
-  { id: 1, username: 'admin', nome: 'Administrador do Sistema (SETISD)', perfil: 'ADMINISTRADOR', ativo: true },
-  { id: 2, username: 'daniel.turmina', nome: 'Daniel Freire Turmina', perfil: 'GESTOR_UNIDADE', ativo: true },
-  { id: 3, username: 'medico.plantao', nome: 'Dr. Carlos Eduardo (Médico)', perfil: 'MEDICO', ativo: true },
-  { id: 4, username: 'enfermeira.chefe', nome: 'Dra. Maria Clara (Enfermagem)', perfil: 'ENFERMAGEM', ativo: true },
-  { id: 5, username: 'auditor.sus', nome: 'Auditoria Externa SUS', perfil: 'CONSULTA', ativo: false }
+  { id: 1, username: 'admin', nome: 'Administrador do Sistema', perfil: 'ADMINISTRADOR', ativo: true },
+  { id: 2, username: 'gestor.unidade', nome: 'Gestor da Unidade', perfil: 'GESTOR_UNIDADE', ativo: true },
+  { id: 3, username: 'medico.exemplo', nome: 'Médico do Setor', perfil: 'MEDICO', ativo: true },
+  { id: 4, username: 'enfermeiro.exemplo', nome: 'Enfermeiro do Setor', perfil: 'ENFERMAGEM', ativo: true },
+  { id: 5, username: 'farmaceutico.exemplo', nome: 'Farmacêutico do Setor', perfil: 'FARMACEUTICO', ativo: true },
+  { id: 6, username: 'usuario.consulta', nome: 'Usuário de Consulta', perfil: 'CONSULTA', ativo: false }
 ]);
 
 const newUser = ref({
