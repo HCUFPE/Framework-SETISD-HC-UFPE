@@ -48,3 +48,28 @@ Independentemente do provedor utilizado, após a autenticação bem-sucedida, o 
 
 -   **Access Token**: É um token de curta duração (configurável via `JWT_EXP_HOURS`) que é enviado em cada requisição à API para autorizar o acesso.
 -   **Refresh Token**: É um token de longa duração (configurável via `REFRESH_TOKEN_EXP_DAYS`) armazenado em um cookie `HttpOnly`. Ele é usado para obter um novo Access Token sem que o usuário precise fazer login novamente.
+
+---
+
+## Modelo de Segurança Híbrido (Autenticação AD + RBAC Local)
+
+Para combinar **máxima segurança corporativa** com **autonomia da gestão hospitalar**, todo sistema construído sobre este framework deve seguir o modelo em 2 etapas:
+
+### 1. Etapa 1: Autenticação no Active Directory (AD / LDAP)
+- Garante a autenticidade da conta corporativa na rede Ebserh (`EBSERHNET`).
+- **Segurança Máxima:** Se um funcionário for desligado do hospital, a TI desativa a conta dele no AD e o acesso a todos os sistemas cessa automaticamente.
+- **Zero Burocracia na TI:** Elimina a necessidade de criar grupos de segurança no AD para cada novo sistema.
+
+### 2. Etapa 2: Autorização Local por Perfis (RBAC no Banco `data/app.db`)
+- Cada sistema mantém sua tabela de usuários autorizados no banco local (`data/app.db`).
+- A chefia/gestão do setor cadastra o usuário digitando o login do AD e selecionando seu perfil.
+- Mesmo com senha do AD correta, um funcionário sem cadastro prévio no banco local do sistema recebe mensagem de acesso negado.
+
+### Perfis de Acesso Padrão (Roles)
+1. 🛡️ **`ADMINISTRADOR`**: Acesso total às configurações, auditoria e gestão de usuários/perfis.
+2. 👨‍⚕️ **`MEDICO`**: Acesso a evolução clínica, prescrições e altas hospitalares.
+3. 🩺 **`ENFERMAGEM`**: Acesso ao censo diário de leitos, checagem e sinais vitais.
+4. 💊 **`FARMACEUTICO`**: Acesso à dispensação de medicamentos e controle de estoque.
+5. 📊 **`GESTOR_UNIDADE`**: Acesso a relatórios estratégicos, indicadores e dashboards.
+6. 👁️ **`CONSULTA`**: Acesso estritamente somente-leitura (Read-Only) para auditoria e equipes de BI.
+

@@ -122,3 +122,22 @@ $$\text{SQL Template} \longrightarrow \text{Resource} \longrightarrow \text{Prov
   }
   ```
 - **Preservação do Frontend:** Preserve os interceptadores do Axios (`frontend/src/services/api.ts`) e a biblioteca de componentes reusáveis.
+
+---
+
+## 8. Arquitetura de Segurança: Autenticação AD + RBAC Local da Aplicação
+
+Todo sistema desenvolvido no framework DEVE seguir o modelo **Híbrido de Segurança**:
+
+### Fluxo de Verificação em 2 Etapas:
+1. **Etapa 1 (Autenticação no Active Directory - AD):** Valida a identidade e a senha corporativa do usuário na rede Ebserh (`EBSERHNET`). Se o funcionário for desligado do hospital, a TI desativa a conta no AD e o acesso cessa automaticamente em todos os sistemas.
+2. **Etapa 2 (Autorização no Banco Local `data/app.db`):** O sistema verifica se o login do AD está previamente cadastrado e ativo na tabela local do sistema. Mesmo com senha do AD correta, o acesso só é concedido se a chefia do setor tiver vinculado o usuário no sistema.
+
+### Perfis de Acesso Padrão (Roles):
+- `ADMINISTRADOR`: Acesso total ao sistema, configurações e gestão de usuários/perfis.
+- `MEDICO`: Acesso a evolução clínica, prescrição e altas.
+- `ENFERMAGEM`: Acesso ao censo diário de leitos, checagem e sinais vitais.
+- `FARMACEUTICO`: Acesso a dispensação de medicamentos e estoque.
+- `GESTOR_UNIDADE`: Acesso a relatórios estratégicos, indicadores e dashboards.
+- `CONSULTA`: Acesso estritamente somente-leitura (Read-Only) para auditoria SUS ou BI.
+
