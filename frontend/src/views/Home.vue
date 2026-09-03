@@ -16,7 +16,7 @@
           <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-1">
             <h3 class="font-bold text-gray-800 flex items-center gap-2">
               <CubeIcon class="h-5 w-5 text-gray-600" />
-              Componentes UI
+              Componentes
             </h3>
             <p class="text-xs text-gray-500">Acesse o menu <strong>Componentes</strong> para visualizar botões, modais, cards e formulários reusáveis.</p>
           </div>
@@ -24,7 +24,7 @@
           <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-1">
             <h3 class="font-bold text-gray-800 flex items-center gap-2">
               <DocumentTextIcon class="h-5 w-5 text-gray-600" />
-              Exemplo AGHU
+              Exemplo
             </h3>
             <p class="text-xs text-gray-500">Acesse o menu <strong>Exemplo</strong> para ver uma demonstração de consulta de dados via PostgreSQL ou CSV.</p>
           </div>

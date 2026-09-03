@@ -25,7 +25,8 @@ async def lifespan(app: FastAPI):
         print("WARNING: POSTGRES_DSN not found. Skipping AGHU DB initialization.")
 
     # Initialize App DB Manager (SQLite) and store in app.state
-    app_dsn = os.getenv("SQLITE_DSN") or os.getenv("APP_DB_URL") or "sqlite+aiosqlite:///app.db"
+    app_dsn = os.getenv("SQLITE_DSN") or os.getenv("APP_DB_URL") or "sqlite+aiosqlite:///data/app.db"
+    os.makedirs("data", exist_ok=True)
     app.state.app_db = DatabaseManager(app_dsn)
     print(f"App SQLite connection pool initialized ({app_dsn}).")
 

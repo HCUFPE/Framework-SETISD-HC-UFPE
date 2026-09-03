@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-6">Galeria de Componentes Reusáveis</h1>
+    <h1 class="text-2xl font-bold mb-6">Galeria de Componentes Utilizáveis</h1>
 
     <!-- Grid System Explanation Card -->
     <Card class="mb-6">
