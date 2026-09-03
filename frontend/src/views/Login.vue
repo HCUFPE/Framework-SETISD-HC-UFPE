@@ -51,8 +51,8 @@
 
     <!-- Rodapé de Versão -->
     <div class="mt-6 text-center text-xs text-gray-400 space-y-1">
-      <p class="font-semibold text-gray-300">Hospital das Clínicas da UFPE (HC-UFPE / EBSERH)</p>
-      <p class="text-gray-400">Setor de Tecnologia da Informação e Saúde Digital — SETISD | Versão 1.0.0</p>
+      <p class="font-semibold text-gray-300">{{ HOSPITAL_NAME }}</p>
+      <p class="text-gray-400">{{ DEPARTMENT_NAME }} | Versão {{ APP_VERSION }}</p>
     </div>
   </div>
 </template>
@@ -64,6 +64,7 @@ import { useAuthStore } from '../stores/auth';
 import Card from '../components/Card.vue';
 import Button from '../components/Button.vue';
 import { ArrowRightOnRectangleIcon, EyeIcon, EyeSlashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
+import { APP_VERSION, HOSPITAL_NAME, DEPARTMENT_NAME } from '../config/version';
 
 const username = ref('');
 const password = ref('');

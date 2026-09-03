@@ -13,7 +13,7 @@
       <div>
         <div @click="() => router.push('/')" class="cursor-pointer text-white flex items-center space-x-2 px-4 mb-6">
           <CubeTransparentIcon class="h-8 w-8"/>
-          <span class="text-2xl font-extrabold">Nome do Sistema</span>
+          <span class="text-2xl font-extrabold">{{ SYSTEM_TITLE }}</span>
         </div>
         <div class="px-4 my-4">
           <div class="border-t border-white border-opacity-20"></div>
@@ -44,8 +44,8 @@
 
       <!-- Rodapé de Versão da Sidebar -->
       <div class="px-4 pt-3 pb-1 border-t border-white/10 text-xs text-gray-400 mt-auto">
-        <p class="font-semibold text-gray-200">Framework SETISD</p>
-        <p class="text-[11px] text-gray-400">Versão 1.0.0 | HC-UFPE</p>
+        <p class="font-semibold text-gray-200">{{ APP_NAME }}</p>
+        <p class="text-[11px] text-gray-400">Versão {{ APP_VERSION }} | HC-UFPE</p>
       </div>
     </aside>
 
@@ -91,6 +91,7 @@ import {
 import ProfileDropdown from '../components/ProfileDropdown.vue';
 import Button from '../components/Button.vue';
 import { useAuthStore } from '../stores/auth';
+import { APP_VERSION, APP_NAME, SYSTEM_TITLE } from '../config/version';
 
 const sidebarOpen = ref(false);
 const route = useRoute();

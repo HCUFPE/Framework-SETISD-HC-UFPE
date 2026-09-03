@@ -4,16 +4,18 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 from sqlalchemy import text
 
+from ..version import VERSION, APP_NAME, ORGANIZATION
+
 router = APIRouter(prefix="/api", tags=["Health & Monitoring"])
 
 @router.get(
     "/health", 
     summary="Health Check Endpoint", 
-    description="Verifica a saúde do servidor FastAPI e das conexões ativas com os bancos de dados."
+    description="Verifica a saúde do servidor FastAPI, versão e conexões ativas com os bancos de dados."
 )
 async def health_check(request: Request):
     """
-    Retorna o estado de saúde da aplicação e verifica conexões ativas de banco de dados.
+    Retorna o estado de saúde da aplicação, versão e verifica conexões ativas de banco de dados.
     """
     db_status = {}
     is_healthy = True
@@ -45,6 +47,9 @@ async def health_check(request: Request):
 
     response_payload = {
         "status": "healthy" if is_healthy else "unhealthy",
+        "app_name": APP_NAME,
+        "version": VERSION,
+        "organization": ORGANIZATION,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "databases": db_status
     }

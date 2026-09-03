@@ -46,10 +46,12 @@ async def lifespan(app: FastAPI):
         await app.state.app_db.close_connection()
         print("App SQLite connection pool closed.")
 
+from .version import VERSION, APP_NAME
+
 app = FastAPI(
-    title="Framework-SETISD-HC-UFPE",
+    title=APP_NAME,
     description="Framework Monolítico Padrão (API REST FastAPI + Vue 3 SPA) para desenvolvimento de sistemas no HC-UFPE.",
-    version="1.0.0",
+    version=VERSION,
     swagger_ui_parameters={"persistAuthorization": True},
     lifespan=lifespan,
 )
