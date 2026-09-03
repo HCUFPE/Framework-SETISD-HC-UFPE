@@ -145,11 +145,12 @@ class ActiveDirectoryAuthProvider(AuthProviderInterface):
 class AuthHandler:
     def __init__(self):
         # Lógica de troca: decide qual provedor usar na inicialização
-        if os.getenv("AD_URL"):
+        ad_url = os.getenv("AD_URL")
+        if ad_url and "ad.domain.local" not in ad_url:
             print("INFO: Using Active Directory authentication.")
             self.provider: AuthProviderInterface = ActiveDirectoryAuthProvider()
         else:
-            print("WARNING: AD environment variables not found. Using Mock authentication.")
+            print("WARNING: AD environment variables not found or template default. Using Mock authentication.")
             self.provider: AuthProviderInterface = MockAuthProvider()
 
     def authenticate_user(self, username, password):
