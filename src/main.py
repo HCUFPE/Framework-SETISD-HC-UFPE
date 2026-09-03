@@ -67,6 +67,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Handler Global para Padronizar Erros de Validação (Pydantic / FastAPI) no formato {"detail": "..."}
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    errors = exc.errors()
+    if errors:
+        first_err = errors[0]
+        field = first_err.get("loc", [])[-1] if first_err.get("loc") else "campo"
+        msg = first_err.get("msg", "Valor inválido")
+        detail_msg = f"Erro de validação no campo '{field}': {msg}"
+    else:
+        detail_msg = "Dados de requisição inválidos."
+
+    return JSONResponse(
+        status_code=400,
+        content={"detail": detail_msg}
+    )
+
+
 # Serve o frontend Vue 3 empacotado
 app.mount("/assets", StaticFiles(directory="src/static/dist/assets"), name="assets")
 # Outros arquivos estáticos na raiz do dist (como favicon.ico)
