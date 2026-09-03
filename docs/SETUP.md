@@ -29,13 +29,30 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # 2. Sincronize o ambiente e instale as dependências automaticamente
 uv sync
 
-# 3. Crie o arquivo de variáveis de ambiente
+# 3. Crie e edite o arquivo de variáveis de ambiente
 cp .env.example .env
+
+# Dica: Para desenvolvimento offline (sem acesso ao banco AGHU), use PACIENTE_PROVIDER_TYPE=CSV
+nano .env
 ```
 
 ---
 
-## 2. Executando a Aplicação em Desenvolvimento
+## 2. Configuração do Frontend
+
+Estes passos devem ser executados na pasta do frontend para instalar as dependências do Vue 3:
+
+```bash
+# 1. Navegue até a pasta do frontend
+cd frontend
+
+# 2. Instale as dependências do Node.js
+npm install
+```
+
+---
+
+## 3. Executando a Aplicação em Desenvolvimento
 
 ### A. Modo de Desenvolvimento Paralelo (`./dev.sh`) — RECOMENDADO
 Inicia o Backend (FastAPI) na porta `8000` e o Frontend (Vite) na porta `5173` com atualização instantânea (Hot Reload):
