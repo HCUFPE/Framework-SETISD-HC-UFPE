@@ -17,7 +17,7 @@ from ..models.refresh_token import RefreshToken
 load_dotenv()
 
 # --- Configurações --- 
-JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-key-change-in-production")
 JWT_EXP_HOURS = int(os.getenv("JWT_EXP_HOURS", 24))
 REFRESH_TOKEN_EXP_DAYS = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 30))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")

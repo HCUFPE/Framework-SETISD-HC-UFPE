@@ -25,11 +25,9 @@ async def lifespan(app: FastAPI):
         print("WARNING: POSTGRES_DSN not found. Skipping AGHU DB initialization.")
 
     # Initialize App DB Manager (SQLite) and store in app.state
-    app_dsn = os.getenv("SQLITE_DSN")
-    if not app_dsn:
-        raise ValueError("SQLITE_DSN not found in environment variables.")
+    app_dsn = os.getenv("SQLITE_DSN") or os.getenv("APP_DB_URL") or "sqlite+aiosqlite:///app.db"
     app.state.app_db = DatabaseManager(app_dsn)
-    print("App SQLite connection pool initialized.")
+    print(f"App SQLite connection pool initialized ({app_dsn}).")
 
     # Create tables for App DB (if they don't exist) - for development only, Alembic handles this in production
     async with app.state.app_db.engine.begin() as conn:
@@ -88,10 +86,14 @@ async def validation_exception_handler(request, exc: RequestValidationError):
     )
 
 
-# Serve o frontend Vue 3 empacotado
-app.mount("/assets", StaticFiles(directory="src/static/dist/assets"), name="assets")
-# Outros arquivos estáticos na raiz do dist (como favicon.ico)
-app.mount("/static", StaticFiles(directory="src/static/dist"), name="static")
+# Serve o frontend Vue 3 empacotado (se o build existir)
+assets_dir = os.path.join("src", "static", "dist", "assets")
+static_dir = os.path.join("src", "static", "dist")
+
+if os.path.exists(assets_dir):
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Roteadores da API
 from .routers import paciente, auth, admin, aih, bpa, material, health
