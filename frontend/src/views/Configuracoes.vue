@@ -66,9 +66,9 @@
             <table class="w-full text-left text-sm text-gray-600">
               <thead class="bg-gray-50 text-xs uppercase font-semibold text-gray-500 border-b">
                 <tr>
-                  <th class="py-3 px-4">Login AD</th>
+                  <th class="py-3 px-4">Login de Rede</th>
                   <th class="py-3 px-4">Nome do Colaborador</th>
-                  <th class="py-3 px-4">Perfil de Acesso (Role)</th>
+                  <th class="py-3 px-4">Perfil de Acesso</th>
                   <th class="py-3 px-4 text-center">Status</th>
                   <th class="py-3 px-4 text-right">Ações</th>
                 </tr>
@@ -149,18 +149,18 @@
 
     <!-- Modal 1: Incluir Novo Usuário AD -->
     <Modal :show="showAddUserModal" @close="closeAddModal">
-      <template #header>Incluir Usuário no Sistema (AD)</template>
+      <template #header>Incluir Usuário no Sistema</template>
       <form @submit.prevent="saveUser" class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Login do AD (Usuário)</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Login de Rede</label>
           <input 
             v-model="newUser.username" 
             type="text" 
             required 
-            placeholder="Ex: daniel.turmina ou 1234567"
+            placeholder="Ex: usuario.ad"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm"
           />
-          <p class="text-xs text-gray-400 mt-1">Digite a conta corporativa da Ebserh (ex: `daniel.turmina`).</p>
+          <p class="text-xs text-gray-400 mt-1">Insira o login de rede do colaborador (ex: `usuario.ad`).</p>
         </div>
 
         <div>
@@ -169,13 +169,13 @@
             v-model="newUser.nome" 
             type="text" 
             required 
-            placeholder="Ex: Daniel Freire Turmina"
+            placeholder="Ex: Nome do Colaborador"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Perfil de Acesso (Role)</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Perfil de Acesso</label>
           <select 
             v-model="newUser.perfil" 
             required 
@@ -200,7 +200,7 @@
       <template #header>Alterar Perfil de Acesso</template>
       <form v-if="editingUser" @submit.prevent="updateUserRole" class="space-y-4">
         <div class="p-3 bg-gray-50 border rounded-lg space-y-1 text-sm">
-          <p><strong class="text-gray-700">Login AD:</strong> <span class="font-bold text-gray-900">{{ editingUser.username }}</span></p>
+          <p><strong class="text-gray-700">Login de Rede:</strong> <span class="font-bold text-gray-900">{{ editingUser.username }}</span></p>
           <p><strong class="text-gray-700">Nome:</strong> {{ editingUser.nome }}</p>
         </div>
 
