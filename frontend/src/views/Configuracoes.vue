@@ -73,7 +73,7 @@
 
           <!-- Perfis Padrão Sugeridos -->
           <div class="pt-2">
-            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-3">Perfis de Acesso Padrão (Roles Sugeridas):</h4>
+            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-3">Exemplos de Perfis de Acesso (Exemplificativos / Customizáveis por Sistema):</h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <div class="p-3 bg-white border border-gray-200 rounded-lg space-y-1">
                 <span class="px-2 py-0.5 text-xs font-bold bg-purple-100 text-purple-800 rounded">ADMINISTRADOR</span>

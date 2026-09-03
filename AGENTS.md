@@ -133,7 +133,8 @@ Todo sistema desenvolvido no framework DEVE seguir o modelo **Híbrido de Segura
 1. **Etapa 1 (Autenticação no Active Directory - AD):** Valida a identidade e a senha corporativa do usuário na rede Ebserh (`EBSERHNET`). Se o funcionário for desligado do hospital, a TI desativa a conta no AD e o acesso cessa automaticamente em todos os sistemas.
 2. **Etapa 2 (Autorização no Banco Local `data/app.db`):** O sistema verifica se o login do AD está previamente cadastrado e ativo na tabela local do sistema. Mesmo com senha do AD correta, o acesso só é concedido se a chefia do setor tiver vinculado o usuário no sistema.
 
-### Perfis de Acesso Padrão (Roles):
+### Exemplos de Perfis de Acesso (Exemplificativos / Customizáveis por Sistema):
+Cada sistema definirá seus próprios perfis no banco local de acordo com suas regras de negócio. Abaixo estão exemplos comuns:
 - `ADMINISTRADOR`: Acesso total ao sistema, configurações e gestão de usuários/perfis.
 - `MEDICO`: Acesso a evolução clínica, prescrição e altas.
 - `ENFERMAGEM`: Acesso ao censo diário de leitos, checagem e sinais vitais.

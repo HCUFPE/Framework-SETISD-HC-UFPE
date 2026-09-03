@@ -65,7 +65,9 @@ Para combinar **máxima segurança corporativa** com **autonomia da gestão hosp
 - A chefia/gestão do setor cadastra o usuário digitando o login do AD e selecionando seu perfil.
 - Mesmo com senha do AD correta, um funcionário sem cadastro prévio no banco local do sistema recebe mensagem de acesso negado.
 
-### Perfis de Acesso Padrão (Roles)
+### Exemplos de Perfis de Acesso (Exemplificativos / Customizáveis por Sistema)
+Cada sistema construído com o framework definirá seus próprios perfis de acordo com as necessidades do negócio do setor. Abaixo estão alguns exemplos comuns:
+
 1. 🛡️ **`ADMINISTRADOR`**: Acesso total às configurações, auditoria e gestão de usuários/perfis.
 2. 👨‍⚕️ **`MEDICO`**: Acesso a evolução clínica, prescrições e altas hospitalares.
 3. 🩺 **`ENFERMAGEM`**: Acesso ao censo diário de leitos, checagem e sinais vitais.
