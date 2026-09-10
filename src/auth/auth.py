@@ -30,6 +30,10 @@ class AuthProviderInterface(ABC):
     def authenticate_user(self, username, password) -> dict:
         pass
 
+    @abstractmethod
+    def search_user(self, username: str) -> dict:
+        pass
+
 class MockAuthProvider(AuthProviderInterface):
     """Provedor de autenticação mock para desenvolvimento offline."""
     def authenticate_user(self, username, password) -> dict:
@@ -50,6 +54,84 @@ class MockAuthProvider(AuthProviderInterface):
                 status_code=status.HTTP_401_UNAUTHORIZED, 
                 detail="Invalid mock credentials"
             )
+
+    def search_user(self, username: str) -> dict:
+        """Busca simulada de usuário no AD para desenvolvimento/teste."""
+        clean_username = username.strip().lower()
+        mock_users = {
+            "admin": {
+                "exists": True,
+                "username": "admin",
+                "displayName": "Administrador do Sistema",
+                "email": "admin@ebserh.gov.br",
+                "department": "SETISD / HC-UFPE"
+            },
+            "joao.silva": {
+                "exists": True,
+                "username": "joao.silva",
+                "displayName": "João da Silva",
+                "email": "joao.silva@ebserh.gov.br",
+                "department": "UTI Adulto / HC-UFPE"
+            },
+            "maria.souza": {
+                "exists": True,
+                "username": "maria.souza",
+                "displayName": "Maria Souza",
+                "email": "maria.souza@ebserh.gov.br",
+                "department": "Bloco Cirúrgico / HC-UFPE"
+            },
+            "gestor.unidade": {
+                "exists": True,
+                "username": "gestor.unidade",
+                "displayName": "Gestor da Unidade",
+                "email": "gestor.unidade@ebserh.gov.br",
+                "department": "Diretoria de Enfermagem / HC-UFPE"
+            },
+            "medico.exemplo": {
+                "exists": True,
+                "username": "medico.exemplo",
+                "displayName": "Médico do Setor",
+                "email": "medico.exemplo@ebserh.gov.br",
+                "department": "Clínica Médica / HC-UFPE"
+            },
+            "enfermeiro.exemplo": {
+                "exists": True,
+                "username": "enfermeiro.exemplo",
+                "displayName": "Enfermeiro do Setor",
+                "email": "enfermeiro.exemplo@ebserh.gov.br",
+                "department": "UTI Neonatal / HC-UFPE"
+            },
+            "farmaceutico.exemplo": {
+                "exists": True,
+                "username": "farmaceutico.exemplo",
+                "displayName": "Farmacêutico do Setor",
+                "email": "farmaceutico.exemplo@ebserh.gov.br",
+                "department": "Farmácia Hospitalar / HC-UFPE"
+            }
+        }
+
+        if clean_username in mock_users:
+            return mock_users[clean_username]
+        
+        # Se for um formato 'nome.sobrenome', gera um mock dinâmico amigável
+        if "." in clean_username:
+            parts = clean_username.split(".")
+            formatted_name = " ".join([p.capitalize() for p in parts])
+            return {
+                "exists": True,
+                "username": clean_username,
+                "displayName": formatted_name,
+                "email": f"{clean_username}@ebserh.gov.br",
+                "department": "Unidade Hospitalar / HC-UFPE"
+            }
+        
+        return {
+            "exists": False,
+            "username": username,
+            "displayName": "",
+            "email": "",
+            "department": ""
+        }
 
 class ActiveDirectoryAuthProvider(AuthProviderInterface):
     """Provedor de autenticação real usando LDAP/Active Directory (ldap3)."""
@@ -140,6 +222,50 @@ class ActiveDirectoryAuthProvider(AuthProviderInterface):
             else:
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"AD error: {e}")
 
+    def search_user(self, username: str) -> dict:
+        """Busca dados de um usuário no AD pelo login (sAMAccountName) sem efetuar login dele."""
+        print(f"--- Searching AD User info (ldap3) for: {username} ---")
+        try:
+            server = Server(self.ad_url, get_info=ALL)
+            if self.ad_bind_user and self.ad_bind_password:
+                conn = Connection(server, user=self.ad_bind_user, password=self.ad_bind_password, authentication=SIMPLE, check_names=True, raise_exceptions=True)
+            else:
+                conn = Connection(server, authentication=SIMPLE, check_names=True, raise_exceptions=True)
+            
+            conn.bind()
+            search_filter = f"(&(objectClass=user)(sAMAccountName={username}))"
+            conn.search(self.ad_basedn, search_filter, search_scope=SUBTREE, attributes=['displayName', 'mail', 'department', 'title', 'sAMAccountName'])
+
+            if not conn.entries:
+                conn.unbind()
+                return {
+                    "exists": False,
+                    "username": username,
+                    "displayName": "",
+                    "email": "",
+                    "department": ""
+                }
+
+            entry = conn.entries[0]
+            display_name = str(entry.displayName.value) if 'displayName' in entry and entry.displayName.value else username
+            email = str(entry.mail.value) if 'mail' in entry and entry.mail.value else ""
+            department = str(entry.department.value) if 'department' in entry and entry.department.value else "HC-UFPE / EBSERH"
+
+            conn.unbind()
+            return {
+                "exists": True,
+                "username": username,
+                "displayName": display_name,
+                "email": email,
+                "department": department
+            }
+        except Exception as e:
+            print(f"Error searching AD for user {username}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Falha ao consultar Active Directory: {e}"
+            )
+
 # --- AuthHandler Principal ---
 
 class AuthHandler:
@@ -155,6 +281,9 @@ class AuthHandler:
 
     def authenticate_user(self, username, password):
         return self.provider.authenticate_user(username, password)
+
+    def search_ad_user(self, username: str) -> dict:
+        return self.provider.search_user(username)
 
     def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
         to_encode = data.copy()

@@ -73,5 +73,5 @@ A principal característica arquitetural do framework é a capacidade de trocar 
 A arquitetura de segurança do framework combina **autenticação corporativa centralizada** com **autorização local descentralizada**:
 
 1. **Autenticação no Active Directory (AD):** Validação da conta corporativa da Ebserh (`EBSERHNET`). Se o funcionário for desligado, a TI desativa no AD e o acesso cessa em todos os sistemas do hospital.
-2. **Autorização por Perfis (RBAC em `data/app.db`):** Tabela de usuários autorizados no banco local do sistema. A chefia do setor inclui o colaborador pelo seu login de rede e atribui o perfil de acesso adequado.
+2. **Autorização por Perfis (RBAC em `data/app.db` com Pré-Validação AD):** Tabela de usuários autorizados no banco local do sistema. Durante a inclusão na interface de **Configurações**, a chefia clica em **"Consultar AD"** (`GET /api/admin/ad-user-search/{username}`) para validar a existência da conta na rede e preencher automaticamente Nome, E-mail e Lotação. O perfil de acesso (RBAC) é então atribuído e salvo localmente.
 

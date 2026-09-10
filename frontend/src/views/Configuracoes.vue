@@ -149,18 +149,49 @@
 
     <!-- Modal 1: Incluir Novo Usuário AD -->
     <Modal :show="showAddUserModal" @close="closeAddModal">
-      <template #header>Incluir Usuário no Sistema</template>
+      <template #header>Incluir Usuário no Sistema (Validação AD)</template>
       <form @submit.prevent="saveUser" class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Login de Rede</label>
-          <input 
-            v-model="newUser.username" 
-            type="text" 
-            required 
-            placeholder="Ex: nome.sobrenome"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm"
-          />
-          <p class="text-xs text-gray-400 mt-1">Insira o login de rede do colaborador (ex: `nome.sobrenome`).</p>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Login de Rede (Active Directory)</label>
+          <div class="flex gap-2">
+            <input 
+              v-model="newUser.username" 
+              type="text" 
+              required 
+              placeholder="Ex: joao.silva"
+              @keyup.enter.prevent="searchADUser"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm"
+            />
+            <Button 
+              variant="secondary" 
+              type="button" 
+              :disabled="isSearchingAD || !newUser.username.trim()" 
+              @click="searchADUser"
+            >
+              <span v-if="isSearchingAD" class="text-xs font-semibold">Buscando...</span>
+              <span v-else class="text-xs font-semibold flex items-center gap-1">
+                <MagnifyingGlassIcon class="h-4 w-4" />
+                Consultar AD
+              </span>
+            </Button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Digite o login de rede corporativo (ex: `joao.silva`) e consulte o AD.</p>
+        </div>
+
+        <!-- Banner de Resultado da Consulta AD -->
+        <div v-if="adSearchStatus === 'success' && adSearchData" class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs space-y-1">
+          <p class="font-bold flex items-center gap-1 text-sm text-emerald-900">
+            <CheckCircleIcon class="h-4 w-4 text-emerald-600 shrink-0" />
+            Usuário localizado e validado no Active Directory (EBSERHNET)
+          </p>
+          <p><strong>Nome Completo:</strong> {{ adSearchData.displayName }}</p>
+          <p v-if="adSearchData.email"><strong>E-mail:</strong> {{ adSearchData.email }}</p>
+          <p><strong>Lotação / Setor:</strong> {{ adSearchData.department }}</p>
+        </div>
+
+        <div v-if="adSearchStatus === 'error'" class="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs flex items-center gap-2">
+          <ExclamationTriangleIcon class="h-4 w-4 text-red-500 shrink-0" />
+          <span>{{ adErrorMessage }}</span>
         </div>
 
         <div>
@@ -169,7 +200,7 @@
             v-model="newUser.nome" 
             type="text" 
             required 
-            placeholder="Ex: Nome do Colaborador"
+            placeholder="Ex: João da Silva"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-paper-text focus:outline-none text-sm"
           />
         </div>
@@ -232,13 +263,17 @@ import Card from '../components/Card.vue';
 import Modal from '../components/Modal.vue';
 import Button from '../components/Button.vue';
 import { useAuthStore } from '../stores/auth';
+import api from '../services/api';
 import { 
   Cog6ToothIcon, 
   UserCircleIcon, 
   ShieldCheckIcon, 
   UserGroupIcon, 
   UserPlusIcon, 
-  UserIcon 
+  UserIcon,
+  MagnifyingGlassIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -251,6 +286,14 @@ interface UserRBAC {
   nome: string;
   perfil: string;
   ativo: boolean;
+}
+
+interface ADUserData {
+  exists: boolean;
+  username: string;
+  displayName: string;
+  email: string;
+  department: string;
 }
 
 const availableRoles = [
@@ -278,6 +321,11 @@ const newUser = ref({
   perfil: availableRoles[0].nome
 });
 
+const isSearchingAD = ref(false);
+const adSearchStatus = ref<'idle' | 'success' | 'error'>('idle');
+const adErrorMessage = ref('');
+const adSearchData = ref<ADUserData | null>(null);
+
 const editingUser = ref<UserRBAC | null>(null);
 
 const getRoleBadgeClass = (perfil: string) => {
@@ -285,9 +333,41 @@ const getRoleBadgeClass = (perfil: string) => {
   return role ? role.badgeClass : 'bg-gray-100 text-gray-700';
 };
 
+const searchADUser = async () => {
+  const username = newUser.value.username.trim();
+  if (!username) return;
+
+  isSearchingAD.value = true;
+  adSearchStatus.value = 'idle';
+  adErrorMessage.value = '';
+  adSearchData.value = null;
+
+  try {
+    const response = await api.get<ADUserData>(`/api/admin/ad-user-search/${encodeURIComponent(username)}`);
+    const data = response.data;
+
+    if (data && data.exists) {
+      adSearchStatus.value = 'success';
+      adSearchData.value = data;
+      newUser.value.nome = data.displayName;
+    } else {
+      adSearchStatus.value = 'error';
+      adErrorMessage.value = `Usuário '${username}' não foi localizado no Active Directory. Verifique se o login está correto.`;
+    }
+  } catch (err: any) {
+    adSearchStatus.value = 'error';
+    adErrorMessage.value = err.response?.data?.detail || 'Erro ao consultar o Active Directory. Tente novamente.';
+  } finally {
+    isSearchingAD.value = false;
+  }
+};
+
 const closeAddModal = () => {
   showAddUserModal.value = false;
   newUser.value = { username: '', nome: '', perfil: availableRoles[0].nome };
+  adSearchStatus.value = 'idle';
+  adSearchData.value = null;
+  adErrorMessage.value = '';
 };
 
 const closeEditModal = () => {

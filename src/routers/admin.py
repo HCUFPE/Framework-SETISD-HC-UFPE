@@ -25,3 +25,19 @@ async def get_admin_data(current_user: dict = Depends(verify_admin_group)):
         message="This is highly confidential admin data!",
         user_groups=current_user.get("groups", [])
     )
+
+class ADUserSearchResponse(BaseModel):
+    exists: bool
+    username: str
+    displayName: str
+    email: str
+    department: str
+
+@router.get("/admin/ad-user-search/{username}", response_model=ADUserSearchResponse)
+async def search_ad_user(username: str, current_user: dict = Depends(verify_admin_group)):
+    """
+    Busca e valida um usuário no Active Directory (ou Mock) pelo login de rede.
+    Restrito a administradores do sistema.
+    """
+    res = auth_handler.search_ad_user(username)
+    return ADUserSearchResponse(**res)

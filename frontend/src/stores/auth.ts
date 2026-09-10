@@ -5,6 +5,8 @@ import api from '../services/api';
 interface User {
   username: string;
   groups: string[];
+  displayName?: string[];
+  email?: string[];
   givenName?: string[];
   userPrincipalName?: string[];
   title?: string[];

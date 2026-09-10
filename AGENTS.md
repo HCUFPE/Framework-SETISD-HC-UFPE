@@ -131,7 +131,9 @@ Todo sistema desenvolvido no framework DEVE seguir o modelo **Híbrido de Segura
 
 ### Fluxo de Verificação em 2 Etapas:
 1. **Etapa 1 (Autenticação no Active Directory - AD):** Valida a identidade e a senha corporativa do usuário na rede Ebserh (`EBSERHNET`). Se o funcionário for desligado do hospital, a TI desativa a conta no AD e o acesso cessa automaticamente em todos os sistemas.
-2. **Etapa 2 (Autorização no Banco Local `data/app.db`):** O sistema verifica se o login do AD está previamente cadastrado e ativo na tabela local do sistema. Mesmo com senha do AD correta, o acesso só é concedido se a chefia do setor tiver vinculado o usuário no sistema.
+2. **Etapa 2 (Autorização no Banco Local `data/app.db` com Pré-Validação AD):** 
+   - **Validação no AD (`GET /api/admin/ad-user-search/{username}`):** Ao cadastrar um novo usuário em **Configurações**, a chefia/gestão clica em **"Consultar AD"**. O backend consulta o Active Directory (ou Mock em desenvolvimento) para garantir a existência do usuário e preencher automaticamente seu **Nome Completo**, **E-mail** e **Lotação / Setor**.
+   - **Autorização Local:** Mesmo com a senha do AD correta, o acesso só é concedido se o login do AD estiver previamente cadastrado e ativo na tabela local do sistema.
 
 ### Exemplos de Perfis de Acesso (Exemplificativos / Customizáveis por Sistema):
 Cada sistema definirá seus próprios perfis no banco local de acordo com suas regras de negócio. Abaixo estão exemplos comuns:

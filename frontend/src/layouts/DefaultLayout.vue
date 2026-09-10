@@ -118,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import {
   HomeIcon,
   CubeIcon,
@@ -137,7 +137,6 @@ const sidebarOpen = ref(false);
 const isCollapsed = ref(false);
 
 const route = useRoute();
-const router = useRouter();
 const authStore = useAuthStore();
 
 const toggleSidebar = () => {

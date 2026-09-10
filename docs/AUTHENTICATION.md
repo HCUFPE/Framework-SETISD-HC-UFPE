@@ -62,8 +62,9 @@ Para combinar **máxima segurança corporativa** com **autonomia da gestão hosp
 
 ### 2. Etapa 2: Autorização Local por Perfis (RBAC no Banco `data/app.db`)
 - Cada sistema mantém sua tabela de usuários autorizados no banco local (`data/app.db`).
-- A chefia/gestão do setor cadastra o usuário digitando o login do AD e selecionando seu perfil.
-- Mesmo com senha do AD correta, um funcionário sem cadastro prévio no banco local do sistema recebe mensagem de acesso negado.
+- **Validação Pró-ativa no AD:** Durante o cadastro de um novo usuário na interface de **Configurações**, a chefia/gestão clica em **"Consultar AD"**. O backend realiza uma busca LDAP no AD (ou provedor Mock) via `GET /api/admin/ad-user-search/{username}` para validar a existência da conta corporativa e extrair automaticamente o **Nome Completo**, **E-mail** e **Lotação / Setor**.
+- Apenas usuários validados e com cadastro prévio no banco local recebem autorização de acesso ao sistema.
+- Mesmo com senha do AD correta, um funcionário sem cadastro prévio na tabela local de usuários do sistema recebe mensagem de acesso negado.
 
 ### Exemplos de Perfis de Acesso (Exemplificativos / Customizáveis por Sistema)
 Cada sistema construído com o framework definirá seus próprios perfis de acordo com as necessidades do negócio do setor. Abaixo estão alguns exemplos comuns:

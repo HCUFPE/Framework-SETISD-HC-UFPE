@@ -15,8 +15,8 @@ Ele consolida as melhores práticas de engenharia de software da equipe de TI (S
 
 ## 🚀 Pilares da Arquitetura
 
-- **🛡️ Autenticação Híbrida & Segurança Corporativa:**
-  - Suporte nativo ao **Active Directory (AD/LDAP Ebserh)** em produção.
+- **🛡️ Autenticação Híbrida & Segurança Corporativa (AD + RBAC):**
+  - Suporte nativo ao **Active Directory (AD/LDAP Ebserh)** em produção com busca/validação prévia de usuários (`displayName`, `mail`, `department`).
   - Provedor **Mock** automático para desenvolvimento local sem dependência de rede.
   - Controle de sessão via **JWT Access Tokens** e **Refresh Tokens HttpOnly** com auto-renovação transparente no frontend.
 - **⚡ Backend Moderno e Assíncrono (FastAPI):**
