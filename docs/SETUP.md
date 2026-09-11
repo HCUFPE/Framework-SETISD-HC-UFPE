@@ -40,7 +40,7 @@ nano .env
 
 ## 2. Configuração do Frontend
 
-Estes passos devem ser executados na pasta do frontend para instalar as dependências do Vue 3:
+Se preferir configurar manualmente cada camada:
 
 ```bash
 # 1. Navegue até a pasta do frontend
@@ -48,14 +48,17 @@ cd frontend
 
 # 2. Instale as dependências do Node.js
 npm install
+cd ..
 ```
+
+> 💡 **Dica:** Se você for utilizar o script `./dev.sh` ou `./start.sh`, este passo e o `uv sync` são executados automaticamente!
 
 ---
 
 ## 3. Executando a Aplicação em Desenvolvimento
 
 ### A. Modo de Desenvolvimento Paralelo (`./dev.sh`) — RECOMENDADO
-Inicia o Backend (FastAPI) na porta `8000` e o Frontend (Vite) na porta `5173` com atualização instantânea (Hot Reload):
+Inicia o Backend (FastAPI) na porta `8000` e o Frontend (Vite) na porta `5173` com atualização instantânea (Hot Reload). O script verifica ferramentas, sincroniza dependências e sobe tudo de uma só vez:
 
 ```bash
 chmod +x dev.sh
@@ -117,15 +120,16 @@ cp .env.example .env
 nano .env
 ```
 
-#### 2. Testar Execução Manual
-Você pode usar o script [start.sh](file:///c:/Users/daniel.turmina/Documents/FrameworkSETISD/start.sh) que valida dependências, faz build e inicia o Uvicorn:
+#### 2. Testar Execução Manual (Opcional)
+Para validar se o sistema inicia sem erros antes de configurar o serviço permanente:
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
+*(Após validar que subiu em `http://localhost:8000`, pressione `Ctrl+C` para liberar a porta antes de ativar o serviço do systemd).*
 
 #### 3. Criar Serviço no Linux (`systemd`) para Inicialização Automática
-Para manter a aplicação rodando como serviço de fundo permanente e reiniciar após reboot da VM, crie o arquivo `/etc/systemd/system/meu-sistema.service`:
+Para manter a aplicação rodando como serviço de fundo permanente e reiniciar automaticamente após reboot da VM, crie o arquivo `/etc/systemd/system/meu-sistema.service`:
 
 ```ini
 [Unit]
@@ -134,6 +138,7 @@ After=network.target
 
 [Service]
 Type=simple
+# Substitua 'ebserh' pelo usuário da sua VM (ex: ebserh, ubuntu, etc.)
 User=ebserh
 WorkingDirectory=/var/app/meu-sistema
 ExecStart=/var/app/meu-sistema/.venv/bin/uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
