@@ -31,8 +31,9 @@ Ele consolida as melhores práticas de engenharia de software da equipe de TI (S
   - Rota dedicada de diagnóstico de infraestrutura `GET /api/health` para sondagem de status do servidor e dos bancos de dados.
 - **🧪 Garantia de Qualidade & Testes Automatizados:**
   - Suíte de testes integrada com `pytest` e `httpx` para validação imediata de status do servidor, autenticação e rotas.
-- **🐳 DevOps & Conteinerização Opcional (Podman / Docker):**
-  - `Dockerfile` multi-stage (Build Vue 3 + Runtime Python 3.12) e `compose.yaml` fornecidos como opção pronta para deploy em homologação e produção nas VMs do hospital.
+- **🚀 Deploy Flexível & DevOps (Systemd / Podman / Docker):**
+  - Suporte nativo à execução como serviço de segundo plano no Linux (`systemd`) para implantação direta e leve em VMs.
+  - Receita de build multi-estágio em `Dockerfile` e orquestração `compose.yaml` prontas para deploy em contêineres (Podman / Docker).
 
 ---
 
