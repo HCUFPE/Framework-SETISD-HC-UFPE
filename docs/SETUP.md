@@ -100,6 +100,18 @@ Os testes validam:
 
 O framework suporta dois modelos de deploy em produção: **Direto no Sistema Operacional (Bare-Metal / Systemd)** ou **Encapsulado em Contêineres (Podman / Docker)**.
 
+### 📊 Comparativo: Serviço Nativo (Systemd) vs Contêiner (Podman / Docker)
+
+| Critério / Aspecto | 🐧 Serviço Nativo Linux (`systemd`) | 🦭 Contêiner (`Podman` / `Docker`) |
+| :--- | :--- | :--- |
+| **Consumo de Recursos (CPU / RAM)** | **Mínimo absoluto.** Executa direto no kernel sem camadas extras. | **Ligeiramente maior.** Overhead leve do runtime e rede do contêiner. |
+| **Velocidade de Deploy / Inicialização** | **Instantâneo.** `git pull` e reinicia em menos de 2 segundos. | **Mais lento no primeiro build.** Baixa imagens e compila camadas. |
+| **Dependências no Sistema Operacional** | Exige Python 3.12+, Node.js, `gcc`, `libpq-dev` no host da VM. | **Zero dependências no host.** A VM só precisa ter o Podman instalado. |
+| **Risco de Conflito entre Aplicações** | Médio/Alto se múltiplos sistemas compartilharem a mesma VM. | **Zero conflito.** Cada aplicação tem seu ambiente 100% isolado. |
+| **Complexidade de Configuração** | **Muito simples.** Apenas 1 arquivo `.service` e comandos `systemctl`. | **Moderada.** Gerenciamento de `Dockerfile`, volumes e portas. |
+| **Gestão de Logs** | Integrado de fábrica ao `journalctl` do Linux. | Consulta via CLI do Podman (`podman compose logs`). |
+| **Facilidade de Rollback (Voltar versão)** | Depende de `git checkout` e reinstalação no ambiente virtual. | **Excelente.** Basta subir a tag/imagem da versão anterior. |
+
 ---
 
 ### Opção A: Implantação Direta na VM (Sem Contêineres / Systemd)
