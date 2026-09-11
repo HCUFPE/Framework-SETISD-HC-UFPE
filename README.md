@@ -115,8 +115,11 @@ Para quem prefere rodar direto no sistema operacional sem overhead de contêiner
 # 1. Instalar dependências e compilar frontend
 uv sync && cd frontend && npm install && npm run build && cd ..
 
-# 2. Executar via script pronto ou configurar serviço systemd (veja detalhes em docs/SETUP.md)
+# 2. Teste rápido manual (opcional)
 ./start.sh
+
+# 3. Execução permanente como serviço do Linux (systemd)
+sudo systemctl enable meu-sistema && sudo systemctl start meu-sistema
 ```
 
 ### 2. Implantação em Contêineres (Podman / Docker)
@@ -130,7 +133,7 @@ podman compose up -d --build
 podman compose logs -f
 ```
 
-A aplicação ficará disponível consolidada em `http://IP-DA-VM:8000/`. Para o passo a passo completo de configuração de serviço do Linux (`systemd`), consulte o [Guia de Instalação e Deploy (`docs/SETUP.md`)](./docs/SETUP.md).
+A aplicação ficará disponível consolidada em `http://IP-DA-VM:8000/`. Para o passo a passo completo da configuração do arquivo de serviço do Linux (`systemd`), consulte o [Guia de Instalação e Deploy (`docs/SETUP.md`)](./docs/SETUP.md).
 
 ---
 

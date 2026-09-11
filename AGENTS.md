@@ -24,7 +24,7 @@ Antes de gerar qualquer código ou implementar uma nova funcionalidade no sistem
 | **Frontend** | Vue 3, TypeScript, Vite, Pinia, Tailwind | Servido pelo FastAPI (`/static/dist`) ou Vite Dev (`:5173`) |
 | **Autenticação** | AD / LDAP (ldap3) + Mock | Tokens JWT Access + Refresh Cookies HttpOnly |
 | **Testes** | Pytest, Pytest-Asyncio, HTTPX | Suíte automatizada na pasta `tests/` |
-| **Conteinerização** | Podman / Docker (Opcional) | Build multi-estágio em `Dockerfile` e `compose.yaml` para deploy em VM |
+| **Deploy & Execução** | Systemd (Nativo Linux) ou Podman / Docker | Serviço systemd em VM ou contêiner via `compose.yaml` |
 
 ---
 
