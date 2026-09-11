@@ -9,7 +9,7 @@
 
 O **Framework-SETISD-HC-UFPE** é a base arquitetural monolítica limpa, desacoplada e padronizada para a criação de novas aplicações web corporativas no HC-UFPE. 
 
-Ele consolida as melhores práticas de engenharia de software da equipe de TI (SETISD), garantindo que todos os novos sistemas sigam os mesmos padrões de **tecnologia, segurança, acesso a dados (AGHU), interface visual e conteinerização (Podman)**.
+Ele consolida as melhores práticas de engenharia de software da equipe de TI (SETISD), garantindo que todos os novos sistemas sigam os mesmos padrões de **tecnologia, segurança, acesso a dados (AGHU) e interface visual**, além de oferecer suporte pronto para **conteinerização opcional (Podman / Docker)**.
 
 ---
 
@@ -31,8 +31,8 @@ Ele consolida as melhores práticas de engenharia de software da equipe de TI (S
   - Rota dedicada de diagnóstico de infraestrutura `GET /api/health` para sondagem de status do servidor e dos bancos de dados.
 - **🧪 Garantia de Qualidade & Testes Automatizados:**
   - Suíte de testes integrada com `pytest` e `httpx` para validação imediata de status do servidor, autenticação e rotas.
-- **🐳 DevOps & Conteinerização (Podman / Docker):**
-  - `Dockerfile` multi-stage (Build Vue 3 + Runtime Python 3.12) e `compose.yaml` otimizados para deploy em homologação e produção nas VMs do hospital.
+- **🐳 DevOps & Conteinerização Opcional (Podman / Docker):**
+  - `Dockerfile` multi-stage (Build Vue 3 + Runtime Python 3.12) e `compose.yaml` fornecidos como opção pronta para deploy em homologação e produção nas VMs do hospital.
 
 ---
 
@@ -42,8 +42,8 @@ Ele consolida as melhores práticas de engenharia de software da equipe de TI (S
 Framework-SETISD-HC-UFPE/
 ├── .env.example          # Modelo de variáveis de ambiente
 ├── AGENTS.md             # Diretrizes universais para Agentes de IA (Gemini, Claude, ChatGPT, Cursor)
-├── Dockerfile            # Receita de build multi-estágio (Podman / Docker)
-├── compose.yaml          # Orquestração do contêiner para VMs
+├── Dockerfile            # Receita de build multi-estágio (opcional para Podman / Docker)
+├── compose.yaml          # Orquestração de contêiner para VMs (opcional)
 ├── pyproject.toml        # Dependências e configurações do projeto Python (uv)
 ├── requirements.txt      # Lista congelada de pacotes Python
 ├── dev.sh                # Script de execução paralela para desenvolvimento
@@ -58,18 +58,21 @@ Framework-SETISD-HC-UFPE/
 │   ├── src/
 │   │   ├── components/   # Componentes visuais reusáveis (DataTable, Modal, etc.)
 │   │   ├── layouts/      # Layouts de página (DefaultLayout, LoginLayout)
-│   │   ├── services/     # Serviços HTTP (api.ts com Axios Interceptors)
-│   │   └── stores/       # Gerenciamento de estado (Pinia)
-├── src/                  # Backend FastAPI (API REST)
-│   ├── auth/             # Provedores de Autenticação (Active Directory, Mock, JWT)
-│   ├── controllers/      # Regras de negócio da aplicação
-│   ├── dependencies.py   # Fábrica de injeção de dependências
-│   ├── main.py           # Ponto de entrada do FastAPI, CORS, middlewares e erros
-│   ├── models/           # Modelos ORM (SQLAlchemy) e Schemas (Pydantic)
-│   ├── providers/        # Camada de acesso a dados (PostgreSQL AGHU, CSV)
-│   ├── resources/        # Gerenciamento de conexões com banco de dados (database.py)
-│   └── routers/          # Definição dos endpoints da API (/api/*)
-└── tests/                # Suíte de testes automatizados oficial (pytest)
+│   │   ├── router/       # Roteamento e guards de autenticação
+│   │   ├── services/     # Cliente HTTP Axios com interceptadores de token
+│   │   ├── stores/       # Gerenciamento de estado Pinia (auth, ui)
+│   │   └── views/        # Telas da aplicação (Home, Login, Pacientes, Admin)
+│   └── package.json      # Dependências do frontend (Node.js)
+├── src/                  # Backend em Python FastAPI
+│   ├── auth/             # Módulos de autenticação AD, JWT e Mock
+│   ├── controllers/      # Regras de negócio e casos de uso
+│   ├── helpers/          # Funções utilitárias (sql_helper)
+│   ├── models/           # Modelos de dados SQLAlchemy (banco local)
+│   ├── providers/        # Acesso a dados desacoplado (Interfaces, Postgres, CSV, SQLs)
+│   ├── resources/        # Gerenciamento de conexões de banco de dados
+│   ├── routers/          # Endpoints HTTP da API REST (Swagger)
+│   └── main.py           # Ponto de entrada FastAPI e servidor SPA
+└── tests/                # Testes automatizados assíncronos (pytest)
     ├── conftest.py       # Fixtures de teste do FastAPI TestClient
     ├── test_auth.py      # Testes de login Mock e validação de tokens
     └── test_status_servidor.py # Testes de status da aplicação e infraestrutura
@@ -102,19 +105,32 @@ uv run pytest
 
 ---
 
-## 🐳 Deploy nas VMs com Podman / Docker
+## 🚀 Opções de Deploy em Servidores e VMs
 
-Para realizar o build e executar a aplicação em contêiner na VM oficial do hospital:
+O framework oferece flexibilidade total para colocar o sistema no ar:
 
+### 1. Implantação Direta na VM (Sem Contêineres / Systemd)
+Para quem prefere rodar direto no sistema operacional sem overhead de contêiner:
+```bash
+# 1. Instalar dependências e compilar frontend
+uv sync && cd frontend && npm install && npm run build && cd ..
+
+# 2. Executar via script pronto ou configurar serviço systemd (veja detalhes em docs/SETUP.md)
+./start.sh
+```
+
+### 2. Implantação em Contêineres (Podman / Docker)
+Para quem prefere isolamento completo:
 ```bash
 # 1. Build da imagem e inicialização do contêiner em background
 podman compose up -d --build
+# (ou com docker: docker compose up -d --build)
 
 # 2. Verificar os logs da aplicação
 podman compose logs -f
 ```
 
-A aplicação ficará disponível consolidada em `http://IP-DA-VM:8000/`.
+A aplicação ficará disponível consolidada em `http://IP-DA-VM:8000/`. Para o passo a passo completo de configuração de serviço do Linux (`systemd`), consulte o [Guia de Instalação e Deploy (`docs/SETUP.md`)](./docs/SETUP.md).
 
 ---
 

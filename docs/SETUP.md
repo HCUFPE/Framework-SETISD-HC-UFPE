@@ -5,11 +5,11 @@ Este documento é o guia definitivo para configurar, executar, testar e implanta
 ---
 
 ## 📋 Pré-requisitos do Ambiente
-
-- **Python:** 3.12 ou superior (recomendado uso do gerenciador `uv`)
-- **Node.js:** 20 ou superior
-- **Contêineres:** Podman (com `podman-compose` / `podman compose`) ou Docker
-- **Git:** Para controle de versão
+ 
+ - **Python:** 3.12 ou superior (recomendado uso do gerenciador `uv`)
+ - **Node.js:** 20 ou superior
+ - **Git:** Para controle de versão
+ - **Contêineres (Opcional, apenas para deploy em VM):** Podman ou Docker com suporte a compose
 
 ### Dependências de Sistema em Servidores Linux (Ubuntu / Debian / RHEL)
 ```bash
@@ -74,7 +74,7 @@ chmod +x start.sh
 
 ---
 
-## 🧪 3. Execução da Suíte de Testes Automatizados
+## 🧪 4. Execução da Suíte de Testes Automatizados
 
 O framework possui uma suíte de testes integrada com `pytest` para verificar a integridade da aplicação antes de commits ou deploys:
 
@@ -93,14 +93,77 @@ Os testes validam:
 
 ---
 
-## 🐳 4. Implantando nas VMs com Podman / Docker
+## 🚀 5. Opções de Implantação em Servidores e VMs
 
-Este framework vem configurado de fábrica para ser executado em contêineres nas VMs do hospital via **Podman**:
+O framework suporta dois modelos de deploy em produção: **Direto no Sistema Operacional (Bare-Metal / Systemd)** ou **Encapsulado em Contêineres (Podman / Docker)**.
 
-### Execução via Podman Compose (Recomendado)
+---
+
+### Opção A: Implantação Direta na VM (Sem Contêineres / Systemd)
+
+Esta é a opção mais leve e rápida, ideal para servidores onde o Python 3.12+ e Node.js já estão instalados:
+
+#### 1. Preparação e Build Inicial na VM
+```bash
+# Clone ou copie o projeto para a pasta de destino (ex: /var/app/meu-sistema)
+cd /var/app/meu-sistema
+
+# Instale as dependências e faça o build do frontend
+uv sync
+cd frontend && npm install && npm run build && cd ..
+
+# Configure o arquivo de variáveis de ambiente de produção
+cp .env.example .env
+nano .env
+```
+
+#### 2. Testar Execução Manual
+Você pode usar o script [start.sh](file:///c:/Users/daniel.turmina/Documents/FrameworkSETISD/start.sh) que valida dependências, faz build e inicia o Uvicorn:
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+#### 3. Criar Serviço no Linux (`systemd`) para Inicialização Automática
+Para manter a aplicação rodando como serviço de fundo permanente e reiniciar após reboot da VM, crie o arquivo `/etc/systemd/system/meu-sistema.service`:
+
+```ini
+[Unit]
+Description=Serviço Backend/Frontend FastAPI - HC-UFPE
+After=network.target
+
+[Service]
+Type=simple
+User=ebserh
+WorkingDirectory=/var/app/meu-sistema
+ExecStart=/var/app/meu-sistema/.venv/bin/uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
+Restart=always
+RestartSec=5
+EnvironmentFile=/var/app/meu-sistema/.env
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Ative e inicie o serviço:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable meu-sistema
+sudo systemctl start meu-sistema
+sudo systemctl status meu-sistema
+```
+
+---
+
+### Opção B: Implantação em Contêineres (Podman / Docker)
+
+Para quem prefere isolar a aplicação e suas dependências de SO em um contêiner OCI:
+
+#### Execução via Compose
 ```bash
 # Build e execução em segundo plano (detached)
 podman compose up -d --build
+# (ou com docker: docker compose up -d --build)
 
 # Verificar o status dos contêineres rodando
 podman compose ps
@@ -109,7 +172,7 @@ podman compose ps
 podman compose logs -f
 ```
 
-### Comandos de Manutenção no Servidor
+#### Comandos de Manutenção do Contêiner
 ```bash
 # Parar os serviços
 podman compose down
@@ -120,7 +183,7 @@ podman compose restart
 
 ---
 
-## 🛠️ 5. Comandos Utilitários de Diagnóstico
+## 🛠️ 6. Comandos Utilitários de Diagnóstico
 
 **Backend Isolado:**
 ```bash

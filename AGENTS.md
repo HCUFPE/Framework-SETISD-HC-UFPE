@@ -24,7 +24,7 @@ Antes de gerar qualquer código ou implementar uma nova funcionalidade no sistem
 | **Frontend** | Vue 3, TypeScript, Vite, Pinia, Tailwind | Servido pelo FastAPI (`/static/dist`) ou Vite Dev (`:5173`) |
 | **Autenticação** | AD / LDAP (ldap3) + Mock | Tokens JWT Access + Refresh Cookies HttpOnly |
 | **Testes** | Pytest, Pytest-Asyncio, HTTPX | Suíte automatizada na pasta `tests/` |
-| **Conteinerização** | Podman / Docker | Build multi-estágio em `Dockerfile` e `compose.yaml` |
+| **Conteinerização** | Podman / Docker (Opcional) | Build multi-estágio em `Dockerfile` e `compose.yaml` para deploy em VM |
 
 ---
 
@@ -40,21 +40,17 @@ src/
 │   ├── health.py
 │   ├── paciente.py
 │   ├── auth.py
-│   ├── admin.py
-│   ├── aih.py
-│   ├── bpa.py
-│   └── material.py
+│   └── admin.py
 ├── controllers/
-│   ├── paciente_controller.py
-│   ├── aih_controller.py
-│   ├── bpa_controller.py
-│   └── material_controller.py
+│   └── paciente_controller.py
 ├── providers/
 │   ├── interfaces/
+│   │   └── paciente_provider_interface.py
 │   ├── implementations/
+│   │   ├── paciente_postgres_provider.py
+│   │   └── paciente_csv_provider.py
 │   └── sql/
-│       ├── bpa/
-│       └── material/
+│       └── paciente/
 ├── resources/
 │   ├── database.py
 │   └── postgres.py
@@ -62,10 +58,7 @@ src/
 │   ├── base.py
 │   └── refresh_token.py
 ├── helpers/
-│   ├── csv_helper.py
-│   ├── string_helper.py
-│   ├── sql_helper.py
-│   └── sigtap_helper.py
+│   └── sql_helper.py
 └── static/
     └── dist/   ← (build do Vue 3)
 ```
@@ -81,33 +74,35 @@ $$\text{SQL Template} \longrightarrow \text{Resource} \longrightarrow \text{Prov
 | :--- | :--- | :--- |
 | **SQL Templates** | `src/providers/sql/modulo/*.sql` | Código SQL nativo limpo (sem lógica de negócio em Python). |
 | **Resource** | `src/resources/database.py` / `postgres.py` | Gerencia conexões e pools assíncronos (`AsyncEngine`, `AsyncSession`). |
-| **Provider** | `src/providers/implementations/*.py` | Executa a query SQL e retorna listas de dicionários. |
-| **Controller** | `src/controllers/*.py` | Lógica de negócio, validações de regras do hospital e formatação. |
-| **Router** | `src/routers/*.py` | Endpoints HTTP FastAPI (`/api/*`), validação Pydantic e `Depends()`. |
+| **Provider** | `src/providers/implementations/*.py` | Executa a query SQL ou lê dados de mock/CSV e retorna listas de dicionários. |
+| **Controller** | `src/controllers/*.py` | Lógica de negócio, validações de regras hospitalares e formatação. |
+| **Router** | `src/routers/*.py` | Endpoints HTTP FastAPI (`/api/*`), validação Pydantic e injeção de dependências (`Depends()`). |
 
 ---
 
-## 5. Domínios de Negócio e Escopo Hospitalar
+## 5. Exemplo de Referência ("Golden Sample") e Domínios de Aplicação
 
-| Domínio | Controllers / Providers | Função Principal |
-| :--- | :--- | :--- |
-| **Faturamento SUS** | `aih_controller.py`, `bpa_controller.py` | Geração de AIH, BPA e arquivos magnéticos SUS. |
-| **Inventário / Estoque** | `material_controller.py`, `material_estoque_controller.py` | Dados de estoque e insumos do AGHU. |
-| **Internação / Leitos** | `internacao_controller.py`, `leito_controller.py` | Censo diário, gestão de leitos e relatórios UTI/Clínica. |
-| **Medicamentos** | `medicamentos_controller.py`, `antimicrobianos_controller.py` | Controle de dispensação e uso controlado. |
-| **BI / Dashboard** | `metabase_controller.py` | Integrações com Metabase e relatórios gerenciais. |
-| **Prontuário / Atendimento** | `prontuario_controller.py`, `atendimento_controller.py` | Histórico clínico de pacientes e atendimentos. |
+O Framework fornece um módulo de referência completo de ponta a ponta: o módulo de **Pacientes** (`paciente.py`, `paciente_controller.py`, `paciente_provider_interface.py`, etc.). Ele serve como guia arquitetural para qualquer novo domínio que a aplicação venha a implementar.
+
+### Exemplos de Aplicações e Módulos que Podem Ser Construídos sobre o Framework:
+Ao criar um novo sistema no hospital, utilize o padrão do módulo `paciente` para estruturar os domínios específicos da sua aplicação:
+- **Faturamento SUS:** Módulos de AIH, BPA e arquivos magnéticos SUS.
+- **Inventário / Farmácia:** Módulos de Estoque, Lotes e Dispensação de Medicamentos.
+- **Internação e Leitos:** Módulos de Censo diário, Gestão de Leitos e Painel de UTI/Clínica.
+- **Prontuário e Atendimento:** Módulos de Evolução Clínica, Agendamento e Recepção.
 
 ---
 
 ## 6. Helpers e Funções Utilitárias
 
-| Arquivo | Função | Propósito |
+O framework inclui utilitários essenciais e permite a inclusão de helpers específicos conforme a necessidade do sistema:
+
+| Arquivo | Função / Propósito | Status no Framework |
 | :--- | :--- | :--- |
-| `sql_helper.py` | `create_query()` | Substitui placeholders SQL (`#startDate`, `#cod_prontuario`). |
-| `string_helper.py` | `remove_accents()`, `pad_start()`, `validate_cpf()` | Formatação e validações de documentos de saúde. |
-| `csv_helper.py` | `convert_to_csv()`, `convert_to_tsv()` | Conversão JSON ➔ CSV/TSV para exportação. |
-| `sigtap_helper.py` | Lookup SIGTAP | Validação e enriquecimento de procedimentos SUS. |
+| `sql_helper.py` | `read_sql_file()`, `create_query()` — carrega queries e substitui parâmetros (`#param`). | **Nativo do Framework** |
+| `string_helper.py` | Formatação e validação de CPF, CNS, limpeza de acentos (se necessário pelo sistema). | Opcional (definido por aplicação) |
+| `csv_helper.py` | Exportação de relatórios para CSV/TSV (se necessário pelo sistema). | Opcional (definido por aplicação) |
+| `sigtap_helper.py` | Consultas e cálculos de regras de procedimentos da tabela SIGTAP. | Opcional (definido por aplicação) |
 
 ---
 

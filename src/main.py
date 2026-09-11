@@ -97,16 +97,12 @@ if os.path.exists(assets_dir):
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
 # Roteadores da API
-from .routers import paciente, auth, admin, aih, bpa, material, health
+from .routers import paciente, auth, admin, health
 app.include_router(health.router)
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
-app.include_router(aih.router)
-app.include_router(bpa.router)
-app.include_router(material.router)
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
@@ -122,12 +118,6 @@ async def serve_frontend(full_path: str):
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"error": "Frontend build not found"}
-
-# Exemplo:
-# from .routers import aih, bpa, material
-# app.include_router(aih.router)
-# app.include_router(bpa.router)
-# app.include_router(material.router)
 
 if __name__ == "__main__":
     import uvicorn
