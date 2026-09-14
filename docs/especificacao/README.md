@@ -12,6 +12,7 @@ Este projeto utiliza o padrão de desenvolvimento orientado a especificações a
 
 ## Estrutura de Documentos
 
+0. [**Validação e Fluxo de Negócio**](00-validacao-negocio.md): **(Fase de Negócio)** Alinhamento executivo com o cliente hospitalar em linguagem pura de processos, regras e responsabilidades.
 1. [**Visão**](01-visao.md): Define o problema, os objetivos do negócio e o escopo de alto nível.
 2. [**Requisitos**](02-requisitos.md): Lista detalhada de requisitos funcionais e não funcionais.
 3. [**Casos de Uso**](03-casos-uso.md): Descrição detalhada das interações entre atores e o sistema.
