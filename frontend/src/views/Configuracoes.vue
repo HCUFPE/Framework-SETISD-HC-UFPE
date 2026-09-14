@@ -149,10 +149,10 @@
 
     <!-- Modal 1: Incluir Novo Usuário AD -->
     <Modal :show="showAddUserModal" @close="closeAddModal">
-      <template #header>Incluir Usuário no Sistema (Validação AD)</template>
+      <template #header>Incluir Usuário no Sistema</template>
       <form @submit.prevent="saveUser" class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Login de Rede (Active Directory)</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Login de Rede</label>
           <div class="flex gap-2">
             <input 
               v-model="newUser.username" 
@@ -171,11 +171,11 @@
               <span v-if="isSearchingAD" class="text-xs font-semibold">Buscando...</span>
               <span v-else class="text-xs font-semibold flex items-center gap-1">
                 <MagnifyingGlassIcon class="h-4 w-4" />
-                Consultar AD
+                Consultar Login
               </span>
             </Button>
           </div>
-          <p class="text-xs text-gray-400 mt-1">Digite o login de rede corporativo (ex: `joao.silva`) e consulte o AD.</p>
+          <p class="text-xs text-gray-400 mt-1">Digite o login de rede corporativo (ex: `joao.silva`).</p>
         </div>
 
         <!-- Banner de Resultado da Consulta AD -->
