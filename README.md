@@ -15,10 +15,11 @@ Ele consolida as melhores práticas de engenharia de software da equipe de TI (S
 
 ## 🚀 Pilares da Arquitetura
 
-- **🛡️ Autenticação Híbrida & Segurança Corporativa (AD + RBAC):**
+- **🛡️ Autenticação Híbrida & Segurança Corporativa (AD + RBAC + Security Headers):**
   - Suporte nativo ao **Active Directory (AD/LDAP Ebserh)** em produção com busca/validação prévia de usuários (`displayName`, `mail`, `department`).
   - Provedor **Mock** automático para desenvolvimento local sem dependência de rede.
   - Controle de sessão via **JWT Access Tokens** e **Refresh Tokens HttpOnly** com auto-renovação transparente no frontend.
+  - **Middleware de Security Headers:** Proteção nativa no backend FastAPI contra armazenamento de dados hospitalares em cache (`no-store, no-cache`), Clickjacking (`X-Frame-Options: DENY`), MIME sniffing (`nosniff`) e Cross-Site Scripting (XSS).
 - **⚡ Backend Moderno e Assíncrono (FastAPI):**
   - Construído com Python 3.12+, FastAPI e SQLAlchemy 2.0 com pools de conexões assíncronas para o **PostgreSQL do AGHU**.
   - Documentação interativa **Swagger UI (`/docs`)** com autenticação integrada via botão cadeado (**Authorize**).

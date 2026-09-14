@@ -139,3 +139,15 @@ Cada sistema definirá seus próprios perfis no banco local de acordo com suas r
 - `GESTOR_UNIDADE`: Acesso a relatórios estratégicos, indicadores e dashboards.
 - `CONSULTA`: Acesso estritamente somente-leitura (Read-Only) para consulta.
 
+---
+
+### Middleware Obrigatório de Cabeçalhos de Segurança HTTP (Security Headers)
+
+Todo sistema construído sobre este Framework DEVE registrar o `@app.middleware("http")` no `src/main.py` para injetar automaticamente cabeçalhos de proteção em todas as respostas HTTP:
+- **`X-Content-Type-Options: nosniff`**: Previne que navegadores interpretem arquivos com tipos MIME incorretos.
+- **`X-Frame-Options: DENY`**: Protege a aplicação contra ataques de Clickjacking (impede inclusão em `<iframe>`).
+- **`X-XSS-Protection: 1; mode=block`**: Ativa proteção contra ataques de Cross-Site Scripting (XSS).
+- **`Cache-Control: no-store, no-cache, must-revalidate, max-age=0`**: Impede que dados clínicos/hospitalares fiquem salvos em cache de computadores públicos ou compartilhados dos setores.
+- **`Pragma: no-cache`**: Garante compatibilidade de não-armazenamento em cache para clientes HTTP legados.
+
+
