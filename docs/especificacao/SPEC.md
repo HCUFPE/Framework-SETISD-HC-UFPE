@@ -10,6 +10,7 @@ Este documento é a ÚNICA fonte de verdade para a orquestração do desenvolvim
 
 ## 2. Contexto do Projeto (Documentação Imutável)
 As definições detalhadas estão distribuídas nos seguintes documentos:
+- [Validação e Fluxo de Negócio](00-validacao-negocio.md) (Fase 0 - Negócio)
 - [Visão](01-visao.md)
 - [Requisitos](02-requisitos.md)
 - [Casos de Uso](03-casos-uso.md)
