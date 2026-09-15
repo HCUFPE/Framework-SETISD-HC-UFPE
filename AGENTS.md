@@ -130,6 +130,8 @@ Todo sistema desenvolvido no framework DEVE seguir o modelo **Híbrido de Segura
    - **Validação no AD (`GET /api/admin/ad-user-search/{username}`):** Ao cadastrar um novo usuário em **Configurações**, a chefia/gestão clica em **"Consultar AD"**. O backend consulta o Active Directory (ou Mock em desenvolvimento) para garantir a existência do usuário e preencher automaticamente seu **Nome Completo**, **E-mail** e **Lotação / Setor**.
    - **Autorização Local:** Mesmo com a senha do AD correta, o acesso só é concedido se o login do AD estiver previamente cadastrado e ativo na tabela local do sistema.
 
+---
+
 ### Exemplos de Perfis de Acesso (Exemplificativos / Customizáveis por Sistema):
 Cada sistema definirá seus próprios perfis no banco local de acordo com suas regras de negócio. Abaixo estão exemplos comuns:
 - `ADMINISTRADOR`: Acesso total ao sistema, configurações e gestão de usuários/perfis.
@@ -138,6 +140,21 @@ Cada sistema definirá seus próprios perfis no banco local de acordo com suas r
 - `FARMACEUTICO`: Acesso a dispensação de medicamentos e estoque.
 - `GESTOR_UNIDADE`: Acesso a relatórios estratégicos, indicadores e dashboards.
 - `CONSULTA`: Acesso estritamente somente-leitura (Read-Only) para consulta.
+
+---
+
+### Regra de Proteção de Rotas por Padrão (Default-Private Router Pattern)
+
+Para garantir que nenhuma rota de dados hospitalares fique exposta publicamente sem autenticação por esquecimento:
+- **Proteção no Nível do Roteador (`APIRouter`):** Todo novo arquivo em `src/routers/` que manipule dados restritos/clínicos DEVE ser instanciado declarando a dependência de autenticação diretamente no `APIRouter`:
+  ```python
+  router = APIRouter(
+      prefix="/api/modulo",
+      tags=["Modulo"],
+      dependencies=[Depends(auth_handler.decode_token)]
+  )
+  ```
+- **Exceções Públicas:** Apenas rotas explicitamente de acesso livre (como `POST /api/login` em `auth.py` e `GET /api/health` em `health.py`) podem omitir essa dependência.
 
 ---
 

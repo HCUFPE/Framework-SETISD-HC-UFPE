@@ -76,3 +76,17 @@ Cada sistema construído com o framework definirá seus próprios perfis de acor
 5. 📊 **`GESTOR_UNIDADE`**: Acesso a relatórios estratégicos, indicadores e dashboards.
 6. 👁️ **`CONSULTA`**: Acesso estritamente somente-leitura (Read-Only) para consulta.
 
+---
+
+### Proteção de Rotas por Padrão (Default-Private Router Pattern)
+Para evitar que endpoints que manipulam dados clínicos ou hospitalares sejam expostos publicamente por esquecimento, o framework estabelece como norma declarar a dependência de autenticação diretamente no nível do `APIRouter`:
+
+```python
+router = APIRouter(
+    prefix="/api/pacientes",
+    tags=["Pacientes"],
+    dependencies=[Depends(auth_handler.decode_token)]  # Protege TODAS as rotas deste roteador por padrão!
+)
+```
+Dessa forma, qualquer nova rota criada dentro do arquivo herdará automaticamente a proteção JWT sem necessidade de adicionar `Depends(...)` manualmente em cada método HTTP. Rotas públicas (como `POST /api/login` e `GET /api/health`) são mantidas isoladas em roteadores específicos sem essa dependência.
+
