@@ -167,4 +167,15 @@ Todo sistema construído sobre este Framework DEVE registrar o `@app.middleware(
 - **`Cache-Control: no-store, no-cache, must-revalidate, max-age=0`**: Impede que dados clínicos/hospitalares fiquem salvos em cache de computadores públicos ou compartilhados dos setores.
 - **`Pragma: no-cache`**: Garante compatibilidade de não-armazenamento em cache para clientes HTTP legados.
 
+---
+
+## 9. Padrão de Configurações e Segredos (Env Vars & Secrets)
+
+Todo sistema desenvolvido no framework DEVE obrigatoriamente seguir a governança de segredos:
+- **`Proibição de Hardcode`:** Nenhuma senha, DSN de banco, chave JWT ou credencial do AD pode ser escrita diretamente no código.
+- **`.env.example` Gabarito:** Manter o `.env.example` atualizado apenas com variáveis e valores de exemplo fictícios/placeholders (sem senhas reais).
+- **Validação Centralizada (`src/config.py`):** As variáveis devem ser carregadas e validadas na inicialização do servidor por um módulo centralizado (`src/config.py`). Se o ambiente for `ENV=production` e a chave `JWT_SECRET` for o valor padrão, o sistema deve disparar um aviso crítico no console.
+- **Isolamento no Git:** O arquivo `.env` contendo as chaves reais NUNCA deve ser comitado no Git (mantido no `.gitignore`).
+
+
 

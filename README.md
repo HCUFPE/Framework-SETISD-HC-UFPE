@@ -148,6 +148,7 @@ Para se aprofundar nos padrões arquiteturais do hospital, consulte a documenta�
 - **[ Diretrizes e Regras para Agentes de IA (`AGENTS.md`)](./AGENTS.md)**
 - **[ Arquitetura em Camadas e Padrão Provider (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)**
 - **[ Manual de Autenticação AD, Mock e JWT (`docs/AUTHENTICATION.md`)](./docs/AUTHENTICATION.md)**
+- **[ Padrão de Configurações e Gestão de Segredos (`docs/SECRETS_E_CONFIGURACOES.md`)](./docs/SECRETS_E_CONFIGURACOES.md)**
 - **[ Tutorial de Criação de Novas Funcionalidades (`docs/GUIA_DESENVOLVIMENTO.md`)](./docs/GUIA_DESENVOLVIMENTO.md)**
 
 ---
