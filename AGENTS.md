@@ -177,5 +177,15 @@ Todo sistema desenvolvido no framework DEVE obrigatoriamente seguir a governanç
 - **Validação Centralizada (`src/config.py`):** As variáveis devem ser carregadas e validadas na inicialização do servidor por um módulo centralizado (`src/config.py`). Se o ambiente for `ENV=production` e a chave `JWT_SECRET` for o valor padrão, o sistema deve disparar um aviso crítico no console.
 - **Isolamento no Git:** O arquivo `.env` contendo as chaves reais NUNCA deve ser comitado no Git (mantido no `.gitignore`).
 
+---
+
+## 10. Padronização de Auditoria e Trilha de Mudanças (Audit Trail & Logging)
+
+Todo sistema desenvolvido sobre este framework DEVE obrigatoriamente registrar auditoria em ações de mutação:
+- **Tabela Unificada `audit_logs`:** Manter a estrutura de banco de dados (`src/models/audit_log.py`) para armazenar logs de auditoria imutáveis.
+- **Invocação via Helper (`src/helpers/audit_helper.py`):** Operações de criação, alteração ou exclusão de dados clínicos ou de privilégios de acesso DEVEM invocar `registrar_auditoria()` salvando obrigatoriamente o estado anterior (`dados_anteriores`) e novo (`dados_novos`) em formato JSON.
+- **Categorização Mandatória:** Todo registro deve ser classificado em `SEGURANCA`, `NEGOCIO_CLINICO` ou `CONFIGURACAO`.
+
+
 
 

@@ -19,10 +19,40 @@ erDiagram
         string descricao
         string responsavel_crm
     }
+    AUDIT_LOG {
+        int id
+        datetime created_at
+        string usuario
+        string categoria
+        string acao
+        string recurso
+        json dados_anteriores
+        json dados_novos
+        string ip_origem
+    }
 ```
 
 ## 2. Dicionário de Dados
-* Tabela PACIENTES, PRONTUARIOS, etc.
+* Tabelas: `PACIENTES`, `PRONTUARIOS`, `REFRESH_TOKENS`, `AUDIT_LOGS`.
+
+### [SCHEMA] Esquema JSON - AuditLog
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AuditLog",
+  "type": "object",
+  "properties": {
+    "usuario": { "type": "string" },
+    "categoria": { "type": "string", "enum": ["SEGURANCA", "NEGOCIO_CLINICO", "CONFIGURACAO"] },
+    "acao": { "type": "string" },
+    "recurso": { "type": "string" },
+    "dados_anteriores": { "type": ["object", "null"] },
+    "dados_novos": { "type": ["object", "null"] },
+    "ip_origem": { "type": ["string", "null"] }
+  },
+  "required": ["usuario", "categoria", "acao", "recurso"]
+}
+```
 
 ### [SCHEMA] Esquema JSON - Paciente
 ```json
@@ -41,4 +71,4 @@ erDiagram
 ```
 
 ## 3. Regras de Integridade
-* Logs obrigatórios e proibição de exclusão física.
+* Trilha de auditoria obrigatória em `audit_logs` para mutações e proibição de exclusão física de registros de auditoria.
