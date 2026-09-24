@@ -75,21 +75,27 @@ class FrameworkAuditor:
             return False, "Falta implementação/integração com AD/LDAP"
 
     def audit_rbac_hybrid_auth(self) -> Tuple[bool, str]:
-        """Verifica autorização híbrida (AD + Grupos/Perfis RBAC)"""
+        """Verifica autorização híbrida (Autenticação no AD + Autorização no Banco Local via RBAC)"""
+        auth_file = self.target_dir / "src" / "auth" / "auth.py"
         auth_router = self.target_dir / "src" / "routers" / "auth.py"
         admin_router = self.target_dir / "src" / "routers" / "admin.py"
         user_model = self.target_dir / "src" / "models" / "user.py"
         usuario_perfil_model = self.target_dir / "src" / "models" / "usuario_perfil.py"
         roles_map = self.target_dir / "src" / "roles_map.json"
         
-        has_local_profile = (usuario_perfil_model.exists() or user_model.exists() or roles_map.exists() or 
-                             self.check_file_contains(auth_router, [r"perfil", r"UsuarioPerfil", r"SUPER_ADMINS", r"groups", r"role"]) or
-                             self.check_file_contains(admin_router, [r"groups", r"ADMIN_GROUP", r"perfil", r"role"]))
+        has_ad = (self.check_file_contains(auth_file, [r"ldap", r"EBSERHNET", r"search_ad_user"]) or
+                  self.check_file_contains(auth_router, [r"authenticate_user", r"search_ad_user"]))
         
-        if has_local_profile:
-            return True, "Autorização híbrida e controle de acesso RBAC (grupos/perfis) configurado"
+        has_local_db_rbac = (usuario_perfil_model.exists() or user_model.exists() or roles_map.exists() or 
+                             self.check_file_contains(auth_router, [r"UsuarioPerfil", r"select\(", r"db\.execute", r"perfil"]) or
+                             self.check_file_contains(admin_router, [r"UsuarioPerfil", r"select\(", r"ADMIN_GROUP"]))
+        
+        if has_ad and has_local_db_rbac:
+            return True, "Conectividade Híbrida 100% conforme: Autenticação no AD + Autorização/RBAC no Banco Local"
+        elif has_local_db_rbac:
+            return True, "Autorização local RBAC detectada (Recomendado garantir validação no AD)"
         else:
-            return False, "Falta validação de perfis/grupos de acesso (RBAC) em conjunto com a autenticação de rede"
+            return False, "Falta validação de conectividade híbrida (AD + Perfis locais RBAC no banco)"
 
     def audit_httponly_cookies(self) -> Tuple[bool, str]:
         auth_router = self.target_dir / "src" / "routers" / "auth.py"
@@ -203,6 +209,24 @@ class FrameworkAuditor:
         else:
             return False, "Backend não utiliza a stack oficial Python + FastAPI"
 
+    def audit_layered_architecture(self) -> Tuple[bool, str]:
+        """Verifica se a aplicação adota a Arquitetura em Camadas (Router -> Controller -> Provider -> Resource/SQL)"""
+        src_dir = self.target_dir / "src"
+        providers_dir = src_dir / "providers"
+        controllers_dir = src_dir / "controllers"
+        resources_dir = src_dir / "resources"
+        
+        has_providers = providers_dir.exists()
+        has_controllers = controllers_dir.exists()
+        has_resources = resources_dir.exists()
+        
+        if has_providers and has_controllers and has_resources:
+            return True, "Arquitetura em Camadas (Router -> Controller -> Provider -> Resource) 100% conforme"
+        elif has_providers or has_controllers:
+            return True, "Estrutura desacoplada parcial detectada (Providers/Controllers)"
+        else:
+            return False, "Falta desacoplamento em camadas (Recomendado organizar src/providers, src/controllers e src/resources)"
+
     def audit_frontend_layout(self) -> Tuple[bool, str]:
         """Verifica se o Frontend adota o padrão visual com SidebarNav (menu lateral à esquerda), marca no topo e rodapé de versão"""
         frontend_dir = self.target_dir / "frontend"
@@ -260,14 +284,15 @@ class FrameworkAuditor:
         checks = [
             ("1. Stack Padrão Backend (Python 3.12+ / FastAPI)", self.audit_backend_stack),
             ("2. Autenticação Corporativa AD/LDAP", self.audit_ad_integration),
-            ("3. Autorização Híbrida e Controle de Acesso RBAC", self.audit_rbac_hybrid_auth),
+            ("3. Conectividade Híbrida & Controle de Acesso RBAC", self.audit_rbac_hybrid_auth),
             ("4. Autenticação Persistente & HttpOnly Cookies", self.audit_httponly_cookies),
             ("5. Proteção de Rotas por Padrão (Default-Private)", self.audit_default_private_routers),
             ("6. Security Headers HTTP & Defense-in-Depth", self.audit_security_headers),
             ("7. Governança de Segredos (src/config.py & .env.example)", self.audit_config_governance),
             ("8. Trilha de Auditoria Imutável (audit_logs & helper)", self.audit_audit_trail),
-            ("9. Layout Frontend (SidebarNav à Esquerda + Marca + Versão)", self.audit_frontend_layout),
-            ("10. Monitoramento Zabbix & Governança (/api/health & AGENTS.md)", self.audit_semantic_versioning_and_agents),
+            ("9. Arquitetura em Camadas (Provider / Controller / SQL)", self.audit_layered_architecture),
+            ("10. Layout Frontend (SidebarNav à Esquerda + Marca + Versão)", self.audit_frontend_layout),
+            ("11. Monitoramento Zabbix & Governança (/api/health & AGENTS.md)", self.audit_semantic_versioning_and_agents),
         ]
 
         passed = 0
