@@ -44,6 +44,7 @@ Ele consolida as melhores práticas de engenharia de software da equipe de TI (S
 Framework-SETISD-HC-UFPE/
 ├── .env.example          # Modelo de variáveis de ambiente
 ├── AGENTS.md             # Diretrizes universais para Agentes de IA (Gemini, Claude, ChatGPT, Cursor)
+├── audit_framework.py    # Auditor de Conformidade Arquitetural
 ├── Dockerfile            # Receita de build multi-estágio (opcional para Podman / Docker)
 ├── compose.yaml          # Orquestração de contêiner para VMs (opcional)
 ├── pyproject.toml        # Dependências e configurações do projeto Python (uv)
@@ -136,6 +137,31 @@ podman compose logs -f
 ```
 
 A aplicação ficará disponível consolidada em `http://IP-DA-VM:8000/`. Para o passo a passo completo da configuração do arquivo de serviço do Linux (`systemd`), consulte o [Guia de Instalação e Deploy (`docs/SETUP.md`)](./docs/SETUP.md).
+
+---
+
+## 🔍 Auditoria Automatizada de Conformidade Arquitetural
+
+Para garantir que o desenvolvimento (seja feito por programadores ou com auxílio de copilotos de IA) esteja **100% conforme** com as diretrizes do hospital, o repositório disponibiliza o script auditor [`audit_framework.py`](./audit_framework.py).
+
+O auditor inspeciona automaticamente 10 dimensões mandatórias:
+1. Stack Backend (Python 3.12+ / FastAPI / Uvicorn).
+2. Autenticação Corporativa (AD/LDAP Ebserh).
+3. Autorização Híbrida e Controle de Acesso RBAC.
+4. Autenticação Persistente e Cookies `HttpOnly` para Refresh Token.
+5. Proteção de Rotas por Padrão (*Default-Private Router Pattern*).
+6. Middleware de Security Headers HTTP (Defense-in-Depth).
+7. Governança de Segredos (`src/config.py` e `.env.example`).
+8. Trilha de Auditoria Imutável (`audit_logs` com `dados_anteriores`, `dados_novos` e `ip_origem`).
+9. Layout Frontend Vue 3 SPA (SidebarNav à esquerda + Marca + Versão SemVer no rodapé).
+10. Monitoramento Zabbix (`/api/health`) e Manifesto de IA ([`AGENTS.md`](./AGENTS.md)).
+
+### Como executar a verificação:
+```bash
+# Auditar o próprio Framework ou o seu projeto em desenvolvimento:
+uv run python audit_framework.py /caminho/para/o/seu/projeto
+```
+*(O script exibirá o relatório detalhado com a **Taxa de Conformidade (%)** e apontará o que precisa ser ajustado em caso de pendências).*
 
 ---
 

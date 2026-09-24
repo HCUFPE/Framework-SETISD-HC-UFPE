@@ -6,11 +6,16 @@
 
 ---
 
-## 1. Regra de Entrada Obrigatória (Especificação de Requisitos)
+## 1. Regra de Entrada Obrigatória & Verificação de Conformidade
 
 Antes de gerar qualquer código ou implementar uma nova funcionalidade no sistema:
 1. **Consulte a especificação do projeto em [`docs/especificacao/SPEC.md`](docs/especificacao/SPEC.md)**.
 2. Siga os casos de uso, requisitos e modelo de dados descritos na pasta `docs/especificacao/`.
+3. **Validação Automática de Conformidade:** Ao concluir qualquer implementação ou refatoração, o agente de IA **DEVE obrigatoriamente executar o auditor de conformidade arquitertural** rodando o comando:
+   ```bash
+   python audit_framework.py .
+   ```
+   *(O agente deve garantir que a Taxa de Conformidade do projeto seja mantida em **100% (EXCELENTE)**).*
 
 ---
 
