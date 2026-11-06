@@ -2,7 +2,7 @@
  * Utilitários compartilhados pelas implementações mock dos serviços do Sistema AP.
  */
 import { db, proximoId } from '../../../mocks/ap/db';
-import type { AuditLog, CasoAp, HistoricoCaso, ItemMaterial, Responsavel } from '../../../types/ap';
+import type { AuditLog, CasoAp, HistoricoCaso, Responsavel } from '../../../types/ap';
 import { ServiceError } from '../types';
 
 /** Latência simulada das chamadas, em milissegundos. */
@@ -16,6 +16,11 @@ export function latencia(ms = LATENCIA_MS): Promise<void> {
 /** Cópia profunda: o chamador nunca recebe referências do "banco". */
 export function copia<T>(valor: T): T {
   return structuredClone(valor);
+}
+
+/** Normaliza texto livre para busca: sem acentos, minúsculo e sem espaços nas pontas. */
+export function normalizarTexto(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
 /** Normaliza um código lido ou digitado. */
@@ -94,16 +99,6 @@ export function registrarAuditoria(
   };
   db.auditoria.push(log);
   return log;
-}
-
-/** Percorre a árvore de materiais procurando o item pelo código. */
-export function encontrarItem(itens: ItemMaterial[], codigo: string): ItemMaterial | undefined {
-  for (const item of itens) {
-    if (item.codigo === codigo) return item;
-    const filho = encontrarItem(item.filhos, codigo);
-    if (filho) return filho;
-  }
-  return undefined;
 }
 
 /** Ano corrente com 2 dígitos. */

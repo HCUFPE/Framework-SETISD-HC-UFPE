@@ -13,7 +13,7 @@ import type {
   ExameIhq,
   LeituraSolicitacao,
   RegistrarNaoConformidadeInput,
-  ResolucaoCodigo,
+  ResultadoBuscaCasos,
   Responsavel,
   SituacaoDevolucao,
   SolicitacaoAghu,
@@ -65,8 +65,11 @@ export interface CasoService {
   cancelar(numeroInterno: string, motivo: string, usuario: Responsavel): Promise<CasoAp>;
   registrarImpressao(numeroInterno: string, tipo: TipoImpressao, usuario: Responsavel): Promise<void>;
   registrarAcionamentoPlantao(numeroInterno: string, usuario: Responsavel): Promise<CasoAp>;
-  /** Resolve um código lido/digitado (solicitação, caso, item de material ou IHQ). */
-  resolverCodigo(codigo: string): Promise<ResolucaoCodigo>;
+  /**
+   * Busca casos cadastrados por número interno, prontuário ou nome do paciente
+   * (por trecho, sem diferenciar maiúsculas/minúsculas e acentos).
+   */
+  buscar(termo: string, limite: number): Promise<ResultadoBuscaCasos>;
 }
 
 /** Não conformidades com devolução e o acompanhamento das devoluções. */

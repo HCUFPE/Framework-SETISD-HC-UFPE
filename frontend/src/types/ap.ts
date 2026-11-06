@@ -370,10 +370,20 @@ export type LeituraSolicitacao =
   | { tipo: 'DEVOLVIDA'; solicitacao: SolicitacaoAghu; devolvidaEm: string; tipoNaoConformidade: TipoNaoConformidadeCodigo }
   | { tipo: 'NAO_ENCONTRADA' };
 
-/** Resultado da leitura global de código (F2). */
-export type ResolucaoCodigo =
-  | LeituraSolicitacao
-  | { tipo: 'CASO'; casoNumero: string; aba?: 'materiais' | 'ihq'; itemCodigo?: string };
+/** Caso resumido para a lista de resultados da busca global (F2). */
+export interface CasoResumoBusca {
+  numeroInterno: string;
+  tipoExame: TipoCasoPrincipal;
+  nomePaciente: string;
+  prontuario: string;
+  status: StatusCaso;
+}
+
+/** Resultado da busca global de casos: os primeiros itens e o total encontrado. */
+export interface ResultadoBuscaCasos {
+  itens: CasoResumoBusca[];
+  total: number;
+}
 
 /** Resultado da confirmação na recepção. */
 export type ResultadoRecepcao =

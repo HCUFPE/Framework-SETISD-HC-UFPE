@@ -113,7 +113,7 @@
           <h1 class="text-2xl font-semibold text-paper-text truncate">{{ $route.name }}</h1>
         </div>
         <div class="flex items-center gap-4 ml-auto">
-          <CodeScanField v-if="authStore.isAuthenticated" />
+          <BuscaCasoField v-if="authStore.isAuthenticated" />
           <router-link v-if="!authStore.isAuthenticated" to="/login">
             <Button variant="primary">
               <template #icon>
@@ -152,7 +152,7 @@ import {
 import { PanelRight } from 'lucide-vue-next';
 import ProfileDropdown from '../components/ProfileDropdown.vue';
 import Button from '../components/Button.vue';
-import CodeScanField from '../components/ap/CodeScanField.vue';
+import BuscaCasoField from '../components/ap/BuscaCasoField.vue';
 import { useAuthStore } from '../stores/auth';
 import { useRecepcaoStore } from '../stores/recepcao';
 import { APP_VERSION, APP_NAME, SYSTEM_TITLE } from '../config/version';

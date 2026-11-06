@@ -20,23 +20,22 @@ import type {
   ExameIhq,
   ItemMaterial,
   ItensConferencia,
-  ResolucaoCodigo,
+  ResultadoBuscaCasos,
   Responsavel,
   SolicitacaoAghu,
   TipoImpressao,
   VincularIhqInput,
 } from '../../../types/ap';
 import { ServiceError, type CasoService } from '../types';
-import { classificarSolicitacao } from './aghuServiceMock';
 import {
   agoraIso,
   casoInterno,
   copia,
-  encontrarItem,
   exigirAghuDisponivel,
   latencia,
   montarCaso,
   normalizarCodigo,
+  normalizarTexto,
   proximoNumero,
   registrarAuditoria,
   registrarHistorico,
@@ -339,36 +338,30 @@ export const casoServiceMock: CasoService = {
     return montarCaso(caso);
   },
 
-  async resolverCodigo(codigo: string): Promise<ResolucaoCodigo> {
-    await latencia(150);
-    const alvo = normalizarCodigo(codigo);
-    if (!alvo) return { tipo: 'NAO_ENCONTRADA' };
-
-    // Solicitação AGHU
-    const leitura = classificarSolicitacao(alvo);
-    if (leitura.tipo === 'PENDENTE') {
-      exigirAghuDisponivel();
-      return leitura;
-    }
-    if (leitura.tipo === 'DEVOLVIDA') return leitura;
-    if (leitura.tipo === 'RECEBIDA') {
-      const ehIhq = Boolean(leitura.solicitacao.ihqCodigo);
-      return { tipo: 'CASO', casoNumero: leitura.casoNumero, aba: ehIhq ? 'ihq' : undefined };
-    }
-
-    // Caso pelo número interno
-    if (casoInterno(alvo)) return { tipo: 'CASO', casoNumero: alvo };
-
-    // IHQ pelo código interno
-    const casoDaIhq = db.casos.find((c) => c.ihqs.some((i) => i.codigoInternoIhq === alvo));
-    if (casoDaIhq) return { tipo: 'CASO', casoNumero: casoDaIhq.numeroInterno, aba: 'ihq' };
-
-    // Item de material
-    for (const caso of db.casos) {
-      if (encontrarItem(caso.materiais, alvo)) {
-        return { tipo: 'CASO', casoNumero: caso.numeroInterno, aba: 'materiais', itemCodigo: alvo };
-      }
-    }
-    return { tipo: 'NAO_ENCONTRADA' };
+  async buscar(termo: string, limite: number): Promise<ResultadoBuscaCasos> {
+    await latencia(120);
+    const alvo = normalizarTexto(termo);
+    if (!alvo) return { itens: [], total: 0 };
+    const encontrados = db.casos
+      .filter((c) =>
+        [c.numeroInterno, c.solicitacao.prontuario, c.solicitacao.nomePaciente].some((campo) =>
+          normalizarTexto(campo).includes(alvo),
+        ),
+      )
+      .sort((a, b) => {
+        const exatoA = normalizarTexto(a.numeroInterno) === alvo ? 0 : 1;
+        const exatoB = normalizarTexto(b.numeroInterno) === alvo ? 0 : 1;
+        return exatoA - exatoB || b.dataEntradaSap.localeCompare(a.dataEntradaSap);
+      });
+    return {
+      total: encontrados.length,
+      itens: encontrados.slice(0, limite).map((c) => ({
+        numeroInterno: c.numeroInterno,
+        tipoExame: c.tipoExame,
+        nomePaciente: c.solicitacao.nomePaciente,
+        prontuario: c.solicitacao.prontuario,
+        status: c.status,
+      })),
+    };
   },
 };
