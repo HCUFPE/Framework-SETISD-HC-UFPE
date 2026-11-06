@@ -717,14 +717,13 @@ export function criarCargaInicial(agora: Date): MockDb {
     solicitacaoCodigo: casoDevolvido.solicitacao.codigoSolicitacao,
     unidadeOrigem: casoDevolvido.solicitacao.unidade,
     devolvidoPor: EQUIPE.macroscopia,
-    recebidoPorNome: 'Enf. Rodrigo Neves (Bloco Cirúrgico)',
     novaAmostraSolicitada: true,
     situacao: 'AGUARDANDO_NOVA_AMOSTRA',
     devolvidaEm: iso(devolvidoEm),
   });
   casoDevolvido.historico.push(
     evento(devolvidoEm, EQUIPE.macroscopia, ETAPAS.MACROSCOPIA, 'NAO_CONFORMIDADE', 'Não conformidade registrada', 'Ausência de fixador/fixação inadequada — Peça recebida sem formol no recipiente.'),
-    evento(devolvidoEm, EQUIPE.macroscopia, ETAPAS.MACROSCOPIA, 'DEVOLUCAO', 'Material devolvido à origem', 'Recebido por Enf. Rodrigo Neves (Bloco Cirúrgico). Nova amostra solicitada: Sim.'),
+    evento(devolvidoEm, EQUIPE.macroscopia, ETAPAS.MACROSCOPIA, 'DEVOLUCAO', 'Material devolvido à origem', 'Devolvido à unidade de origem. Nova amostra solicitada: Sim.'),
   );
 
   const canceladoEm = diasAtras(6);
@@ -777,7 +776,6 @@ export function criarCargaInicial(agora: Date): MockDb {
     solicitacaoCodigo: solRejeitada.codigoSolicitacao,
     unidadeOrigem: solRejeitada.unidade,
     devolvidoPor: EQUIPE.recepcao2,
-    recebidoPorNome: 'Téc. enf. Priscila Gondim',
     novaAmostraSolicitada: true,
     situacao: 'AGUARDANDO_NOVA_AMOSTRA',
     devolvidaEm: iso(rejeitadaEm),
@@ -803,7 +801,6 @@ export function criarCargaInicial(agora: Date): MockDb {
     naoConformidadeId: seq.naoConformidade,
     unidadeOrigem: 'Ambulatório de Ginecologia',
     devolvidoPor: EQUIPE.recepcao,
-    recebidoPorNome: 'Téc. enf. Marta Sampaio',
     novaAmostraSolicitada: true,
     situacao: 'NOVA_AMOSTRA_RECEBIDA',
     devolvidaEm: iso(semEtiquetaEm),

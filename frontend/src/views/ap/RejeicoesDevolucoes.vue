@@ -80,44 +80,53 @@
             <span v-else-if="item.solicitacaoCodigo" class="whitespace-nowrap text-gray-600">AGHU {{ item.solicitacaoCodigo }}</span>
             <span v-else class="text-gray-500">Sem etiqueta do AGHU</span>
           </template>
-          <template #cell-pessoas="{ item }">
-            <span class="block">{{ item.devolvidoPor }}</span>
-            <span class="block text-xs text-gray-500">Recebido por {{ item.recebidoPor }}</span>
-          </template>
           <template #cell-situacao="{ item }">
-            <label :for="`situacao-${item.id}`" class="sr-only">Situação da devolução {{ item.id }}</label>
-            <select
-              :id="`situacao-${item.id}`"
-              :value="item.situacao"
-              :disabled="salvando === item.id"
-              class="form-control min-w-48 py-1 text-sm"
-              @change="alterarSituacao(item.id, ($event.target as HTMLSelectElement).value as SituacaoDevolucao)"
+            <Badge :variant="SITUACOES_DEVOLUCAO[item.situacao].variante" size="sm" class="whitespace-nowrap">
+              {{ SITUACOES_DEVOLUCAO[item.situacao].rotulo }}
+            </Badge>
+          </template>
+          <template #actions="{ item }">
+            <Button
+              variant="outline"
+              size="sm"
+              :aria-label="`Alterar situação da devolução de ${item.data} (${item.casoNumero ?? (item.solicitacaoCodigo ? `AGHU ${item.solicitacaoCodigo}` : 'sem etiqueta')})`"
+              class="whitespace-nowrap"
+              @click="abrirEdicao(item.id)"
             >
-              <option v-for="(info, codigo) in SITUACOES_DEVOLUCAO" :key="codigo" :value="codigo">{{ info.rotulo }}</option>
-            </select>
+              <template #icon>
+                <Pen class="h-4 w-4" :stroke-width="2.25" aria-hidden="true" />
+              </template>
+              Alterar situação
+            </Button>
           </template>
         </DataTable>
       </div>
     </Card>
+
+    <AlterarSituacaoDevolucaoModal
+      :show="emEdicao !== null"
+      :devolucao="emEdicao"
+      @close="emEdicaoId = null"
+      @alterada="emEdicaoId = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { useToast } from 'vue-toastification';
+import { Pen } from 'lucide-vue-next';
 import Badge from '../../components/Badge.vue';
+import Button from '../../components/Button.vue';
 import Card from '../../components/Card.vue';
 import DataTable from '../../components/DataTable.vue';
+import AlterarSituacaoDevolucaoModal from '../../components/ap/AlterarSituacaoDevolucaoModal.vue';
 import { ETAPAS, SITUACOES_DEVOLUCAO, TIPOS_NAO_CONFORMIDADE } from '../../constants/ap';
 import { formatarDataHora } from '../../helpers/formato';
 import { rotaDoCaso } from '../../helpers/rotas';
-import { mensagemDeErro } from '../../services/ap';
 import { useDevolucoesStore } from '../../stores/devolucoes';
-import type { EtapaCodigo, SituacaoDevolucao, TipoNaoConformidadeCodigo } from '../../types/ap';
+import type { EtapaCodigo, TipoNaoConformidadeCodigo } from '../../types/ap';
 
-const toast = useToast();
 const store = useDevolucoesStore();
-const salvando = ref<number | null>(null);
 
 const filtros = reactive({
   periodoDias: 0,
@@ -133,7 +142,7 @@ const colunas = [
   { text: 'Tipo e detalhamento', value: 'tipo' },
   { text: 'Origem / etapa', value: 'origem' },
   { text: 'Caso', value: 'caso' },
-  { text: 'Devolvido / recebido por', value: 'pessoas' },
+  { text: 'Devolvido por', value: 'devolvidoPor' },
   { text: 'Nova amostra', value: 'novaAmostra' },
   { text: 'Situação', value: 'situacao' },
 ];
@@ -167,7 +176,6 @@ const linhas = computed(() =>
     casoNumero: d.casoNumero,
     solicitacaoCodigo: d.solicitacaoCodigo,
     devolvidoPor: d.devolvidoPor.nome,
-    recebidoPor: d.recebidoPorNome,
     novaAmostra: d.novaAmostraSolicitada ? 'Sim' : 'Não',
     situacao: d.situacao,
   })),
@@ -176,17 +184,12 @@ const linhas = computed(() =>
 /** Muda a cada alteração de filtro e recria a tabela, voltando à primeira página. */
 const assinaturaFiltros = computed(() => JSON.stringify(filtros));
 
-const alterarSituacao = async (id: number, situacao: SituacaoDevolucao) => {
-  salvando.value = id;
-  try {
-    await store.atualizarSituacao(id, situacao);
-    toast.success(`Situação atualizada para "${SITUACOES_DEVOLUCAO[situacao].rotulo}".`);
-  } catch (erro) {
-    toast.error(mensagemDeErro(erro, 'Não foi possível atualizar a situação.'));
-    await store.carregar();
-  } finally {
-    salvando.value = null;
-  }
+/** Devolução cuja situação está sendo alterada no modal. */
+const emEdicaoId = ref<number | null>(null);
+const emEdicao = computed(() => store.devolucoes.find((d) => d.id === emEdicaoId.value) ?? null);
+
+const abrirEdicao = (id: number) => {
+  emEdicaoId.value = id;
 };
 
 onMounted(() => {

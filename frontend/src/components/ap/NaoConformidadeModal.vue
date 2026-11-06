@@ -51,19 +51,13 @@
         <p v-if="erros1.unidadeOrigem" class="mt-1 text-sm text-paper-danger-strong">{{ erros1.unidadeOrigem }}</p>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-3">
-        <div class="form-group mb-0 sm:col-span-2">
-          <label for="nc-tipo" class="form-label">Tipo de inconformidade <span class="text-paper-danger">*</span></label>
-          <select id="nc-tipo" v-model="tipo" v-bind="tipoAttrs" class="form-control" :aria-invalid="!!erros1.tipo">
-            <option value="">Selecione</option>
-            <option v-for="(rotulo, codigo) in TIPOS_NAO_CONFORMIDADE" :key="codigo" :value="codigo">{{ rotulo }}</option>
-          </select>
-          <p v-if="erros1.tipo" class="mt-1 text-sm text-paper-danger-strong">{{ erros1.tipo }}</p>
-        </div>
-        <div class="form-group mb-0">
-          <label for="nc-cmce" class="form-label">Nº CMCE (opcional)</label>
-          <input id="nc-cmce" v-model="cmce" v-bind="cmceAttrs" type="text" class="form-control" autocomplete="off" />
-        </div>
+      <div class="form-group mb-0">
+        <label for="nc-tipo" class="form-label">Tipo de inconformidade <span class="text-paper-danger">*</span></label>
+        <select id="nc-tipo" v-model="tipo" v-bind="tipoAttrs" class="form-control" :aria-invalid="!!erros1.tipo">
+          <option value="">Selecione</option>
+          <option v-for="(rotulo, codigo) in TIPOS_NAO_CONFORMIDADE" :key="codigo" :value="codigo">{{ rotulo }}</option>
+        </select>
+        <p v-if="erros1.tipo" class="mt-1 text-sm text-paper-danger-strong">{{ erros1.tipo }}</p>
       </div>
 
       <div class="form-group mb-0">
@@ -96,37 +90,23 @@
           <label for="nc-devolvido-por" class="form-label">Quem devolveu</label>
           <input id="nc-devolvido-por" :value="responsavel.nome" type="text" class="form-control bg-gray-100" readonly />
         </div>
-        <div class="form-group mb-0">
-          <label for="nc-recebido-por" class="form-label">Quem recebeu na unidade de origem <span class="text-paper-danger">*</span></label>
-          <input
-            id="nc-recebido-por"
-            v-model="recebidoPorNome"
-            v-bind="recebidoAttrs"
-            type="text"
-            class="form-control"
-            autocomplete="off"
-            placeholder="Nome e função de quem recebeu"
-            :aria-invalid="!!erros2.recebidoPorNome"
-          />
-          <p v-if="erros2.recebidoPorNome" class="mt-1 text-sm text-paper-danger-strong">{{ erros2.recebidoPorNome }}</p>
-        </div>
-      </div>
 
-      <fieldset>
-        <legend class="form-label">Nova amostra solicitada? <span class="text-paper-danger">*</span></legend>
-        <div class="flex gap-2" role="radiogroup">
-          <label
-            v-for="opcao in opcoesSimNao"
-            :key="opcao.valor"
-            :class="novaAmostra === opcao.valor ? 'border-paper-primary bg-paper-primary-soft text-paper-primary-strong' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'"
-            class="relative has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-paper-primary inline-flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition active:bg-gray-100"
-          >
-            <input v-model="novaAmostra" type="radio" name="nova-amostra" :value="opcao.valor" class="sr-only" />
-            {{ opcao.rotulo }}
-          </label>
-        </div>
-        <p v-if="erros2.novaAmostra" class="mt-1 text-sm text-paper-danger-strong">{{ erros2.novaAmostra }}</p>
-      </fieldset>
+        <fieldset>
+          <legend class="form-label">Nova amostra solicitada? <span class="text-paper-danger">*</span></legend>
+          <div class="flex gap-2" role="radiogroup">
+            <label
+              v-for="opcao in opcoesSimNao"
+              :key="opcao.valor"
+              :class="novaAmostra === opcao.valor ? 'border-paper-primary bg-paper-primary-soft text-paper-primary-strong' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'"
+              class="relative has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-paper-primary inline-flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition active:bg-gray-100"
+            >
+              <input v-model="novaAmostra" type="radio" name="nova-amostra" :value="opcao.valor" class="sr-only" />
+              {{ opcao.rotulo }}
+            </label>
+          </div>
+          <p v-if="erros2.novaAmostra" class="mt-1 text-sm text-paper-danger-strong">{{ erros2.novaAmostra }}</p>
+        </fieldset>
+      </div>
     </form>
 
     <template #footer>
@@ -223,7 +203,6 @@ const schema1 = computed(() =>
         ? z.string({ required_error: 'Selecione a unidade de origem.' }).min(1, 'Selecione a unidade de origem.')
         : z.string().optional(),
       tipo: z.string({ required_error: 'Selecione o tipo de inconformidade.' }).min(1, 'Selecione o tipo de inconformidade.'),
-      cmce: z.string().optional(),
       descricao: z
         .string({ required_error: 'Descreva o que foi encontrado.' })
         .trim()
@@ -242,7 +221,6 @@ const {
 
 const [unidadeOrigem, unidadeAttrs] = defineField1('unidadeOrigem');
 const [tipo, tipoAttrs] = defineField1('tipo');
-const [cmce, cmceAttrs] = defineField1('cmce');
 const [descricao, descricaoAttrs] = defineField1('descricao');
 
 const unidadeExibida = computed(() => valores1.unidadeOrigem || dadosSolicitacao.value?.unidade || '—');
@@ -254,10 +232,6 @@ const avancar = handleSubmit1(() => {
 // Passo 2 ---------------------------------------------------------------
 const schema2 = toTypedSchema(
   z.object({
-    recebidoPorNome: z
-      .string({ required_error: 'Informe quem recebeu o material na origem.' })
-      .trim()
-      .min(1, 'Informe quem recebeu o material na origem.'),
     novaAmostra: z.enum(['SIM', 'NAO'], { required_error: 'Escolha Sim ou Não.', invalid_type_error: 'Escolha Sim ou Não.' }),
   }),
 );
@@ -269,7 +243,6 @@ const {
   resetForm: resetForm2,
 } = useForm({ validationSchema: schema2 });
 
-const [recebidoPorNome, recebidoAttrs] = defineField2('recebidoPorNome');
 const [novaAmostra] = defineField2('novaAmostra');
 
 const registrar = handleSubmit2(async (valores2) => {
@@ -280,9 +253,7 @@ const registrar = handleSubmit2(async (valores2) => {
       contexto: props.contexto,
       tipo: valores1.tipo as TipoNaoConformidadeCodigo,
       descricao: valores1.descricao ?? '',
-      cmce: valores1.cmce,
       unidadeOrigem: valores1.unidadeOrigem,
-      recebidoPorNome: valores2.recebidoPorNome,
       novaAmostraSolicitada: valores2.novaAmostra === 'SIM',
     });
     toast.success('Não conformidade e devolução registradas. O material saiu das filas ativas.');
@@ -309,11 +280,10 @@ watch(
       values: {
         unidadeOrigem: '',
         tipo: props.contexto?.tipo === 'SEM_ETIQUETA' ? 'SEM_ETIQUETA_AGHU' : '',
-        cmce: '',
         descricao: '',
       },
     });
-    resetForm2({ values: { recebidoPorNome: '', novaAmostra: undefined } });
+    resetForm2({ values: { novaAmostra: undefined } });
   },
   { immediate: true },
 );

@@ -36,9 +36,7 @@ export const naoConformidadeServiceMock: NaoConformidadeService = {
   async registrar(input: RegistrarNaoConformidadeInput, usuario: Responsavel): Promise<DevolucaoDetalhada> {
     await latencia();
     const descricao = input.descricao.trim();
-    const recebidoPorNome = input.recebidoPorNome.trim();
     if (!descricao) throw new ServiceError(400, 'Descreva o que foi encontrado.');
-    if (!recebidoPorNome) throw new ServiceError(400, 'Informe quem recebeu o material na unidade de origem.');
 
     const agora = agoraIso();
     let casoNumero: string | undefined;
@@ -89,7 +87,6 @@ export const naoConformidadeServiceMock: NaoConformidadeService = {
       solicitacaoCodigo,
       tipo: input.tipo,
       descricao,
-      cmce: input.cmce?.trim() || undefined,
       setor: SETOR_RECEPCAO,
       etapa,
       etapaCodigo,
@@ -105,7 +102,6 @@ export const naoConformidadeServiceMock: NaoConformidadeService = {
       solicitacaoCodigo,
       unidadeOrigem,
       devolvidoPor: usuario,
-      recebidoPorNome,
       novaAmostraSolicitada: input.novaAmostraSolicitada,
       situacao: input.novaAmostraSolicitada ? 'AGUARDANDO_NOVA_AMOSTRA' : 'ENCERRADA',
       devolvidaEm: agora,
@@ -140,7 +136,7 @@ export const naoConformidadeServiceMock: NaoConformidadeService = {
         SETOR_RECEPCAO,
         'DEVOLUCAO',
         'Material devolvido à origem',
-        `Recebido por ${recebidoPorNome}. Nova amostra solicitada: ${input.novaAmostraSolicitada ? 'Sim' : 'Não'}.`,
+        `Devolvido à unidade ${unidadeOrigem}. Nova amostra solicitada: ${input.novaAmostraSolicitada ? 'Sim' : 'Não'}.`,
       );
     }
 

@@ -256,11 +256,9 @@
                   <div><dt class="text-xs font-bold uppercase text-gray-500">Setor / etapa</dt><dd>{{ nc.setor }} · {{ nc.etapa }}</dd></div>
                   <div><dt class="text-xs font-bold uppercase text-gray-500">Data/hora</dt><dd>{{ formatarDataHora(nc.registradoEm) }}</dd></div>
                   <div><dt class="text-xs font-bold uppercase text-gray-500">Registrada por</dt><dd>{{ nc.registradoPor.nome }}</dd></div>
-                  <div><dt class="text-xs font-bold uppercase text-gray-500">Nº CMCE</dt><dd>{{ nc.cmce || '—' }}</dd></div>
                   <template v-if="devolucaoDe(nc.id)">
                     <div><dt class="text-xs font-bold uppercase text-gray-500">Unidade de origem</dt><dd>{{ devolucaoDe(nc.id)!.unidadeOrigem }}</dd></div>
                     <div><dt class="text-xs font-bold uppercase text-gray-500">Devolvido por</dt><dd>{{ devolucaoDe(nc.id)!.devolvidoPor.nome }}</dd></div>
-                    <div><dt class="text-xs font-bold uppercase text-gray-500">Recebido na origem por</dt><dd>{{ devolucaoDe(nc.id)!.recebidoPorNome }}</dd></div>
                     <div><dt class="text-xs font-bold uppercase text-gray-500">Nova amostra solicitada</dt><dd>{{ devolucaoDe(nc.id)!.novaAmostraSolicitada ? 'Sim' : 'Não' }}</dd></div>
                   </template>
                 </dl>

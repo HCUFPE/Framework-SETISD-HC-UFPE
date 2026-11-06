@@ -235,7 +235,6 @@ export interface NaoConformidade {
   solicitacaoCodigo?: string;
   tipo: TipoNaoConformidadeCodigo;
   descricao: string;
-  cmce?: string;
   setor: string;
   /** Etapa em que foi identificada, como exibida ao usuário (ex.: "Recepção (conferência)"). */
   etapa: string;
@@ -254,7 +253,6 @@ export interface Devolucao {
   solicitacaoCodigo?: string;
   unidadeOrigem: string;
   devolvidoPor: Responsavel;
-  recebidoPorNome: string;
   novaAmostraSolicitada: boolean;
   situacao: SituacaoDevolucao;
   devolvidaEm: string;
@@ -352,10 +350,8 @@ export interface RegistrarNaoConformidadeInput {
   contexto: ContextoNaoConformidade;
   tipo: TipoNaoConformidadeCodigo;
   descricao: string;
-  cmce?: string;
   /** Exigida quando não há solicitação nem caso. */
   unidadeOrigem?: string;
-  recebidoPorNome: string;
   novaAmostraSolicitada: boolean;
 }
 
