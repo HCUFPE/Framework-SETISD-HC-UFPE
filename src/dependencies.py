@@ -30,3 +30,42 @@ def get_paciente_provider(strategy: str) -> Callable[..., PacienteProviderInterf
         return _get_paciente_csv_provider
     else:
         raise ValueError(f"Estratégia de provedor desconhecida: {strategy}")
+
+
+# --- Recebimento de Amostras ---
+from .providers.interfaces.solicitacao_provider_interface import SolicitacaoProviderInterface
+from .providers.implementations.solicitacao_postgres_provider import SolicitacaoPostgresProvider
+from .providers.implementations.solicitacao_csv_provider import SolicitacaoCsvProvider
+from .providers.interfaces.recebimento_provider_interface import RecebimentoProviderInterface
+from .providers.implementations.recebimento_sqlalchemy_provider import RecebimentoSqlalchemyProvider
+from .resources.database import get_app_db_session
+
+
+def _get_solicitacao_postgres_provider(
+    session: AsyncSession = Depends(get_aghu_db_session)
+) -> SolicitacaoProviderInterface:
+    """Fornece o provider de leitura de solicitações direto no AGHU."""
+    return SolicitacaoPostgresProvider(session=session)
+
+
+def _get_solicitacao_csv_provider() -> SolicitacaoProviderInterface:
+    """Fornece o provider de leitura de solicitações a partir do CSV exportado do AGHU."""
+    csv_path = os.getenv("SOLICITACAO_CSV_PATH", "data/solicitacoes_aghu_exemplo.csv")
+    return SolicitacaoCsvProvider(csv_path=csv_path)
+
+
+def get_solicitacao_provider(strategy: str) -> Callable[..., SolicitacaoProviderInterface]:
+    """Fábrica: retorna a função de dependência do provider de solicitações escolhido."""
+    if strategy.upper() == "POSTGRES":
+        return _get_solicitacao_postgres_provider
+    elif strategy.upper() == "CSV":
+        return _get_solicitacao_csv_provider
+    else:
+        raise ValueError(f"Estratégia de provedor desconhecida: {strategy}")
+
+
+def get_recebimento_provider(
+    session: AsyncSession = Depends(get_app_db_session)
+) -> RecebimentoProviderInterface:
+    """Fornece o provider de persistência do recebimento no banco local."""
+    return RecebimentoSqlalchemyProvider(session=session)
