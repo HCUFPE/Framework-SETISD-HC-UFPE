@@ -15,6 +15,7 @@ graph TB
     %% Atores Externos %%
     Setor_Solicitante["Setor Solicitante<br/>(Externo)"]:::actor
     Paciente["Paciente<br/>(Externo)"]:::actor
+    Regulacao["Regulacao<br/>(Externo)"]:::actor
 
     %% Atores Internos %%
     Recepcionista["Tecnico de Recepcao"]:::actor
@@ -28,18 +29,23 @@ graph TB
     Sistema_AGHU("Sistema AGHU"):::system
     Sistema_Siscan("Sistema Siscan"):::system
 
+    %% Acoes feitas diretamente no AGHU, fora do sistema (RN-01) %%
+    subgraph Fora_do_Sistema["Acoes fora do sistema (feitas no AGHU)"]
+        UC_CadastrarPaciente(["Cadastrar Paciente no AGHU"]):::usecase
+        UC_RealizarSolicitacao(["Realizar Solicitacao de Exame no AGHU"]):::usecase
+        UC_GerarCodigoBarras(["Emitir Etiqueta da Solicitacao"]):::usecase
+    end
+
     %% Fronteira do Sistema %%
-    subgraph SAP_System_Boundary["Sistema do Servico de Anatomia Patologica (HC UFPE)"]
+    subgraph Sistema_Boundary["Sistema da Anatomia Patologica (HC UFPE)"]
 
         %% Recepcao e Triagem %%
         subgraph Recepcao_UCs["Subsistema Recepcao e Triagem"]
             UC_EntregarAmostra(["Entregar Amostra"]):::usecase
-            UC_ConsultarSolicitacaoAGHU(["Consultar Solicitacao de Exame no AGHU"]):::usecase
-            UC_CadastrarPaciente(["Cadastrar Paciente no AGHU"]):::usecase
-            UC_RealizarSolicitacao(["Realizar Solicitacao de Exame no AGHU"]):::usecase
-            UC_GerarCodigoBarras(["Gerar Codigo de Barras de Solicitacao"]):::usecase
-            UC_RegistrarAmostraBipagem(["Registrar Amostra por Bipagem"]):::usecase
-            UC_RegistrarPlanilhaControle(["Registrar em Planilha de Controle Interno"]):::usecase
+            UC_ConsultarSolicitacaoAGHU(["Consultar Solicitacao pelo Codigo da Etiqueta"]):::usecase
+            UC_ReceberConferirAmostra(["Receber e Conferir Amostra"]):::usecase
+            UC_RegistrarNaoConformidade(["Registrar Nao Conformidade"]):::usecase
+            UC_GerarNumeroInterno(["Registrar Recebimento e Gerar No Interno"]):::usecase
             UC_ImprimirFichaTrabalho(["Imprimir Ficha de Trabalho"]):::usecase
             UC_RegistrarLivroProtocolo(["Registrar em Livro de Protocolo"]):::usecase
             UC_EncaminharMacro(["Encaminhar para Macroscopia"]):::usecase
@@ -89,13 +95,18 @@ graph TB
 
     Recepcionista --- UC_EntregarAmostra
     Recepcionista --- UC_ConsultarSolicitacaoAGHU
-    Recepcionista --- UC_CadastrarPaciente
-    Recepcionista --- UC_RealizarSolicitacao
-    Recepcionista --- UC_RegistrarAmostraBipagem
-    Recepcionista --- UC_RegistrarPlanilhaControle
+    Recepcionista --- UC_ReceberConferirAmostra
+    Recepcionista --- UC_RegistrarNaoConformidade
+    Recepcionista --- UC_GerarNumeroInterno
     Recepcionista --- UC_ImprimirFichaTrabalho
     Recepcionista --- UC_RegistrarLivroProtocolo
     Recepcionista --- UC_EncaminharMacro
+
+    %% Associacoes: Acoes fora do sistema %%
+    Regulacao --- UC_CadastrarPaciente
+    Regulacao --- UC_RealizarSolicitacao
+    Setor_Solicitante --- UC_RealizarSolicitacao
+    Setor_Solicitante --- UC_GerarCodigoBarras
 
     %% Associacoes: Macroscopia %%
     Tecnico_Macro --- UC_RealizarAnaliseMacro
@@ -125,94 +136,140 @@ graph TB
     Arquivista --- UC_ArquivarFichaTrabalho
 
     %% Integracoes com Sistemas Externos %%
-    UC_ConsultarSolicitacaoAGHU <--> Sistema_AGHU
-    UC_CadastrarPaciente <--> Sistema_AGHU
-    UC_RealizarSolicitacao <--> Sistema_AGHU
-    UC_GerarCodigoBarras <--> Sistema_AGHU
+    Sistema_AGHU -- "somente leitura" --> UC_ConsultarSolicitacaoAGHU
+    UC_CadastrarPaciente --> Sistema_AGHU
+    UC_RealizarSolicitacao --> Sistema_AGHU
+    UC_GerarCodigoBarras --> Sistema_AGHU
     UC_RegistrarAnaliseAGHU <--> Sistema_AGHU
     UC_GerarLaudoEnviarAGHU <--> Sistema_AGHU
     UC_GerarLaudoSiscan <--> Sistema_Siscan
 
     %% Relacionamentos entre Casos de Uso %%
+    UC_ReceberConferirAmostra -.-> UC_ConsultarSolicitacaoAGHU
+    UC_ReceberConferirAmostra -.-> UC_GerarNumeroInterno
+    UC_ReceberConferirAmostra -.-> UC_RegistrarNaoConformidade
     UC_FinalizarDiagnostico -.-> UC_GerarLaudoEnviarAGHU
     UC_FinalizarDiagnostico -.-> UC_GerarLaudoSiscan
     UC_FinalizarDiagnostico -.-> UC_SolicitarExamesAdicionais
 ```
 ## 2. Especificação (Exemplo)
-# Especificação Detalhada de Casos de Uso (UC) e SDD (CARE) - SAP / HC-UFPE
+# Especificação Detalhada de Casos de Uso (UC) e SDD (CARE) - Anatomia Patológica / HC-UFPE
 ---
 
 ## 1. Sub-sistema: Recepção & Triagem
 
+> **Regra de leitura desta seção:** o sistema nunca grava no AGHU (RN-01). Cadastro do paciente, criação da solicitação e emissão da etiqueta acontecem no AGHU, fora do sistema (UC003 a UC005).
+
 ### UC001 - Entregar Amostra
 - Ator: Setor Solicitante / Paciente / Técnico de Recepção.
-- Fluxo: Apresentar amostra física e documentação na recepção -> Recepcionista confere integridade do recipiente -> Identificar se paciente é interno (HU) ou externo.
+- Fluxo: Apresentar amostra física com a etiqueta do AGHU na recepção -> Recepcionista inicia a conferência no sistema (UC006).
 
-[CARE-UC001] Recebimento e Conferência de Amostra
-- Context: Amostra entregue na recepção física do SAP.
-- Action: Registrar o recebimento físico e validar a integridade do recipiente.
-- Result: Amostra apta para início da triagem ou devolvida ao setor de origem em caso de inadequação.
-- Evaluation: Teste unitário deve validar a rejeição de recipientes marcados como "danificado/vazando".
+[CARE-UC001] Entrega Física da Amostra
+- Context: Amostra entregue na recepção física da Anatomia Patológica.
+- Action: Entregar o material ao recepcionista. Esta etapa é física e não gera registro; o registro acontece no UC006.
+- Result: Amostra pronta para a conferência.
+- Evaluation: Não há teste de software. O comportamento do sistema é avaliado no UC006.
 
-### UC002 - Consultar Solicitação de Exame no AGHU
+### UC002 - Consultar Solicitação pelo Código da Etiqueta
 - Ator: Técnico de Recepção.
-- Fluxo: Buscar solicitação por CPF/CNS ou número do atendimento -> Verificar status no AGHU -> Confirmar vínculo com o paciente.
+- Fluxo: Bipar ou digitar o código da etiqueta -> Sistema lê a solicitação pelo provider de leitura -> Sistema mostra paciente, origem e amostras das 5 bancadas.
 
-[CARE-UC002] Integração de Consulta com AGHU
-- Context: Operador com requisição em mãos na recepção.
-- Action: Enviar requisição GET /api/aghu/solicitacao/{id} para o barramento do AGHU.
-- Result: Dados do paciente, médico e exame retornados e exibidos na tela.
-- Evaluation: Teste de integração deve simular resposta com sucesso (HTTP 200) e registro não encontrado (HTTP 404).
+[CARE-UC002] Leitura da Solicitação no AGHU
+- Context: Operador com a amostra etiquetada na recepção.
+- Action: Enviar `GET /api/recebimento/solicitacoes/{codigo}`. O backend lê os dados pela `SolicitacaoProviderInterface`, sem nenhuma escrita no AGHU.
+- Result: Iniciais, prontuário, nascimento e idade do paciente, origem, clínica, unidade, informações clínicas e amostras das bancadas HP, CO, IHQ, CG e CCV exibidos em uma só tela. A bancada vem de `codigo_lab`, e a sigla do exame só o descreve.
+- Evaluation: Testes de resposta com sucesso (HTTP 200), código inválido (HTTP 422), código inexistente (HTTP 404) e laboratório sem mapeamento, que não é recebível.
 
-### UC003 - Cadastrar Paciente no AGHU
-- Ator: Técnico de Recepção.
-- Fluxo: Identificar ausência do paciente no AGHU -> Inserir dados demográficos (Nome, CPF, CNS, Data de Nasc.) -> Salvar cadastro.
+### UC003 - Cadastrar Paciente no AGHU (fora do sistema)
+- Ator: Regulação.
+- Fluxo: Identificar paciente externo sem cadastro -> Cadastrar diretamente no AGHU.
 
-[CARE-UC003] Cadastro Excepcional de Paciente Externo
+[CARE-UC003] Cadastro do Paciente Externo
 - Context: Paciente externo sem cadastro prévio no AGHU.
-- Action: Executar rotina de criação de paciente no AGHU via API integrada.
-- Result: Registro do paciente persistido no AGHU e id_paciente gerado.
-- Evaluation: Validar com JSON Schema a obrigatoriedade do CPF ou CNS válido.
+- Action: A Regulação faz o cadastro diretamente no AGHU. O sistema não participa desta ação.
+- Result: Paciente disponível no AGHU; o sistema passa a enxergá-lo pela leitura da solicitação.
+- Evaluation: Revisão de código: o sistema não tem endpoint, método ou SQL de escrita no AGHU.
 
-### UC004 - Realizar Solicitação de Exame no AGHU
+### UC004 - Realizar Solicitação de Exame no AGHU (fora do sistema)
+- Ator: Setor Solicitante / Regulação.
+- Fluxo: Selecionar o paciente no AGHU -> Escolher o exame -> Confirmar a solicitação no AGHU.
+
+[CARE-UC004] Criação da Solicitação
+- Context: Paciente cadastrado no AGHU e sem solicitação para o material.
+- Action: Criar a solicitação diretamente no AGHU. O sistema não participa desta ação.
+- Result: Solicitação disponível para leitura no UC002.
+- Evaluation: Revisão de código: o sistema não tem endpoint, método ou SQL de escrita no AGHU.
+
+### UC005 - Emitir Etiqueta da Solicitação (fora do sistema)
+- Ator: Setor Solicitante, usando o AGHU.
+- Fluxo: Confirmar a solicitação -> Imprimir no AGHU a etiqueta com o código da solicitação e o número da amostra -> Colar a etiqueta no frasco.
+
+[CARE-UC005] Etiqueta do AGHU
+- Context: Solicitação confirmada no AGHU.
+- Action: O AGHU emite a etiqueta. O sistema apenas reconhece o código lido (RNF002) e não gera este código de barras.
+- Result: Frasco com etiqueta que o leitor do setor consegue ler.
+- Evaluation: Uma etiqueta com o número da amostra, ao ser lida, abre a solicitação correta e destaca a amostra. Os formatos aceitos estão em `05-interfaces.md`.
+
+### UC006 - Receber e Conferir Amostra (RF003, RF004, RN-04)
 - Ator: Técnico de Recepção.
-- Fluxo: Selecionar paciente cadastrado -> Escolher tipo de exame patológico -> Vincular médico solicitante -> Confirmar solicitação.
+- Pré-condição: Usuário autenticado e amostra etiquetada em mãos.
 
-[CARE-UC004] Geração de Solicitação de Exame
-- Context: Paciente cadastrado e sem solicitação cadastrada previamente.
-- Action: Inserir pedido do exame na base do AGHU.
-- Result: Código de solicitação de exame gerado com sucesso.
-- Evaluation: Teste automatizado deve garantir o vínculo correto entre id_paciente e id_solicitacao.
+**Fluxo principal**
+1. O técnico bipa ou digita o código da etiqueta (UC002), ou abre a solicitação pela lista inicial.
+2. O sistema mostra o paciente, a origem, a clínica, a unidade, as informações clínicas e as amostras das 5 bancadas, com o status no AGHU e o checklist do recebimento desmarcado.
+3. O técnico mantém marcadas as amostras que vai receber.
+4. O técnico confere as amostras marcadas e preenche uma única vez o checklist do recebimento: siglas × conteúdo, descrições × frascos e nº de recipientes.
+5. Se recebe HP, o técnico informa a quantidade de peças, a urgência (Sim ou Não) e o procedimento. Se recebe IHQ, pode informar o HP de origem (`HP-AAAA/N`).
+6. O técnico aciona "Concluir recebimento", habilitado só com o checklist e os dados obrigatórios completos.
+7. O sistema executa o UC007 e mostra o nº interno em destaque.
+8. A lista volta atualizada, e o foco retorna ao campo de código.
 
-### UC005 - Gerar Código de Barras de Solicitação
-- Ator: Sistema AGHU / Técnico de Recepção.
-- Fluxo: Processar confirmação da solicitação -> Gerar código de barras único -> Exibir para impressão.
+**Fluxos alternativos**
+- **A1. Solicitação não encontrada:** o sistema mostra a mensagem e mantém o foco no campo, sem gravar nada (HTTP 404). Um código em formato não aceito, como o prontuário bipado por engano, recebe mensagem própria (HTTP 422).
+- **A2. Solicitação sem itens de laboratório mapeado:** o sistema informa que não há itens da Anatomia Patológica e não mostra amostras (HTTP 422). O CSV atual já vem filtrado para os 5 laboratórios; a regra protege contra mudanças na view e laboratórios desativados.
+- **A3. Checklist incompleto, ou amostra marcada depois de confirmá-lo:** "Concluir recebimento" fica desabilitado. Se o pedido chegar à API mesmo assim, ele é recusado, e nenhum número é consumido (HTTP 422).
+- **A4. Algo não confere no frasco:** o técnico aciona "Registrar não conformidade" e segue para o UC011A.
+- **A5. Item sem descrição no AGHU (hoje, só a sigla CITO):** a tela pede o material do frasco. O recebimento só é aceito com esse campo preenchido (HTTP 422), e o texto fica separado da descrição do AGHU.
+- **A6. Solicitação já recebida:** o sistema mostra o nº interno existente e não gera outro (HTTP 409).
+- **A7. Só parte das amostras chegou:** o técnico desmarca as ausentes. Elas ficam registradas como não recebidas.
+- **A8. Status do item não permite o recebimento (`EXECUTANDO`, `LIBERADO`, `CANCELADO` ou status não configurado):** a linha mostra o status e fica bloqueada, e as demais amostras seguem liberadas (HTTP 422 se o pedido chegar à API). Se o frasco chegou mesmo assim, o técnico segue para o UC011A.
+- **A9. Paciente Externo sem prontuário ou sem clínica:** a tela mostra "Sem prontuário" e "Não informada", e o recebimento segue normalmente. Sem prontuário em outra origem, a amostra é bloqueada.
+- **A10. Numeração com lacunas:** as amostras aparecem com o número do AGHU (ex.: 3 e 5), sem exigir sequência contínua.
+- **A11. Dados de HP ausentes ou fora da lista:** o recebimento é recusado, sem consumir número (HTTP 422 ou 400).
+- **A12. Referência da IHQ fora do formato `HP-AAAA/N`:** o recebimento é recusado (HTTP 422). O campo é opcional.
+- **A13. Técnico desiste da conferência:** "Voltar para a lista" encerra a conferência sem gravar nada.
 
-[CARE-UC005] Emissão de Código de Barras
-- Context: Solicitação de exame confirmada no AGHU.
-- Action: Gerar string codificada e renderizar código de barras padrão Code128/DataMatrix.
-- Result: Código impresso ou disponível para leitura óptica imediata.
-- Evaluation: Validar se a string do código de barras é idêntica ao id_solicitacao retornado.
+[CARE-UC006] Conferência na Recepção
+- Context: Solicitação lida do AGHU e exibida na tela de recebimento.
+- Action: Validar o checklist do recebimento, único para as amostras marcadas, antes de concluir.
+- Result: Exame criado com as amostras recebidas, data, hora e usuário do token (RNF007). Itens de laboratórios sem mapeamento são ignorados. Nome do paciente e informações clínicas não são gravados.
+- Evaluation: Recebimento bloqueado com item pendente e liberado com checklist completo; recebendo 2 de 3 amostras, o exame fica com 2; cada um dos 8 status do AGHU segue a regra configurada.
 
-### UC006 - Registrar Amostra por Bipagem (RN-04)
+### UC007 - Registrar Recebimento e Gerar Nº Interno (RF006, RN-07)
+- Ator: Técnico de Recepção / Sistema.
+- Fluxo: Concluir o recebimento (UC006) -> Gerar um exame por bancada, com nº interno -> Gravar o registro no sistema, que substitui a planilha de controle interno.
+
+[CARE-UC007] Registro do Recebimento no Sistema
+- Context: Checklist do recebimento completo.
+- Action: Em uma única transação, incrementar a sequência por tipo e ano e gravar exame, amostras e conferências. Depois do commit, registrar a auditoria na categoria `NEGOCIO_CLINICO`.
+- Result: Nº interno no formato sigla + sequencial (ex.: `HP 4757`). A bancada IHQ usa o prefixo `IH` (RF006, RF022). O ano segue o fuso do hospital.
+- Evaluation: 50 recebimentos simultâneos sem números repetidos nem pulados (RNF013); teste da virada de ano; sequências independentes por tipo; solicitação com duas ou três bancadas gera um número por bancada; CO entra urgente (CARE-RF007).
+
+### UC011A - Registrar Não Conformidade e Devolver à Origem (RF005)
 - Ator: Técnico de Recepção.
-- Fluxo: Bipar código de barras da solicitação -> Executar validação de campos obrigatórios -> Travar entrada se houver inconsistência ou confirmar registro.
+- Fluxo: Abrir o registro de não conformidade -> Selecionar o motivo padronizado -> Informar a observação e, se houver, o nº no CMCE e o médico solicitante -> Confirmar -> Devolver fisicamente o material ao setor de origem.
 
-[CARE-UC006] Validação Rigorosa da Entrada (RN-04)
-- Context: Código de barras lido pelo leitor óptico.
-- Action: Validar presença dos campos obrigatórios (Topografia, Material, Solicitante).
-- Result: Amostra aceita ou travada com envio de alerta automático de inconsistência ao setor solicitante no AGHU.
-- Evaluation: Enviar payload com campo topografia em branco e validar retorno de trava e notificação emitida.
+**Fluxos alternativos**
+- **A1. Motivo inválido ou observação vazia:** o registro é recusado (HTTP 422).
+- **A2. Todos os tipos já recebidos:** não há o que devolver, e o sistema informa o nº existente (HTTP 409).
+- **A3. Material corrigido volta à recepção:** a solicitação pode ser recebida novamente. A não conformidade da mesma bancada é marcada como resolvida ("Resolveu?" da planilha), e o histórico é preservado.
+- **A4. Item bloqueado pelo status do AGHU:** a devolução é permitida em qualquer status.
 
-### UC007 - Registrar em Planilha de Controle Interno
-- Ator: Técnico de Recepção.
-- Fluxo: Localizar campos pendentes na ficha -> Inserir refinamentos manuais de dados -> Atualizar controle paralelo.
-
-[CARE-UC007] Registro Transitório na Planilha Paralela (RN-07)
-- Context: Amostra recebida necessitando de refinamento manual de dados.
-- Action: Inserir dados complementares no controle temporário antes da descontinuação no go-live.
-- Result: Registro temporário atualizado para acompanhamento.
-- Evaluation: Teste unitário deve garantir que dados salvos na planilha reflitam no painel do sistema.
+[CARE-UC011A] Devolução sem Consumo de Número
+- Context: Um dos 14 motivos oficiais, listados em `04-modelo-dados.md`.
+- Action: Gravar a não conformidade para as bancadas da solicitação ainda não recebidas. Prontuário, origem, clínica e exame vêm do AGHU, sem redigitar. Nenhum alerta é gravado no AGHU; a comunicação é a devolução física ao setor.
+- Result: Exame com status `DEVOLVIDO`, sem nº interno, com motivo, observação, usuário, data e hora.
+- Evaluation: Após uma devolução, o status, o motivo e a sequência de números ficam corretos, e toda mutação gera registro em `audit_logs`.
 
 ### UC008 - Imprimir Ficha de Trabalho
 - Ator: Técnico de Recepção.
