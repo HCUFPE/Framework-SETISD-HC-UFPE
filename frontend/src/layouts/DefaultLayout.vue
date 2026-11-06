@@ -2,8 +2,14 @@
   <div class="relative h-screen overflow-hidden md:flex">
     <!-- Mobile Menu Header -->
     <div class="bg-paper-sidebar text-gray-100 flex justify-between md:hidden shrink-0">
-      <router-link to="/" class="block p-4 text-white font-bold">{{ SYSTEM_TITLE }}</router-link>
-      <button @click="sidebarOpen = !sidebarOpen" class="p-4 focus:outline-none focus:bg-paper-active-link">
+      <router-link to="/" class="focus-ring [--focus-ring-offset:-2px] block p-4 text-white font-bold hover:text-gray-200 active:text-gray-300 transition">{{ SYSTEM_TITLE }}</router-link>
+      <button
+        type="button"
+        aria-label="Abrir ou fechar o menu"
+        :aria-expanded="sidebarOpen"
+        @click="sidebarOpen = !sidebarOpen"
+        class="focus-ring [--focus-ring-offset:-2px] p-4 hover:bg-paper-active-link active:bg-black/30 transition-colors"
+      >
         <Bars3Icon class="h-6 w-6" />
       </button>
     </div>
@@ -18,64 +24,68 @@
     >
       <div>
         <!-- Clique em "Nome do Sistema" recolhe/expande a barra lateral -->
-        <div 
+        <button 
+          type="button"
           @click="toggleSidebar" 
           title="Clique para recolher / expandir o menu"
-          class="cursor-pointer text-white flex items-center space-x-3 px-3 mb-6 hover:opacity-90 transition duration-150 group"
+          :aria-expanded="!isCollapsed"
+          class="focus-ring w-full text-left text-white flex items-center space-x-3 px-3 py-1 mb-6 rounded hover:bg-white/10 active:bg-white/20 transition duration-150 group"
         >
           <CubeTransparentIcon class="h-8 w-8 shrink-0 group-hover:scale-105 transition-transform" />
           <span v-if="!isCollapsed" class="text-xl font-extrabold leading-snug break-words select-none">
             {{ SYSTEM_TITLE }}
           </span>
-        </div>
+        </button>
 
         <div class="px-3 my-4">
           <div class="border-t border-white border-opacity-20"></div>
         </div>
 
-        <!-- Links de Navegação -->
-        <nav class="space-y-2">
-          <router-link 
-            to="/" 
-            :title="isCollapsed ? 'Início' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <HomeIcon class="h-6 w-6 shrink-0"/>
-            <span v-if="!isCollapsed" class="truncate">Início</span>
-          </router-link>
+        <!-- Links de Navegação, agrupados em seções -->
+        <nav aria-label="Menu principal" class="space-y-5">
+          <div v-for="secao in secoesVisiveis" :key="secao.titulo">
+            <p
+              v-if="!isCollapsed"
+              class="px-4 mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400 select-none"
+            >
+              {{ secao.titulo }}
+            </p>
+            <div v-else class="mx-3 mb-2 border-t border-white/20" aria-hidden="true"></div>
 
-          <router-link 
-            to="/componentes" 
-            :title="isCollapsed ? 'Componentes' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <CubeIcon class="h-6 w-6 shrink-0" />
-            <span v-if="!isCollapsed" class="truncate">Componentes</span>
-          </router-link>
-
-          <router-link 
-            v-if="authStore.isAuthenticated" 
-            to="/exemplo" 
-            :title="isCollapsed ? 'Exemplo' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <DocumentTextIcon class="h-6 w-6 shrink-0" />
-            <span v-if="!isCollapsed" class="truncate">Exemplo</span>
-          </router-link>
-          
-          <router-link 
-            v-if="authStore.isAuthenticated" 
-            to="/configuracoes" 
-            :title="isCollapsed ? 'Configurações' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <Cog6ToothIcon class="h-6 w-6 shrink-0"/>
-            <span v-if="!isCollapsed" class="truncate">Configurações</span>
-          </router-link>
+            <div class="space-y-1">
+              <router-link
+                v-for="item in secao.itens"
+                :key="item.chave"
+                :to="item.para"
+                active-class=""
+                exact-active-class=""
+                :title="isCollapsed ? item.rotulo : ''"
+                :aria-current="itemAtivo(item) ? 'page' : undefined"
+                :class="[
+                  isCollapsed ? 'justify-center px-2' : 'px-4',
+                  itemAtivo(item) ? 'bg-paper-active-link text-white' : '',
+                ]"
+                class="focus-ring relative flex items-center gap-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white active:bg-black/30"
+              >
+                <component :is="item.icone" class="h-6 w-6 shrink-0" aria-hidden="true" />
+                <span v-if="!isCollapsed" class="flex-1 min-w-0 leading-snug">{{ item.rotulo }}</span>
+                <span
+                  v-if="item.contador && !isCollapsed"
+                  class="rounded-full bg-paper-warning px-2 py-0.5 text-xs font-bold text-gray-900"
+                  :aria-label="`${item.contador} solicitações aguardando recebimento`"
+                >
+                  {{ item.contador }}
+                </span>
+                <span
+                  v-else-if="item.contador"
+                  class="absolute top-1 right-2 min-w-4 rounded-full bg-paper-warning px-1 text-[10px] font-bold leading-4 text-center text-gray-900"
+                  :aria-label="`${item.contador} solicitações aguardando recebimento`"
+                >
+                  {{ item.contador }}
+                </span>
+              </router-link>
+            </div>
+          </div>
         </nav>
       </div>
 
@@ -91,11 +101,12 @@
 
     <!-- Content -->
     <div class="flex-1 flex flex-col bg-paper-bg overflow-y-auto h-full">
-      <header class="flex justify-between items-center p-6 bg-white/80 backdrop-blur-md border-b border-gray-300 sticky top-0 z-10">
-        <div>
-          <h1 class="text-2xl font-semibold text-paper-text">{{ $route.name }}</h1>
+      <header class="flex flex-wrap justify-between items-center gap-4 p-6 bg-white/80 backdrop-blur-md border-b border-gray-300 sticky top-0 z-10">
+        <div class="min-w-0">
+          <h1 class="text-2xl font-semibold text-paper-text truncate">{{ $route.name }}</h1>
         </div>
-        <div>
+        <div class="flex items-center gap-4 ml-auto">
+          <CodeScanField v-if="authStore.isAuthenticated" />
           <router-link v-if="!authStore.isAuthenticated" to="/login">
             <Button variant="primary">
               <template #icon>
@@ -117,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch, type Component } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   HomeIcon,
@@ -127,24 +138,101 @@ import {
   CubeTransparentIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
+  SparklesIcon,
+  InboxArrowDownIcon,
+  MagnifyingGlassIcon,
+  ArrowUturnLeftIcon,
 } from '@heroicons/vue/24/outline';
 import ProfileDropdown from '../components/ProfileDropdown.vue';
 import Button from '../components/Button.vue';
+import CodeScanField from '../components/ap/CodeScanField.vue';
 import { useAuthStore } from '../stores/auth';
+import { useRecepcaoStore } from '../stores/recepcao';
 import { APP_VERSION, APP_NAME, SYSTEM_TITLE } from '../config/version';
+
+interface ItemMenu {
+  /** Identificador comparado com `route.meta.menu`. */
+  chave: string;
+  rotulo: string;
+  para: string;
+  icone: Component;
+  /** Exibido apenas para usuários autenticados. */
+  requerLogin?: boolean;
+  contador?: number;
+}
+
+interface SecaoMenu {
+  titulo: string;
+  itens: ItemMenu[];
+}
 
 const sidebarOpen = ref(false);
 const isCollapsed = ref(false);
 
 const route = useRoute();
 const authStore = useAuthStore();
+const recepcaoStore = useRecepcaoStore();
+
+const secoes = computed<SecaoMenu[]>(() => [
+  {
+    titulo: 'Recepção',
+    itens: [
+      { chave: 'inicio', rotulo: 'Início', para: '/', icone: HomeIcon },
+      {
+        chave: 'recepcao',
+        rotulo: 'Recepção de amostras',
+        para: '/recepcao',
+        icone: InboxArrowDownIcon,
+        requerLogin: true,
+        contador: recepcaoStore.contagemPendentes,
+      },
+      { chave: 'consulta', rotulo: 'Consulta de casos', para: '/casos', icone: MagnifyingGlassIcon, requerLogin: true },
+      {
+        chave: 'devolucoes',
+        rotulo: 'Rejeições e devoluções',
+        para: '/rejeicoes-devolucoes',
+        icone: ArrowUturnLeftIcon,
+        requerLogin: true,
+      },
+      { chave: 'configuracoes', rotulo: 'Configurações', para: '/configuracoes', icone: Cog6ToothIcon, requerLogin: true },
+    ],
+  },
+  {
+    titulo: 'Temporário',
+    itens: [
+      { chave: 'componentes', rotulo: 'Componentes', para: '/componentes', icone: CubeIcon },
+      // Vitrine das mudanças do change evolve-base-components.
+      { chave: 'novidades', rotulo: 'Novidades dos Componentes', para: '/novidades-componentes', icone: SparklesIcon },
+      { chave: 'exemplo', rotulo: 'Exemplo', para: '/exemplo', icone: DocumentTextIcon, requerLogin: true },
+    ],
+  },
+]);
+
+/** Seções com os itens permitidos para a sessão atual (seções vazias são omitidas). */
+const secoesVisiveis = computed(() =>
+  secoes.value
+    .map((secao) => ({
+      ...secao,
+      itens: secao.itens.filter((item) => !item.requerLogin || authStore.isAuthenticated),
+    }))
+    .filter((secao) => secao.itens.length > 0),
+);
+
+/** Item ativo: o da rota atual ou o indicado em `meta.menu` (subtelas). */
+const itemAtivo = (item: ItemMenu): boolean => route.meta.menu === item.chave || route.path === item.para;
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value;
 };
 
+/** Mantém o contador de solicitações pendentes atualizado a cada navegação. */
+const atualizarContador = () => {
+  if (authStore.isAuthenticated) recepcaoStore.atualizarContagem();
+};
+
 // Close mobile sidebar on route change
 watch(() => route.path, () => {
   sidebarOpen.value = false;
-});
+  atualizarContador();
+}, { immediate: true });
 </script>
