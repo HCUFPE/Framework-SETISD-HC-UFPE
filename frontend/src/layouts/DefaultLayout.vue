@@ -2,7 +2,7 @@
   <div class="relative h-screen overflow-hidden md:flex">
     <!-- Mobile Menu Header -->
     <div class="bg-paper-sidebar text-gray-100 flex justify-between md:hidden shrink-0">
-      <router-link to="/" class="focus-ring [--focus-ring-offset:-2px] block p-4 text-white font-bold hover:text-gray-200 active:text-gray-300 transition">{{ SYSTEM_TITLE }}</router-link>
+      <router-link to="/" :title="SYSTEM_TITLE" class="focus-ring [--focus-ring-offset:-2px] block min-w-0 truncate p-4 text-white font-bold hover:text-gray-200 active:text-gray-300 transition">{{ SYSTEM_TITLE }}</router-link>
       <button
         type="button"
         aria-label="Abrir ou fechar o menu"
@@ -23,19 +23,26 @@
       class="bg-paper-sidebar text-gray-100 pt-7 pb-2 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition-all duration-300 ease-in-out z-20 h-full shrink-0 flex flex-col justify-between"
     >
       <div>
-        <!-- Clique em "Nome do Sistema" recolhe/expande a barra lateral -->
-        <button 
-          type="button"
-          @click="toggleSidebar" 
-          title="Clique para recolher / expandir o menu"
-          :aria-expanded="!isCollapsed"
-          class="focus-ring w-full text-left text-white flex items-center space-x-3 px-3 py-1 mb-6 rounded hover:bg-white/10 active:bg-white/20 transition duration-150 group"
+        <!-- Identidade do sistema (informativa) + botão próprio para recolher/expandir o menu -->
+        <div
+          :class="isCollapsed ? 'flex-col items-center gap-3' : 'items-start gap-2'"
+          class="flex mb-6 px-1"
         >
-          <CubeTransparentIcon class="h-8 w-8 shrink-0 group-hover:scale-105 transition-transform" />
-          <span v-if="!isCollapsed" class="text-xl font-extrabold leading-snug break-words select-none">
+          <p v-if="!isCollapsed" class="flex-1 min-w-0 px-2 py-1 text-base font-extrabold leading-snug break-words text-white">
             {{ SYSTEM_TITLE }}
-          </span>
-        </button>
+          </p>
+          <span v-else class="sr-only">{{ SYSTEM_TITLE }}</span>
+          <button
+            type="button"
+            :aria-label="isCollapsed ? 'Expandir menu' : 'Recolher menu'"
+            :title="isCollapsed ? 'Expandir menu' : 'Recolher menu'"
+            :aria-expanded="!isCollapsed"
+            class="focus-ring hidden md:inline-flex shrink-0 items-center justify-center rounded-md p-2 text-gray-300 transition hover:bg-white/10 hover:text-white active:bg-white/20"
+            @click="toggleSidebar"
+          >
+            <PanelRight class="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
 
         <div class="px-3 my-4">
           <div class="border-t border-white border-opacity-20"></div>
@@ -135,7 +142,6 @@ import {
   CubeIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
-  CubeTransparentIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
   SparklesIcon,
@@ -143,6 +149,7 @@ import {
   MagnifyingGlassIcon,
   ArrowUturnLeftIcon,
 } from '@heroicons/vue/24/outline';
+import { PanelRight } from 'lucide-vue-next';
 import ProfileDropdown from '../components/ProfileDropdown.vue';
 import Button from '../components/Button.vue';
 import CodeScanField from '../components/ap/CodeScanField.vue';
@@ -177,7 +184,6 @@ const secoes = computed<SecaoMenu[]>(() => [
   {
     titulo: 'Recepção',
     itens: [
-      { chave: 'inicio', rotulo: 'Início', para: '/', icone: HomeIcon },
       {
         chave: 'recepcao',
         rotulo: 'Recepção de amostras',
@@ -194,16 +200,17 @@ const secoes = computed<SecaoMenu[]>(() => [
         icone: ArrowUturnLeftIcon,
         requerLogin: true,
       },
-      { chave: 'configuracoes', rotulo: 'Configurações', para: '/configuracoes', icone: Cog6ToothIcon, requerLogin: true },
     ],
   },
   {
-    titulo: 'Temporário',
+    titulo: 'Outros',
     itens: [
+      { chave: 'inicio', rotulo: 'Início', para: '/', icone: HomeIcon },
       { chave: 'componentes', rotulo: 'Componentes', para: '/componentes', icone: CubeIcon },
       // Vitrine das mudanças do change evolve-base-components.
       { chave: 'novidades', rotulo: 'Novidades dos Componentes', para: '/novidades-componentes', icone: SparklesIcon },
       { chave: 'exemplo', rotulo: 'Exemplo', para: '/exemplo', icone: DocumentTextIcon, requerLogin: true },
+      { chave: 'configuracoes', rotulo: 'Configurações', para: '/configuracoes', icone: Cog6ToothIcon, requerLogin: true },
     ],
   },
 ]);
