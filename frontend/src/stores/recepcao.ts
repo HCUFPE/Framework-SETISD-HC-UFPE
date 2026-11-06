@@ -49,6 +49,8 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
   const carregandoPendentes = ref(false);
   const aghuIndisponivel = ref(false);
   const contagemPendentes = ref(0);
+  /** Incrementado a cada reinício, para a tela reagir mesmo quando já está no passo 1. */
+  const reinicios = ref(0);
 
   const conferenciaCompleta = computed(() => Object.values(conferencia.value).every(Boolean));
 
@@ -186,6 +188,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     conferencia.value = conferenciaVazia();
     resultado.value = null;
     mensagemLeitura.value = null;
+    reinicios.value += 1;
   }
 
   return {
@@ -200,6 +203,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     carregandoPendentes,
     aghuIndisponivel,
     contagemPendentes,
+    reinicios,
     atualizarContagem,
     carregarPendentes,
     iniciarConferencia,

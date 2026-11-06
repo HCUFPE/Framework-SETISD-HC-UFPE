@@ -69,17 +69,25 @@
 
           <fieldset :id="ids.urgente" tabindex="-1" class="focus:outline-none">
             <legend class="form-label">Urgente? <span class="text-paper-danger">*</span></legend>
-            <div class="flex gap-2" role="radiogroup">
+            <div class="flex gap-2" role="radiogroup" :aria-describedby="urgenciaAutomatica ? 'nota-urgencia-automatica' : undefined">
               <label
                 v-for="opcao in opcoesUrgencia"
                 :key="opcao.valor"
-                :class="urgente === opcao.valor ? opcao.ativo : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'"
-                class="relative has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-paper-primary flex-1 cursor-pointer rounded-md border px-4 py-2 text-center text-sm font-bold transition active:bg-gray-100"
+                :class="[
+                  urgente === opcao.valor ? opcao.ativo : 'border-gray-300 bg-white text-gray-700',
+                  urgenciaAutomatica ? 'cursor-not-allowed' : 'cursor-pointer active:bg-gray-100',
+                  urgenciaAutomatica && urgente !== opcao.valor ? 'opacity-50' : '',
+                  !urgenciaAutomatica && urgente !== opcao.valor ? 'hover:bg-gray-50' : '',
+                ]"
+                class="relative has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-paper-primary flex-1 rounded-md border px-4 py-2 text-center text-sm font-bold transition"
               >
-                <input v-model="urgente" type="radio" name="urgente" :value="opcao.valor" class="sr-only" />
+                <input v-model="urgente" type="radio" name="urgente" :value="opcao.valor" :disabled="urgenciaAutomatica" class="sr-only" />
                 {{ opcao.rotulo }}
               </label>
             </div>
+            <p v-if="urgenciaAutomatica" id="nota-urgencia-automatica" class="mt-1 text-xs font-semibold text-gray-500">
+              Automático para Congelação.
+            </p>
             <p v-if="mostrarErro('urgente')" class="mt-1 text-sm text-paper-danger-strong">{{ errors.urgente }}</p>
           </fieldset>
 
@@ -144,7 +152,6 @@
         <Button type="submit" :loading="salvando" title="Atalho: Ctrl+Enter">
           <CheckCircleIcon class="h-5 w-5 mr-2" aria-hidden="true" />
           {{ ehIhq ? 'Confirmar e vincular IHQ' : 'Confirmar entrada' }}
-          <kbd class="ml-2 hidden rounded bg-white/20 px-1.5 text-xs font-semibold sm:inline">Ctrl+Enter</kbd>
         </Button>
       </div>
     </form>
@@ -152,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@vee-validate/zod';
 import * as z from 'zod';
@@ -162,7 +169,7 @@ import Alert from '../../Alert.vue';
 import Button from '../../Button.vue';
 import Card from '../../Card.vue';
 import CasoOrigemIhq from './CasoOrigemIhq.vue';
-import { ORDEM_TIPOS_EXAME, PROCEDIMENTOS, TIPOS_EXAME } from '../../../constants/ap';
+import { MOTIVO_URGENCIA_CONGELACAO, ORDEM_TIPOS_EXAME, PROCEDIMENTOS, TIPOS_EXAME } from '../../../constants/ap';
 import { useResponsavel } from '../../../composables/useResponsavel';
 import { mensagemDeErro } from '../../../services/ap';
 import { useRecepcaoStore } from '../../../stores/recepcao';
@@ -258,6 +265,27 @@ const [casoOrigemCampo] = defineField('casoOrigem');
 const [divergenciaConfirmada] = defineField('divergenciaConfirmada');
 
 const ehIhq = computed(() => tipo.value === 'IHQ');
+
+/** Congelação é sempre urgente: "Urgente?" fica em Sim e não pode ser alterado. */
+const urgenciaAutomatica = computed(() => tipo.value === 'CO');
+
+/**
+ * Ao entrar em Congelação, marca Sim e sugere o motivo (editável, ainda obrigatório).
+ * Ao sair, volta "Urgente?" sem valor e limpa o motivo se ainda for a sugestão.
+ */
+watch(
+  tipo,
+  (novo, anterior) => {
+    if (novo === 'CO') {
+      setFieldValue('urgente', 'SIM');
+      if (!motivoUrgencia.value?.trim()) setFieldValue('motivoUrgencia', MOTIVO_URGENCIA_CONGELACAO);
+    } else if (anterior === 'CO') {
+      setFieldValue('urgente', undefined);
+      if (motivoUrgencia.value === MOTIVO_URGENCIA_CONGELACAO) setFieldValue('motivoUrgencia', '');
+    }
+  },
+  { immediate: true },
+);
 
 /** Caso de origem escolhido; atualiza também o indicador de divergência de prontuário. */
 const casoOrigem = computed<CasoElegivelIhq | null>({

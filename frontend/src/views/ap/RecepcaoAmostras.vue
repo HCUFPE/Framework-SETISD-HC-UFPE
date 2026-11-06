@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <p class="text-sm text-gray-600">Leia a etiqueta do AGHU no frasco, confira o material e confirme a entrada.</p>
 
-    <Card>
+    <Card v-if="recepcao.passo > 0">
       <Stepper :steps="passos" :current="recepcao.passo" />
     </Card>
 
@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import Card from '../../components/Card.vue';
 import Stepper from '../../components/Stepper.vue';
 import NaoConformidadeModal from '../../components/ap/NaoConformidadeModal.vue';
@@ -53,20 +53,23 @@ const abrirNaoConformidadeConferencia = () => {
 };
 
 /** Após a devolução na recepção, nenhum caso é criado e a tela volta ao passo 1. */
-const aposDevolucao = async () => {
-  contextoNc.value = null;
-  recepcao.reiniciar();
-  await recepcao.carregarPendentes();
-  await nextTick();
-  passoLeitura.value?.focar();
-};
+const aposDevolucao = () => recepcao.reiniciar();
 
-const receberProxima = async () => {
-  recepcao.reiniciar();
-  await recepcao.carregarPendentes();
-  await nextTick();
-  passoLeitura.value?.focar();
-};
+const receberProxima = () => recepcao.reiniciar();
+
+/**
+ * Todo reinício (menu, "Receber próxima", devolução) leva à tela inicial:
+ * fecha o modal, recarrega a fila e devolve o foco ao campo de leitura limpo.
+ */
+watch(
+  () => recepcao.reinicios,
+  async () => {
+    contextoNc.value = null;
+    await nextTick();
+    passoLeitura.value?.limparEFocar();
+    await recepcao.carregarPendentes();
+  },
+);
 
 onMounted(() => {
   recepcao.carregarPendentes();

@@ -73,6 +73,7 @@
                   itemAtivo(item) ? 'bg-paper-active-link text-white' : '',
                 ]"
                 class="focus-ring relative flex items-center gap-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white active:bg-black/30"
+                @click="aoClicarItem(item)"
               >
                 <component :is="item.icone" class="h-6 w-6 shrink-0" aria-hidden="true" />
                 <span v-if="!isCollapsed" class="flex-1 min-w-0 leading-snug">{{ item.rotulo }}</span>
@@ -230,6 +231,11 @@ const itemAtivo = (item: ItemMenu): boolean => route.meta.menu === item.chave ||
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value;
+};
+
+/** "Recepção de amostras" sempre volta à tela inicial, descartando o recebimento em andamento. */
+const aoClicarItem = (item: ItemMenu) => {
+  if (item.chave === 'recepcao') recepcaoStore.reiniciar();
 };
 
 /** Mantém o contador de solicitações pendentes atualizado a cada navegação. */

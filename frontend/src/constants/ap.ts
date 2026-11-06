@@ -226,3 +226,9 @@ export const PRAZO_ETAPA_HORAS: Record<EtapaCodigo, number> = {
 
 /** Setor registrado nas ações feitas pela recepção. */
 export const SETOR_RECEPCAO = 'Recepção';
+
+/** Tempo de espera (horas) a partir do qual uma solicitação pendente é destacada como atrasada. */
+export const HORAS_ALERTA_PENDENTE = 2;
+
+/** Motivo de urgência sugerido para exames de congelação (editável pelo usuário). */
+export const MOTIVO_URGENCIA_CONGELACAO = 'Exame de congelação (intraoperatório)';
