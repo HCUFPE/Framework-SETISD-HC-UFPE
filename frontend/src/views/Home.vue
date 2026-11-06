@@ -14,7 +14,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
           <!-- Card Clicável Componentes -->
-          <router-link to="/componentes" class="p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md transition-all duration-200 group block">
+          <router-link to="/componentes" class="focus-ring p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md active:bg-gray-100 active:shadow-sm active:scale-[0.99] transition-all duration-200 group block">
             <h3 class="font-bold text-gray-800 group-hover:text-paper-text flex items-center gap-2">
               <CubeIcon class="h-5 w-5 text-gray-600 group-hover:text-paper-text transition-colors" />
               Componentes
@@ -23,7 +23,7 @@
           </router-link>
 
           <!-- Card Clicável Exemplo -->
-          <router-link to="/exemplo" class="p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md transition-all duration-200 group block">
+          <router-link to="/exemplo" class="focus-ring p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md active:bg-gray-100 active:shadow-sm active:scale-[0.99] transition-all duration-200 group block">
             <h3 class="font-bold text-gray-800 group-hover:text-paper-text flex items-center gap-2">
               <DocumentTextIcon class="h-5 w-5 text-gray-600 group-hover:text-paper-text transition-colors" />
               Exemplo
@@ -32,7 +32,7 @@
           </router-link>
 
           <!-- Card Clicável Configurações -->
-          <router-link to="/configuracoes" class="p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md transition-all duration-200 group block">
+          <router-link to="/configuracoes" class="focus-ring p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md active:bg-gray-100 active:shadow-sm active:scale-[0.99] transition-all duration-200 group block">
             <h3 class="font-bold text-gray-800 group-hover:text-paper-text flex items-center gap-2">
               <Cog6ToothIcon class="h-5 w-5 text-gray-600 group-hover:text-paper-text transition-colors" />
               Configurações

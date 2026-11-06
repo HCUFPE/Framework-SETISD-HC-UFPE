@@ -1,6 +1,13 @@
 <template>
   <div class="relative">
-    <button @click="isOpen = !isOpen" class="relative z-10 block h-10 w-10 rounded-full overflow-hidden border-2 border-gray-600 focus:outline-none focus:border-white transition-transform active:scale-95">
+    <button
+      type="button"
+      aria-label="Abrir perfil do usuário"
+      aria-haspopup="true"
+      :aria-expanded="isOpen"
+      @click="isOpen = !isOpen"
+      class="focus-ring relative z-10 block h-10 w-10 rounded-full overflow-hidden border-2 border-gray-600 hover:border-paper-primary hover:bg-gray-100 active:bg-gray-200 transition active:scale-95"
+    >
       <UserCircleIcon class="h-full w-full text-gray-600" />
     </button>
 
@@ -52,7 +59,7 @@
       </div>
 
       <div class="border-t border-gray-100 bg-gray-100/50">
-        <a href="#" @click.prevent="handleLogout" class="flex items-center justify-center px-4 py-3.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition duration-150 ease-in-out">
+        <a href="#" @click.prevent="handleLogout" class="focus-ring [--focus-ring-offset:-2px] flex items-center justify-center px-4 py-3.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 transition duration-150 ease-in-out">
           <ArrowLeftOnRectangleIcon class="h-5 w-5 mr-2" />
           <span>Sair da Conta</span>
         </a>

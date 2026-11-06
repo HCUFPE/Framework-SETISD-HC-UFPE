@@ -92,23 +92,26 @@
                   </td>
                   <td class="py-3 px-4 text-right space-x-2">
                     <button 
+                      type="button"
                       @click="openEditModal(user)" 
                       title="Alterar Perfil" 
-                      class="px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md transition"
+                      class="focus-ring px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 active:scale-95 border border-gray-300 rounded-md transition"
                     >
                       Alterar Perfil
                     </button>
                     <button 
+                      type="button"
                       @click="toggleUserStatus(user)" 
-                      :class="user.ativo ? 'text-red-600 hover:bg-red-50 border-red-200' : 'text-emerald-600 hover:bg-emerald-50 border-emerald-200'"
-                      class="px-2.5 py-1 text-xs font-semibold border rounded-md transition"
+                      :class="user.ativo ? 'text-red-600 hover:bg-red-50 active:bg-red-100 border-red-200' : 'text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100 border-emerald-200'"
+                      class="focus-ring px-2.5 py-1 text-xs font-semibold border rounded-md active:scale-95 transition"
                     >
                       {{ user.ativo ? 'Inativar' : 'Ativar' }}
                     </button>
                     <button 
+                      type="button"
                       @click="removeUser(user.id)" 
                       title="Excluir Usuário"
-                      class="px-2 py-1 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition"
+                      class="focus-ring px-2 py-1 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 active:bg-red-100 active:scale-95 rounded-md transition"
                     >
                       Excluir
                     </button>

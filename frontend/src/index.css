@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-family-sans: 'Nunito', sans-serif;
+  --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
 
   --color-paper-bg: #f4f3ef;
   --color-paper-text: #66615b;
@@ -12,29 +12,81 @@
   --color-paper-default: #66615b;
   --color-paper-default-hover: #55504a;
 
+  /* Secondary (botão neutro claro) */
+  --color-paper-secondary: #e8e5df;
+  --color-paper-secondary-hover: #dbd7cf;
+
   /* Primary */
   --color-paper-primary: #7a9e9f;
   --color-paper-primary-hover: #6a8d8e;
+  --color-paper-primary-soft: #e6eeee;
+  --color-paper-primary-strong: #3f5b5c;
 
   /* Info */
   --color-paper-info: #68b3c8;
   --color-paper-info-hover: #58a2b7;
+  --color-paper-info-soft: #e3f2f6;
+  --color-paper-info-strong: #1f5f73;
 
   /* Success */
   --color-paper-success: #7ac29a;
   --color-paper-success-hover: #6ab189;
+  --color-paper-success-soft: #e5f4ec;
+  --color-paper-success-strong: #276645;
 
   /* Warning */
   --color-paper-warning: #f3bb45;
   --color-paper-warning-hover: #e2ac34;
+  --color-paper-warning-soft: #fdf3dc;
+  --color-paper-warning-strong: #7a5300;
 
   /* Danger */
   --color-paper-danger: #eb5e28;
   --color-paper-danger-hover: #d95524;
+  --color-paper-danger-soft: #fce8e0;
+  --color-paper-danger-strong: #a33a12;
 
   --color-paper-disabled: #E0E0E0; /* Light Gray */
 
   --shadow-paper: 0 2px 2px 0 rgba(204, 197, 185, 0.5);
+}
+
+/*
+ * Retorno de interação (ui-interaction-feedback): o Tailwind 4 removeu o
+ * cursor de mão padrão dos botões. Esta regra o restaura para todo elemento
+ * clicável habilitado e usa "não permitido" para os desabilitados.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  a[href],
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role='button'][aria-disabled='true'],
+  [role='tab'][aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+}
+
+/*
+ * Contorno de foco visível apenas na navegação por teclado.
+ * Para desenhar o contorno por dentro (ex.: em contêiner com overflow oculto),
+ * combine com `[--focus-ring-offset:-2px]`.
+ */
+@utility focus-ring {
+  outline: none;
+
+  &:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-color: var(--color-paper-primary);
+    outline-offset: var(--focus-ring-offset, 2px);
+  }
 }
 
 @layer components {
@@ -85,5 +137,56 @@
 
   .form-control-icon {
     @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none;
+  }
+}
+/*
+ * Impressão (sample-labels): só o conteúdo da pré-visualização (#print-root) vai para a impressora.
+ * Etiquetas usam a página nomeada "etiqueta" (50 × 25 mm); a ficha usa A4.
+ */
+@page etiqueta {
+  size: 50mm 25mm;
+  margin: 0;
+}
+
+@page ficha {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  body > *:not(#print-root) {
+    display: none !important;
+  }
+
+  #print-root {
+    position: static !important;
+    display: block !important;
+    background: none !important;
+  }
+
+  #print-root .no-print {
+    display: none !important;
+  }
+
+  #print-root .print-area {
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  #print-root .print-area > div {
+    display: block !important;
+  }
+
+  .pagina-etiqueta {
+    page: etiqueta;
+    break-after: page;
+    box-shadow: none !important;
+  }
+
+  .pagina-ficha {
+    page: ficha;
+    padding: 0 !important;
+    box-shadow: none !important;
   }
 }

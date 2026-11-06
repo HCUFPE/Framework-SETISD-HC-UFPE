@@ -17,7 +17,12 @@
           </label>
           <div class="relative">
             <input v-model="password" class="shadow-inner appearance-none border rounded w-full py-2 px-3 pr-10 leading-tight focus:outline-none focus:shadow-outline" id="password" :type="passwordFieldType" placeholder="******************">
-            <button type="button" @click="togglePasswordVisibility" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500">
+            <button
+              type="button"
+              :aria-label="passwordFieldType === 'password' ? 'Mostrar senha' : 'Ocultar senha'"
+              @click="togglePasswordVisibility"
+              class="focus-ring absolute inset-y-0 right-0 px-3 flex items-center rounded-r text-gray-500 hover:text-gray-800 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+            >
               <component :is="passwordFieldType === 'password' ? EyeIcon : EyeSlashIcon" class="h-5 w-5" />
             </button>
           </div>
@@ -29,7 +34,7 @@
           </label>
         </div>
         <div class="flex items-center justify-center space-x-4">
-          <Button type="button" variant="secondary" @click="clearForm" class="w-1/2 bg-gray-500 hover:bg-gray-600">
+          <Button type="button" variant="secondary" @click="clearForm" class="w-1/2">
             <template #icon>
               <XCircleIcon class="h-5 w-5" />
             </template>
