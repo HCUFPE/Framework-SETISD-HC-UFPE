@@ -6,6 +6,7 @@ import Configuracoes from '../views/Configuracoes.vue';
 
 import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
+import RecebimentoAmostras from '../views/RecebimentoAmostras.vue';
 
 const routes = [
   {
@@ -28,6 +29,12 @@ const routes = [
     path: '/exemplo',
     name: 'Exemplo',
     component: Pacientes,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/recebimento',
+    name: 'Recebimento de Amostras',
+    component: RecebimentoAmostras,
     meta: { requiresAuth: true },
   },
   {
