@@ -40,7 +40,7 @@ O sistema SHALL adotar as seguintes etapas por tipo de exame:
 - **THEN** a etapa IHQ aparece no indicador antes de Microscopia
 
 ### Requirement: Indicador do fluxo do caso
-O detalhe SHALL exibir as etapas do fluxo do tipo do caso, marcando as concluídas, a atual e as futuras.
+O detalhe SHALL exibir as etapas do fluxo do tipo do caso, marcando as concluídas, a atual e as futuras. O indicador SHALL caber na largura disponível, quebrando as etapas em linhas quando necessário, e não SHALL exibir barra de rolagem.
 
 #### Scenario: Caso CG em processamento
 - **WHEN** o usuário abre um caso CG com status "Em processamento técnico"
@@ -49,6 +49,10 @@ O detalhe SHALL exibir as etapas do fluxo do tipo do caso, marcando as concluíd
 #### Scenario: Caso interrompido
 - **WHEN** o caso está devolvido ou cancelado
 - **THEN** o indicador mostra a etapa em que o caso parou, marcada como interrompida
+
+#### Scenario: Tela estreita
+- **WHEN** o usuário abre o detalhe de um caso em uma janela estreita
+- **THEN** as etapas do fluxo quebram em mais de uma linha e nenhuma barra de rolagem aparece no indicador
 
 ### Requirement: Faixa de bloqueio
 Casos com status "Devolvido", "Cancelado", "Laudo concluído", "Em arquivamento" ou "Arquivado" SHALL exibir uma faixa explicando que o caso é somente leitura, com o motivo correspondente, e não SHALL oferecer as ações de não conformidade nem de cancelamento.
@@ -103,11 +107,15 @@ A aba Não conformidades SHALL listar as não conformidades e devoluções do ca
 - **THEN** os eventos são exibidos sem nenhuma ação de editar ou excluir
 
 ### Requirement: Ações do caso ativo
-Para casos ativos, o detalhe SHALL oferecer "Não conformidade", "Imprimir" (etiquetas das amostras ou ficha de trabalho) e "Cancelar caso". Para casos bloqueados, SHALL oferecer apenas "Imprimir".
+Para casos ativos, o detalhe SHALL oferecer, nesta ordem, "Não conformidade", "Cancelar caso" e "Imprimir" (etiquetas das amostras ou ficha de trabalho). Para casos bloqueados, SHALL oferecer apenas "Imprimir". As ações SHALL ficar na mesma linha do número interno e dos selos, alinhadas à direita, e quebrar para a linha seguinte só quando não houver espaço.
 
 #### Scenario: Imprimir a partir do detalhe
 - **WHEN** o usuário escolhe "Imprimir" e depois "Ficha de trabalho"
 - **THEN** a pré-visualização da ficha de trabalho do caso é aberta
+
+#### Scenario: Posição das ações
+- **WHEN** o usuário abre um caso ativo em tela larga
+- **THEN** "Não conformidade", "Cancelar caso" e "Imprimir" aparecem nessa ordem, na linha do número interno e dos selos
 
 ### Requirement: Cancelamento do caso
 O cancelamento SHALL exigir o motivo e uma confirmação explícita. Ao cancelar, o sistema SHALL:

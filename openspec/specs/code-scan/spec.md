@@ -2,49 +2,42 @@
 
 ## Purpose
 
-Permite que o usuário leia, com o leitor de código de barras, ou digite um código em qualquer tela e seja levado direto à recepção da solicitação ou ao caso correspondente, sem precisar navegar pelos menus.
+Oferece, no cabeçalho de qualquer tela autenticada, uma busca rápida de casos já cadastrados por número interno, prontuário ou nome do paciente, levando direto ao detalhe do caso sem precisar navegar pelos menus. Solicitações do AGHU ainda não recebidas são tratadas na Recepção de amostras.
 
 ## Requirements
 
 ### Requirement: Campo global de leitura
-O cabeçalho SHALL exibir, para usuários autenticados, o campo "Ler código ou buscar caso (F2)". A tecla F2 SHALL colocar o foco nesse campo a partir de qualquer tela. A leitura é disparada pelo Enter, ignorando espaços nas pontas e diferenças entre maiúsculas e minúsculas.
+O cabeçalho SHALL exibir, para usuários autenticados, o campo de busca com o texto de apoio "Buscar por nº do caso, prontuário ou paciente (F2)" e ícone de busca, destinado exclusivamente à busca de casos já cadastrados. A tecla F2 SHALL colocar o foco nesse campo a partir de qualquer tela. A busca ignora espaços nas pontas, maiúsculas e minúsculas e acentos.
 
 #### Scenario: Atalho F2
 - **WHEN** o usuário pressiona F2 em qualquer tela autenticada
-- **THEN** o campo global de leitura recebe o foco
+- **THEN** o campo global de busca recebe o foco
 
-### Requirement: Leitura de solicitação AGHU pendente
-A leitura do número de uma solicitação aguardando recebimento SHALL abrir a Recepção de amostras já no passo "Conferir", com a solicitação carregada.
+### Requirement: Resultados da busca global de casos
+A partir de 2 caracteres, o campo SHALL listar abaixo dele os casos cujo número interno, prontuário ou nome do paciente contenham o texto. A lista mostra até 8 casos, cada um com número interno, tipo de exame, paciente, prontuário e status. Quando houver mais, SHALL indicar quantos existem e pedir para refinar a busca.
 
-#### Scenario: Solicitação pendente em outra tela
-- **WHEN** o usuário está na Consulta de casos e lê o número de uma solicitação pendente
-- **THEN** a Recepção de amostras é aberta no passo "Conferir" com essa solicitação
+#### Scenario: Busca por nome do paciente
+- **WHEN** o usuário digita parte do nome de um paciente com dois casos cadastrados
+- **THEN** a lista exibe os dois casos com número, tipo, paciente, prontuário e status
 
-### Requirement: Leitura de caso, item ou IHQ
-O sistema SHALL abrir o detalhe do caso nestes casos:
-- leitura do número interno de um caso, do nº AGHU de uma solicitação já recebida ou do código de um item de material: abre o caso correspondente;
-- leitura do código de uma IHQ: abre o caso de origem.
+#### Scenario: Muitos resultados
+- **WHEN** o texto corresponde a 12 casos
+- **THEN** a lista exibe 8 casos e informa que há 12 resultados, pedindo para refinar a busca
 
-Quando for um item de material, o detalhe SHALL abrir na aba Materiais, com o item destacado.
+### Requirement: Abertura de caso pela busca global
+Escolher um caso na lista, por clique ou com as setas e o Enter, SHALL abrir o detalhe desse caso, limpar o campo e fechar a lista. Enter sem caso destacado SHALL abrir o caso quando o texto for exatamente o número interno de um caso. Esc SHALL fechar a lista.
 
-#### Scenario: Leitura do código de uma amostra
-- **WHEN** o usuário lê o código da segunda amostra de um caso
-- **THEN** o detalhe do caso abre na aba Materiais, com essa amostra destacada
+#### Scenario: Número interno completo
+- **WHEN** o usuário digita o número interno exato de um caso e pressiona Enter
+- **THEN** o detalhe desse caso é aberto
 
-#### Scenario: Leitura do código de IHQ
-- **WHEN** o usuário lê o código de uma IHQ vinculada ao caso HP-0003/26
-- **THEN** o detalhe de HP-0003/26 abre na aba IHQ
+#### Scenario: Navegação por teclado
+- **WHEN** o usuário desce com a seta até o segundo resultado e pressiona Enter
+- **THEN** o detalhe do segundo caso da lista é aberto
 
-### Requirement: Código não encontrado
-Quando o código não corresponder a nenhuma solicitação, caso, item ou IHQ, o sistema SHALL informar "Nenhum registro encontrado para o código <código>. Confira a etiqueta ou digite o número.", manter o texto no campo e não SHALL mudar de tela.
+### Requirement: Busca global sem resultado
+Quando nenhum caso corresponder ao texto, a lista SHALL exibir "Nenhum caso encontrado para <texto>.", manter o texto no campo e não mudar de tela. A busca não SHALL considerar solicitações do AGHU que ainda não viraram caso.
 
-#### Scenario: Código inexistente
-- **WHEN** o usuário lê um código que não existe
-- **THEN** a mensagem de não encontrado é exibida e a tela atual é mantida
-
-### Requirement: Solicitação devolvida
-A leitura do número de uma solicitação devolvida SHALL informar que ela foi devolvida, com a data e o tipo da não conformidade, sem abrir a recepção.
-
-#### Scenario: Leitura de solicitação devolvida
-- **WHEN** o usuário lê o número de uma solicitação devolvida
-- **THEN** o sistema informa a devolução e permanece na tela atual
+#### Scenario: Solicitação pendente digitada
+- **WHEN** o usuário digita o número de uma solicitação do AGHU ainda não recebida
+- **THEN** a lista informa que nenhum caso foi encontrado e a tela atual é mantida
