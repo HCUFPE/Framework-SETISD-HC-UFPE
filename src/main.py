@@ -115,6 +115,9 @@ app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
 
+from .routers import recebimento
+app.include_router(recebimento.router)
+
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
     """

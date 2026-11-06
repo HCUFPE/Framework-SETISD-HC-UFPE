@@ -106,3 +106,5 @@ yarn-error.log*
 
 # Gemini-specific files
 GEMINI.md
+
+data/vw_solicitacao_atualizado.csv
