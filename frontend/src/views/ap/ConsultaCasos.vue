@@ -74,14 +74,14 @@
         >
           <template #cell-numeroInterno="{ item }">
             <span class="font-bold text-gray-900 tabular-nums">{{ item.numeroInterno }}</span>
-            <Badge v-if="item.urgente" variant="danger" size="sm" class="ml-2">URGENTE</Badge>
+            <Badge v-if="item.urgente" variant="danger" size="md" class="ml-2">URGENTE</Badge>
           </template>
           <template #cell-paciente="{ item }">
             <span class="block font-semibold text-gray-800">{{ item.paciente }}</span>
             <span class="text-xs text-gray-500">Pront. {{ item.prontuario }}</span>
           </template>
           <template #cell-status="{ item }">
-            <StatusCasoBadge :status="item.status" />
+            <StatusCasoBadge :status="item.status" size="md" />
           </template>
         </DataTable>
       </div>

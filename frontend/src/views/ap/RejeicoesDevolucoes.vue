@@ -57,7 +57,7 @@
           empty-text="Nenhuma devolução para os filtros selecionados."
         >
           <template #cell-natureza="{ item }">
-            <Badge :variant="item.rejeicao ? 'warning' : 'info'" size="sm">
+            <Badge :variant="item.rejeicao ? 'warning' : 'info'" size="md" class="whitespace-nowrap">
               {{ item.rejeicao ? 'Rejeição na recepção' : 'Devolução de caso' }}
             </Badge>
           </template>
@@ -81,7 +81,7 @@
             <span v-else class="text-gray-500">Sem etiqueta do AGHU</span>
           </template>
           <template #cell-situacao="{ item }">
-            <Badge :variant="SITUACOES_DEVOLUCAO[item.situacao].variante" size="sm" class="whitespace-nowrap">
+            <Badge :variant="SITUACOES_DEVOLUCAO[item.situacao].variante" size="md" class="whitespace-nowrap">
               {{ SITUACOES_DEVOLUCAO[item.situacao].rotulo }}
             </Badge>
           </template>
