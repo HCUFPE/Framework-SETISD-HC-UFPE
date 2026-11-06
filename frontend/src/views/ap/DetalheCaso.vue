@@ -29,49 +29,45 @@
     <template v-else>
       <!-- Cabeçalho -->
       <Card>
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 tabular-nums">{{ caso.numeroInterno }}</h2>
-              <button
-                type="button"
-                class="focus-ring rounded-md p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200 active:scale-95"
-                :aria-label="`Copiar ${caso.numeroInterno}`"
-                title="Copiar número"
-                @click="copiar"
+        <!-- Número, selos e ações na mesma linha; as ações quebram para baixo só sem espaço -->
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 tabular-nums">{{ caso.numeroInterno }}</h2>
+            <button
+              type="button"
+              class="focus-ring rounded-md p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200 active:scale-95"
+              :aria-label="`Copiar ${caso.numeroInterno}`"
+              title="Copiar número"
+              @click="copiar"
+            >
+              <ClipboardDocumentIcon class="h-5 w-5" />
+            </button>
+            <StatusCasoBadge :status="caso.status" size="md" />
+            <span v-if="caso.urgente" class="group relative">
+              <span
+                tabindex="0"
+                aria-describedby="motivo-urgencia"
+                class="focus-ring inline-flex cursor-help items-center rounded-md bg-paper-danger-soft px-2.5 py-1 text-sm font-bold text-paper-danger-strong"
               >
-                <ClipboardDocumentIcon class="h-5 w-5" />
-              </button>
-              <StatusCasoBadge :status="caso.status" size="md" />
-              <span v-if="caso.urgente" class="group relative">
-                <span
-                  tabindex="0"
-                  aria-describedby="motivo-urgencia"
-                  class="focus-ring inline-flex cursor-help items-center rounded-md bg-paper-danger-soft px-2.5 py-1 text-sm font-bold text-paper-danger-strong"
-                >
-                  URGENTE
-                </span>
-                <span
-                  id="motivo-urgencia"
-                  role="tooltip"
-                  class="invisible absolute left-0 top-full z-20 mt-1 w-64 rounded-md bg-gray-900 px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
-                >
-                  Motivo da urgência: {{ caso.motivoUrgencia }}
-                </span>
+                URGENTE
               </span>
-            </div>
-            <p class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-              <span><strong>{{ caso.tipoExame }}</strong> · {{ TIPOS_EXAME[caso.tipoExame].nome }}</span>
-              <span>{{ caso.solicitacao.nomePaciente }} · Pront. {{ caso.solicitacao.prontuario }}</span>
-              <span>Material: {{ caso.solicitacao.descricaoMaterial }}</span>
-              <span>Entrada: {{ formatarDataHora(caso.dataEntradaSap) }}</span>
-            </p>
+              <span
+                id="motivo-urgencia"
+                role="tooltip"
+                class="invisible absolute left-0 top-full z-20 mt-1 w-64 rounded-md bg-gray-900 px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+              >
+                Motivo da urgência: {{ caso.motivoUrgencia }}
+              </span>
+            </span>
           </div>
 
-          <!-- Ações -->
+          <!-- Ações: Não conformidade, Cancelar caso, Imprimir -->
           <div class="flex flex-wrap gap-2">
             <Button v-if="ativo" variant="danger" @click="ncAberta = true">
               <ExclamationTriangleIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Não conformidade
+            </Button>
+            <Button v-if="ativo" variant="secondary" @click="cancelamentoAberto = true">
+              <XCircleIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Cancelar caso
             </Button>
             <div class="relative">
               <Button variant="outline" :aria-expanded="menuImpressao" aria-haspopup="menu" @click="menuImpressao = !menuImpressao">
@@ -96,11 +92,14 @@
                 </button>
               </div>
             </div>
-            <Button v-if="ativo" variant="secondary" @click="cancelamentoAberto = true">
-              <XCircleIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Cancelar caso
-            </Button>
           </div>
         </div>
+        <p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+          <span><strong>{{ caso.tipoExame }}</strong> · {{ TIPOS_EXAME[caso.tipoExame].nome }}</span>
+          <span>{{ caso.solicitacao.nomePaciente }} · Pront. {{ caso.solicitacao.prontuario }}</span>
+          <span>Material: {{ caso.solicitacao.descricaoMaterial }}</span>
+          <span>Entrada: {{ formatarDataHora(caso.dataEntradaSap) }}</span>
+        </p>
 
         <!-- Faixa de bloqueio -->
         <div
@@ -112,7 +111,7 @@
           {{ textoBloqueio }}
         </div>
 
-        <div class="mt-5 overflow-x-auto border-t border-gray-100 pt-5">
+        <div class="mt-5 border-t border-gray-100 pt-5">
           <FluxoCaso :caso="caso" />
         </div>
       </Card>
