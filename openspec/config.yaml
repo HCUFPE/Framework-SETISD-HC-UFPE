@@ -1,0 +1,41 @@
+schema: spec-driven
+
+context: |
+  Language: pt-BR
+  All artifacts must be written in pt-BR.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Projeto: Sistema de Gestão Integrada de Serviços de Anatomia Patológica (HC-UFPE / EBSERH),
+  construído sobre o Framework SETISD (FastAPI + Vue 3). Siga AGENTS.md.
+  Fonte de verdade de negócio: docs/especificacao/ (00 a 04). Em conflito com o protótipo
+  de UI, a especificação SEMPRE prevalece; o protótipo serve apenas de referência de interação.
+  Frontend: Vue 3 (Composition API, <script setup lang="ts">), TypeScript strict, Vite 5,
+  Pinia, Vue Router, Tailwind CSS 4 (tema "Paper" em frontend/src/index.css), vee-validate + zod,
+  Heroicons, vue-toastification, Axios (preservar interceptadores em services/api.ts).
+  Visual: seguir o padrão do framework (cores paper-*, fonte Nunito, componentes em
+  frontend/src/components/), reaproveitando componentes existentes antes de criar novos.
+  Verificação obrigatória ao concluir: `npx vue-tsc --noEmit` (em frontend/) e
+  `python audit_framework.py .` com 100% de conformidade.
+  Nunca fazer git commit sem pedido explícito do usuário.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
