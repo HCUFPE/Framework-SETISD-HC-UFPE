@@ -59,6 +59,11 @@ class RecebimentoProviderInterface(ABC):
         pass
 
     @abstractmethod
+    async def listar_codigos_com_exame_recebido(self, tipo: str) -> List[str]:
+        """Retorna os códigos das solicitações que já têm exame RECEBIDO do tipo informado."""
+        pass
+
+    @abstractmethod
     async def registrar_recebimento(
         self,
         exames: List[Dict[str, Any]],

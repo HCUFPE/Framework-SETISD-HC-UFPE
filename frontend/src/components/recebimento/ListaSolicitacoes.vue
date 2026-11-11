@@ -1,30 +1,88 @@
 <template>
   <Card>
-    <div class="mb-4">
-      <h2 class="text-lg font-bold text-gray-800">Solicitações do AGHU</h2>
-      <p class="text-sm text-gray-500">Das mais recentes para as mais antigas. Clique em uma linha para conferir.</p>
+    <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+      <div>
+        <h2 class="text-lg font-bold text-gray-800">Solicitações do AGHU</h2>
+        <p class="text-sm text-gray-500">
+          {{ descricaoDaOrdem }} Clique em uma linha para conferir.
+        </p>
+      </div>
+      <button
+        v-if="store.filtrosAtivos || store.ordenacaoDaLista"
+        type="button"
+        class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"
+        data-testid="limpar-filtros"
+        @click="limparFiltros"
+      >
+        Limpar filtros e ordenação
+      </button>
     </div>
 
     <div class="w-full overflow-x-auto" :class="{ 'opacity-60': store.carregandoLista }">
       <table class="w-full text-sm">
         <thead>
           <tr class="text-xs font-semibold tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">
-            <th class="px-3 py-2">Código</th>
-            <th class="px-3 py-2">Solicitada em</th>
-            <th class="px-3 py-2">Paciente</th>
-            <th class="px-3 py-2">Prontuário</th>
-            <th class="px-3 py-2">Origem</th>
-            <th class="px-3 py-2">Clínica</th>
-            <th class="px-3 py-2">Bancadas</th>
-            <th class="px-3 py-2 text-center">Amostras</th>
-            <th class="px-3 py-2">Situação</th>
+            <th
+              v-for="coluna in COLUNAS"
+              :key="coluna.chave"
+              class="px-3 py-2"
+              :class="{ 'text-center': coluna.chave === 'amostras' }"
+              :aria-sort="ariaSort(coluna.ordenavel)"
+            >
+              <button
+                v-if="coluna.ordenavel"
+                type="button"
+                class="inline-flex items-center gap-1 font-semibold tracking-wider uppercase hover:text-gray-800"
+                :data-testid="`ordenar-${coluna.ordenavel}`"
+                @click="ordenarPor(coluna.ordenavel)"
+              >
+                {{ coluna.rotulo }}
+                <span :class="seta(coluna.ordenavel).classe" aria-hidden="true">{{ seta(coluna.ordenavel).simbolo }}</span>
+              </button>
+              <template v-else>{{ coluna.rotulo }}</template>
+            </th>
+          </tr>
+          <tr class="border-b border-gray-200 bg-gray-50">
+            <th v-for="coluna in COLUNAS" :key="coluna.chave" class="px-3 pb-2 font-normal normal-case">
+              <input
+                v-if="coluna.filtro === 'texto'"
+                v-model="store.filtrosDaLista[coluna.chave as ColunaDaLista]"
+                type="text"
+                :aria-label="`Filtrar por ${coluna.rotulo}`"
+                placeholder="Filtrar"
+                :class="CAMPO_FILTRO"
+                :data-testid="`filtro-${coluna.chave}`"
+                @input="filtrarDepoisDeDigitar"
+              />
+              <input
+                v-else-if="coluna.filtro === 'data'"
+                v-model="store.filtrosDaLista.data"
+                type="date"
+                aria-label="Filtrar pela data da solicitação"
+                :class="CAMPO_FILTRO"
+                data-testid="filtro-data"
+                @change="aplicarFiltros"
+              />
+              <select
+                v-else-if="coluna.filtro === 'bancada'"
+                v-model="store.filtrosDaLista.bancada"
+                aria-label="Filtrar por bancada"
+                :class="CAMPO_FILTRO"
+                data-testid="filtro-bancada"
+                @change="aplicarFiltros"
+              >
+                <option value="">Todas</option>
+                <option v-for="bancada in BANCADAS" :key="bancada" :value="bancada">{{ bancada }}</option>
+              </select>
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
           <tr
             v-for="linha in store.lista?.solicitacoes ?? []"
             :key="linha.codigo"
-            class="cursor-pointer hover:bg-gray-50"
+            class="cursor-pointer"
+            :class="linha.urgente ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'"
             data-testid="linha-lista"
             @click="emit('abrir', linha.codigo)"
           >
@@ -36,6 +94,13 @@
               >
                 {{ linha.codigo }}
               </button>
+              <span
+                v-if="linha.urgente"
+                class="ml-2 px-2 py-0.5 rounded-full bg-red-600 text-xs font-bold text-white"
+                data-testid="urgente-lista"
+              >
+                Urgente
+              </span>
             </td>
             <td class="px-3 py-3 whitespace-nowrap">{{ formatarDia(linha.data_solicitacao) }}</td>
             <td class="px-3 py-3 whitespace-nowrap">
@@ -70,7 +135,9 @@
             </td>
           </tr>
           <tr v-if="store.lista && store.lista.solicitacoes.length === 0">
-            <td colspan="9" class="px-3 py-8 text-center text-gray-500">Nenhuma solicitação encontrada.</td>
+            <td colspan="9" class="px-3 py-8 text-center text-gray-500">
+              {{ store.filtrosAtivos ? 'Nenhuma solicitação encontrada com os filtros aplicados.' : 'Nenhuma solicitação encontrada.' }}
+            </td>
           </tr>
           <tr v-if="!store.lista">
             <td colspan="9" class="px-3 py-8 text-center text-gray-500">
@@ -122,10 +189,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+
+import { computed, onBeforeUnmount } from 'vue';
 import { useToast } from 'vue-toastification';
 import Card from '../Card.vue';
-import { mensagemDeErro, SITUACOES, useRecebimentoStore } from '../../stores/recebimento';
+import {
+  mensagemDeErro,
+  SITUACOES,
+  useRecebimentoStore,
+  type ColunaDaLista,
+} from '../../stores/recebimento';
 
 const emit = defineEmits<{ abrir: [codigo: string] }>();
 const store = useRecebimentoStore();
@@ -135,6 +208,71 @@ const BASE_PAGINA = 'min-w-9 h-9 px-3 rounded border text-sm disabled:cursor-not
 const BOTAO_PAGINA = `${BASE_PAGINA} border-gray-300 bg-white font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50`;
 const PAGINA_ATUAL = `${BASE_PAGINA} border-paper-primary bg-paper-primary font-bold text-white`;
 const VIZINHAS_DA_ATUAL = 1;
+const CAMPO_FILTRO = 'w-full min-w-24 px-2 py-1 text-sm font-normal text-gray-700 bg-white border border-gray-300 rounded normal-case';
+const ESPERA_DA_DIGITACAO_MS = 400;
+
+/** Bancadas que podem aparecer na lista (as mesmas cadastradas para o recebimento). */
+const BANCADAS = ['CCV', 'CG', 'CO', 'HP', 'IHQ'];
+
+interface ColunaDaTabela {
+  chave: string;
+  rotulo: string;
+  /** Coluna que o backend sabe ordenar; as demais vêm do banco local e não são ordenáveis. */
+  ordenavel?: ColunaDaLista;
+  filtro?: 'texto' | 'data' | 'bancada';
+}
+
+const COLUNAS: ColunaDaTabela[] = [
+  { chave: 'codigo', rotulo: 'Código', ordenavel: 'codigo', filtro: 'texto' },
+  { chave: 'data', rotulo: 'Solicitada em', ordenavel: 'data', filtro: 'data' },
+  { chave: 'paciente', rotulo: 'Paciente', ordenavel: 'paciente', filtro: 'texto' },
+  { chave: 'prontuario', rotulo: 'Prontuário', ordenavel: 'prontuario', filtro: 'texto' },
+  { chave: 'origem', rotulo: 'Origem', ordenavel: 'origem', filtro: 'texto' },
+  { chave: 'clinica', rotulo: 'Clínica', ordenavel: 'clinica', filtro: 'texto' },
+  { chave: 'bancadas', rotulo: 'Bancadas', filtro: 'bancada' },
+  { chave: 'amostras', rotulo: 'Amostras' },
+  { chave: 'situacao', rotulo: 'Situação' },
+];
+
+const ROTULOS: Record<ColunaDaLista, string> = {
+  codigo: 'código',
+  data: 'data da solicitação',
+  paciente: 'paciente',
+  prontuario: 'prontuário',
+  origem: 'origem',
+  clinica: 'clínica',
+};
+
+/** Texto sob o título: diz qual é a ordem atual, para a ordenação nunca ficar implícita. */
+const descricaoDaOrdem = computed(() => {
+  const ordenacao = store.ordenacaoDaLista;
+  if (!ordenacao) return 'Urgências aguardando recebimento primeiro; depois, das mais recentes para as mais antigas.';
+  const direcao = ordenacao.direcao === 'asc' ? 'crescente' : 'decrescente';
+  return `Ordenadas por ${ROTULOS[ordenacao.coluna]} (${direcao}).`;
+});
+
+/** Valor de aria-sort do cabeçalho, para leitores de tela. */
+const ariaSort = (coluna?: ColunaDaLista) => {
+  const ordenacao = store.ordenacaoDaLista;
+  if (!coluna || ordenacao?.coluna !== coluna) return coluna ? 'none' : undefined;
+  return ordenacao.direcao === 'asc' ? 'ascending' : 'descending';
+};
+
+/** Seta do cabeçalho: ▲ crescente, ▼ decrescente e ↕ (esmaecida) quando a coluna não é a ordenada. */
+const seta = (coluna: ColunaDaLista) => {
+  const ordenacao = store.ordenacaoDaLista;
+  if (ordenacao?.coluna !== coluna) return { simbolo: '↕', classe: 'text-gray-300' };
+  return { simbolo: ordenacao.direcao === 'asc' ? '▲' : '▼', classe: 'text-paper-primary-hover' };
+};
+
+let temporizador: ReturnType<typeof setTimeout> | undefined;
+onBeforeUnmount(() => clearTimeout(temporizador));
+
+/** Espera o usuário parar de digitar antes de consultar, para não fazer uma busca por letra. */
+const filtrarDepoisDeDigitar = () => {
+  clearTimeout(temporizador);
+  temporizador = setTimeout(() => irPara(1), ESPERA_DA_DIGITACAO_MS);
+};
 
 /** Primeira, última, a atual e as vizinhas; null marca o salto entre elas, mostrado como reticências. */
 const paginasVisiveis = computed<(number | null)[]>(() => {
@@ -170,6 +308,30 @@ const formatarDia = (valor: string | null) =>
 const irPara = async (pagina: number) => {
   try {
     await store.carregarLista(pagina);
+  } catch (erro) {
+    toast.error(mensagemDeErro(erro, 'Não foi possível carregar a lista de solicitações.'));
+  }
+};
+/** Aplica os filtros agora, a partir da primeira página. */
+const aplicarFiltros = () => {
+  clearTimeout(temporizador);
+  return irPara(1);
+};
+
+/** Ordena pela coluna do cabeçalho clicado. */
+const ordenarPor = async (coluna: ColunaDaLista) => {
+  try {
+    await store.alternarOrdenacao(coluna);
+  } catch (erro) {
+    toast.error(mensagemDeErro(erro, 'Não foi possível ordenar a lista de solicitações.'));
+  }
+};
+
+/** Limpa todos os filtros e a ordenação. */
+const limparFiltros = async () => {
+  clearTimeout(temporizador);
+  try {
+    await store.limparFiltrosDaLista();
   } catch (erro) {
     toast.error(mensagemDeErro(erro, 'Não foi possível carregar a lista de solicitações.'));
   }

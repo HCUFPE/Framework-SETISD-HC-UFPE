@@ -16,6 +16,46 @@ from .solicitacao_mapeamento import (
 CSV_DELIMITADOR = ","
 CSV_ENCODING = "utf-8-sig"  # Também aceita o BOM de arquivos exportados por planilhas.
 
+# Coluna da lista -> coluna do CSV, para as que são um único campo da view.
+_CAMPO_DA_COLUNA = {
+    "codigo": "codigo_solicitacao",
+    "paciente": "nome_paciente",
+    "prontuario": "prontuario",
+    "origem": "origem",
+}
+
+def _texto_da_coluna(coluna: str, linha: Dict[str, str]) -> str:
+    """Texto da coluna para comparar: sem caracteres invisíveis e sem diferenciar maiúsculas."""
+    if coluna == "clinica":
+        texto = f"{limpar_texto(linha['especialidade'])} {limpar_texto(linha['unidade'])}"
+    else:
+        texto = limpar_texto(linha[_CAMPO_DA_COLUNA[coluna]])
+    return texto.casefold()
+
+def _passa_na_consulta(
+    linhas: List[Dict[str, str]],
+    filtros: Dict[str, str],
+    codigos_lab_filtro: Optional[Sequence[str]],
+) -> bool:
+    """Aplica os filtros por coluna e o filtro de bancada a uma solicitação (todas as colunas combinadas)."""
+    primeira = linhas[0]
+    for coluna, procurado in filtros.items():
+        if coluna == "data":
+            if converter_data(primeira["data_solicitacao"]) != procurado:
+                return False
+        elif procurado.casefold() not in _texto_da_coluna(coluna, primeira):
+            return False
+    if codigos_lab_filtro is not None:
+        return any(limpar_texto(linha["codigo_lab"]) in codigos_lab_filtro for linha in linhas)
+    return True
+
+def _chave_de_ordenacao(coluna: str, codigo: str, linhas: List[Dict[str, str]]) -> Any:
+    """Chave de ordenação da solicitação para a coluna pedida; valor ausente vem primeiro."""
+    if coluna == "codigo":
+        return int(codigo)
+    if coluna == "data":
+        return converter_data(linhas[0]["data_solicitacao"]) or ""
+    return _texto_da_coluna(coluna, linhas[0])
 
 class SolicitacaoCsvProvider(SolicitacaoProviderInterface):
     """Lê as solicitações de um CSV exportado do AGHU. Nunca grava no arquivo."""
@@ -58,9 +98,18 @@ class SolicitacaoCsvProvider(SolicitacaoProviderInterface):
         por_pagina: int,
         codigos_status: Optional[Sequence[str]],
         codigos_lab: Sequence[str],
+        codigos_lab_urgentes: Sequence[str] = (),
+        codigos_excluidas_da_prioridade: Sequence[str] = (),
+        consulta: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Filtra, ordena e monta só as solicitações da página pedida."""
+        """Filtra, ordena (prioritárias primeiro) e monta só as solicitações da página pedida."""
+        consulta = consulta or {}
+        filtros = consulta.get("filtros") or {}
+        codigos_lab_filtro = consulta.get("codigos_lab_filtro")
+        ordenar_por = consulta.get("ordenar_por")
         laboratorios = set(codigos_lab)
+        urgentes = set(codigos_lab_urgentes)
+        excluidas = set(codigos_excluidas_da_prioridade)
         permitidos = None if codigos_status is None else set(codigos_status)
 
         grupos: Dict[str, List[Dict[str, str]]] = {}
@@ -75,11 +124,28 @@ class SolicitacaoCsvProvider(SolicitacaoProviderInterface):
                 and (permitidos is None or limpar_texto(linha["cod_status_item"]) in permitidos)
                 for linha in linhas
             )
+            and _passa_na_consulta(linhas, filtros, codigos_lab_filtro)
         ]
         selecionadas.sort(
-            key=lambda grupo: (converter_data(grupo[1][0]["data_solicitacao"]) or "", int(grupo[0])),
+            key=lambda grupo: (
+                grupo[0] not in excluidas
+                and any(
+                    limpar_texto(linha["codigo_lab"]) in urgentes
+                    and (permitidos is None or limpar_texto(linha["cod_status_item"]) in permitidos)
+                    for linha in grupo[1]
+                ),
+                converter_data(grupo[1][0]["data_solicitacao"]) or "",
+                int(grupo[0]),
+            ),
             reverse=True,
         )
+        if ordenar_por:
+            # A ordenação escolhida vale no lugar da padrão. O sort é estável, então os empates
+            # continuam da mais recente para a mais antiga, como acima.
+            selecionadas.sort(
+                key=lambda grupo: _chave_de_ordenacao(ordenar_por, grupo[0], grupo[1]),
+                reverse=consulta.get("direcao") == "desc",
+            )
 
         inicio = (pagina - 1) * por_pagina
         return {
@@ -89,7 +155,7 @@ class SolicitacaoCsvProvider(SolicitacaoProviderInterface):
                 for _, linhas in selecionadas[inicio : inicio + por_pagina]
             ],
         }
-
+    
     async def _executar(self, leitura: Callable[..., Any], *argumentos: Any) -> Any:
         """Lê em thread, para não travar outras requisições, e traduz as falhas de leitura."""
         try:
@@ -118,6 +184,19 @@ class SolicitacaoCsvProvider(SolicitacaoProviderInterface):
         por_pagina: int,
         codigos_status: Optional[Sequence[str]],
         codigos_lab: Sequence[str],
+        codigos_lab_urgentes: Sequence[str] = (),
+        codigos_excluidas_da_prioridade: Sequence[str] = (),
+        consulta: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Retorna uma página de solicitações, da mais recente para a mais antiga."""
-        return await self._executar(self._listar, pagina, por_pagina, codigos_status, codigos_lab)
+        """Retorna uma página de solicitações, as prioritárias primeiro e depois por data."""
+        return await self._executar(
+            self._listar,
+            pagina,
+            por_pagina,
+            codigos_status,
+            codigos_lab,
+            codigos_lab_urgentes,
+            codigos_excluidas_da_prioridade,
+            consulta,
+        )
+    

@@ -24,19 +24,26 @@
 
     <Card
       v-if="store.resultado?.tipo === 'recebimento'"
-      class="border-2 border-green-600"
+      class="border-2"
+      :class="store.resultado.falhas.length ? 'border-yellow-500' : 'border-green-600'"
       data-testid="resultado-recebimento"
     >
-      <p class="text-sm font-medium text-gray-600">
-        Solicitação {{ store.resultado.codigo }} recebida. Nº interno para o frasco:
-      </p>
-      <div class="flex flex-wrap gap-x-8 gap-y-2 mt-2">
-        <p
-          v-for="exame in store.resultado.exames"
-          :key="exame.tipo"
-          class="text-4xl font-extrabold text-green-700"
-        >
-          {{ exame.numero_interno }}
+      <div class="text-sm font-medium text-gray-600">
+        Solicitação {{ store.resultado.codigo }}
+        {{ store.resultado.falhas.length ? 'recebida em parte' : 'recebida' }}. Nº interno para o frasco:
+      </div>
+      <div
+        v-if="store.resultado.falhas.length"
+        class="pt-3 mt-4 border-t border-yellow-300 text-sm"
+        data-testid="falhas-recebimento"
+      >
+        <p class="font-bold text-red-700">Não foi possível receber:</p>
+        <p v-for="falha in store.resultado.falhas" :key="falha.tipo" class="text-red-700">
+          {{ falha.tipo }} (amostra{{ falha.amostras.length > 1 ? 's' : '' }} {{ falha.amostras.join(', ') }}):
+          {{ falha.detail }}
+        </p>
+        <p class="mt-1 text-xs text-gray-600">
+          As demais bancadas foram gravadas. Confira a solicitação e receba novamente as pendentes.
         </p>
       </div>
     </Card>
@@ -406,7 +413,7 @@ import Button from '../components/Button.vue';
 import Card from '../components/Card.vue';
 import Modal from '../components/Modal.vue';
 import ListaSolicitacoes from '../components/recebimento/ListaSolicitacoes.vue';
-import { mensagemDeErro, SITUACOES, useRecebimentoStore } from '../stores/recebimento';
+import { classificarErroDaBusca, mensagemDeErro, SITUACOES, useRecebimentoStore } from '../stores/recebimento';
 import type { ExameDetalhado } from '../stores/recebimento';
 
 // Acima disto, o texto clínico começa recolhido para não empurrar as amostras para baixo.
@@ -531,7 +538,12 @@ const buscar = async () => {
     await store.buscar(valor);
   } catch (erro) {
     store.limparConferencia();
-    toast.error(mensagemDeErro(erro, 'Não foi possível buscar a solicitação.'));
+    const { tipo, mensagem } = classificarErroDaBusca(erro);
+    if (tipo === 'nao_encontrada') {
+      toast.warning(mensagem);
+    } else {
+      toast.error(mensagem);
+    }
   }
   await focarCodigo();
   await mostrarAmostraLida();
@@ -561,8 +573,12 @@ const prepararProximaLeitura = async () => {
 const concluir = async () => {
   if (store.gravando) return;
   try {
-    await store.concluirRecebimento();
-    toast.success('Recebimento concluído.');
+    const falhas = await store.concluirRecebimento();
+    if (falhas.length) {
+      toast.warning('Recebimento parcial: algumas bancadas não foram gravadas. Veja os detalhes acima.');
+    } else {
+      toast.success('Recebimento concluído.');
+    }
     await prepararProximaLeitura();
   } catch (erro) {
     toast.error(mensagemDeErro(erro, 'Não foi possível concluir o recebimento. Tente novamente.'));

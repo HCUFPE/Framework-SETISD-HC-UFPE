@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
@@ -8,7 +9,7 @@ from ..auth.auth import auth_handler
 from ..controllers import recebimento_controller
 from ..dependencies import get_recebimento_provider, get_solicitacao_provider
 from ..providers.interfaces.recebimento_provider_interface import RecebimentoProviderInterface
-from ..providers.interfaces.solicitacao_provider_interface import SolicitacaoProviderInterface
+from ..providers.interfaces.solicitacao_provider_interface import (COLUNAS_ORDENAVEIS,SolicitacaoProviderInterface,)
 from ..resources.database import get_app_db_session
 
 # --- PONTO ÚNICO DE CONFIGURAÇÃO PARA ESTE ROTEADOR ---
@@ -98,14 +99,40 @@ async def listar_solicitacoes(
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=10, ge=1, le=100),
     somente_recebiveis: bool = Query(default=True),
+    ordenar_por: Optional[str] = Query(default=None, pattern=f"^({'|'.join(COLUNAS_ORDENAVEIS)})$"),
+    direcao: str = Query(default="asc", pattern="^(asc|desc)$"),
+    filtro_codigo: Optional[str] = Query(default=None, max_length=30),
+    filtro_data: Optional[date] = Query(default=None),
+    filtro_paciente: Optional[str] = Query(default=None, max_length=80),
+    filtro_prontuario: Optional[str] = Query(default=None, max_length=30),
+    filtro_origem: Optional[str] = Query(default=None, max_length=80),
+    filtro_clinica: Optional[str] = Query(default=None, max_length=80),
+    filtro_bancada: Optional[str] = Query(default=None, max_length=10),
     solicitacao_provider: SolicitacaoProviderInterface = Depends(get_solicitacao_provider(STRATEGY)),
     recebimento_provider: RecebimentoProviderInterface = Depends(get_recebimento_provider),
 ) -> Dict[str, Any]:
-    """Lista as solicitações do AGHU, das mais recentes para as mais antigas, com paginação."""
+    """
+    Lista as solicitações do AGHU com paginação: urgências primeiro e, depois, das mais recentes
+    para as mais antigas. Os filtros por coluna se combinam e `ordenar_por` troca a ordem padrão.
+    """
     return await recebimento_controller.listar_solicitacoes(
-        pagina, por_pagina, somente_recebiveis, solicitacao_provider, recebimento_provider
+        pagina,
+        por_pagina,
+        somente_recebiveis,
+        solicitacao_provider,
+        recebimento_provider,
+        filtros={
+            "codigo": filtro_codigo,
+            "data": filtro_data.isoformat() if filtro_data else None,
+            "paciente": filtro_paciente,
+            "prontuario": filtro_prontuario,
+            "origem": filtro_origem,
+            "clinica": filtro_clinica,
+            "bancada": filtro_bancada,
+        },
+        ordenar_por=ordenar_por,
+        direcao=direcao,
     )
-
 
 @router.get("/solicitacoes/{codigo}", response_model=dict)
 async def obter_solicitacao(
