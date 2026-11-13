@@ -224,6 +224,19 @@ class RecebimentoSqlalchemyProvider(RecebimentoProviderInterface):
         )
         return [_exame_para_dict(exame) for exame in resultado.scalars()]
 
+    async def listar_codigos_com_exame_recebido(self, tipo: str) -> List[str]:
+        """Retorna os códigos das solicitações que já têm exame RECEBIDO do tipo informado."""
+        resultado = await self.session.execute(
+            select(Exame.codigo_solicitacao)
+            .where(
+                Exame.tipo == tipo,
+                Exame.status == STATUS_RECEBIDO,
+                Exame.deleted_at.is_(None),
+            )
+            .distinct()
+        )
+        return list(resultado.scalars())
+
     async def _proximo_numero(self, tipo: str, ano: int) -> int:
         """
         Incrementa a sequência em um único comando, dentro da transação em andamento.

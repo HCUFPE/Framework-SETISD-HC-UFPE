@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import date, datetime, timezone
 from math import ceil
@@ -12,6 +13,8 @@ from ..helpers.etiqueta_helper import interpretar_codigo_lido
 from ..models.exame import STATUS_DEVOLVIDO, STATUS_RECEBIDO
 from ..providers.interfaces.recebimento_provider_interface import RecebimentoProviderInterface
 from ..providers.interfaces.solicitacao_provider_interface import SolicitacaoProviderInterface
+
+logger = logging.getLogger("recebimento")
 
 BANCADA_HP = "HP"
 BANCADA_CO = "CO"
@@ -100,17 +103,22 @@ async def _resolver_solicitacao(
         )
     codigo_solicitacao, numero_amostra = interpretado
 
+    # Só `None` significa que a solicitação não existe. Falhas de leitura chegam como
+    # HTTPException (503) levantada pelo provider e seguem direto para o cliente.
     solicitacao = await provider.obter_solicitacao_por_codigo(codigo_solicitacao)
-    if solicitacao and (
-        numero_amostra is None
-        or any(item["numero_amostra"] == numero_amostra for item in solicitacao["itens"])
+    if solicitacao is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Solicitação {codigo.strip()} não encontrada no AGHU.",
+        )
+    if numero_amostra is not None and not any(
+        item["numero_amostra"] == numero_amostra for item in solicitacao["itens"]
     ):
-        return solicitacao, numero_amostra
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Solicitação {codigo.strip()} não encontrada no AGHU.",
-    )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Amostra {numero_amostra} não encontrada na solicitação {codigo_solicitacao}.",
+        )
+    return solicitacao, numero_amostra
 
 
 async def _exigir_itens_das_bancadas(
@@ -175,6 +183,11 @@ async def listar_procedimentos_hp(provider: RecebimentoProviderInterface) -> Lis
     """Lista os procedimentos de HP ativos."""
     return await provider.listar_procedimentos_hp()
 
+def _solicitacao_urgente(exames: List[Dict[str, Any]], itens: List[Dict[str, Any]]) -> bool:
+    """Regra única de urgência: exame gravado como urgente ou amostra de CO (CARE-RF007)."""
+    return any(exame["urgente"] for exame in exames) or any(
+        item["bancada"] == BANCADA_CO for item in itens
+    )
 
 def _situacao_na_lista(
     recebiveis: int, recebidos: Dict[str, str], exames: List[Dict[str, Any]]
@@ -212,6 +225,7 @@ def _resumo_para_lista(
             "prontuario": solicitacao["prontuario"],
             "idade": _calcular_idade(solicitacao["data_nascimento"], hoje),
         },
+        "urgente": _solicitacao_urgente(exames, itens),
         "origem": solicitacao["origem"],
         "especialidade": solicitacao["especialidade"],
         "unidade": solicitacao["unidade"],
@@ -229,8 +243,16 @@ async def listar_solicitacoes(
     somente_recebiveis: bool,
     solicitacao_provider: SolicitacaoProviderInterface,
     recebimento_provider: RecebimentoProviderInterface,
+    filtros: Optional[Dict[str, Optional[str]]] = None,
+    ordenar_por: Optional[str] = None,
+    direcao: str = "asc",
 ) -> Dict[str, Any]:
-    """Monta uma página da lista inicial, com a situação de cada solicitação."""
+    """
+    Monta uma página da lista inicial, com a situação de cada solicitação.
+
+    Os filtros por coluna e a ordenação são aplicados no provider, antes da paginação, para
+    valerem sobre todas as solicitações e não só sobre a página visível.
+    """
     bancadas = await recebimento_provider.listar_bancadas()
     status_item = await recebimento_provider.listar_status_item()
     codigos_status = (
@@ -238,10 +260,46 @@ async def listar_solicitacoes(
         if somente_recebiveis
         else None
     )
-    resultado = await solicitacao_provider.listar_solicitacoes(
-        pagina, por_pagina, codigos_status, list(bancadas)
+    # O filtro de bancada vira os códigos de laboratório daquela bancada (vazio se ela não existir).
+    filtros_por_coluna = {
+        coluna: valor.strip() for coluna, valor in (filtros or {}).items() if valor and valor.strip()
+    }
+    bancada_filtrada = filtros_por_coluna.pop("bancada", None)
+    codigos_lab_filtro = (
+        None
+        if bancada_filtrada is None
+        else [
+            codigo
+            for codigo, dados in bancadas.items()
+            if dados["bancada"] == bancada_filtrada.upper()
+        ]
     )
-
+    consulta = {
+        "filtros": filtros_por_coluna,
+        "codigos_lab_filtro": codigos_lab_filtro,
+        "ordenar_por": ordenar_por,
+        "direcao": direcao,
+    }
+    # A prioridade da fila é decidida antes da paginação: solicitações com CO ainda não recebido
+    # vêm primeiro. Quando o usuário escolhe uma ordenação, ela vale no lugar da prioridade.
+    # Os argumentos extras vão por posição, como os demais.
+    codigos_lab_urgentes: List[str] = []
+    ja_recebidas: List[str] = []
+    if not ordenar_por:
+        codigos_lab_urgentes = [
+            codigo for codigo, dados in bancadas.items() if dados["bancada"] == BANCADA_CO
+        ]
+        ja_recebidas = await recebimento_provider.listar_codigos_com_exame_recebido(BANCADA_CO)
+    resultado = await solicitacao_provider.listar_solicitacoes(
+        pagina,
+        por_pagina,
+        codigos_status,
+        list(bancadas),
+        codigos_lab_urgentes,
+        ja_recebidas,
+        consulta,
+    )
+    
     exames_por_codigo: Dict[str, List[Dict[str, Any]]] = {}
     for exame in await recebimento_provider.listar_exames_das_solicitacoes(
         [solicitacao["codigo"] for solicitacao in resultado["solicitacoes"]]
@@ -358,8 +416,7 @@ async def obter_solicitacao(
     return {
         "codigo": solicitacao["codigo"],
         "situacao": _situacao_na_lista(recebiveis, recebidos, exames),
-        "urgente": any(exame["urgente"] for exame in exames)
-        or any(item["bancada"] == BANCADA_CO for item in itens),
+        "urgente": _solicitacao_urgente(exames, itens),
         "numero_amostra_lida": numero_amostra_lida,
         "data_solicitacao": solicitacao["data_solicitacao"],
         "paciente": {
@@ -377,6 +434,53 @@ async def obter_solicitacao(
         "exames": [_exame_detalhado(exame) for exame in exames],
     }
 
+def _falha_de_recebimento(
+    tipo: str,
+    itens: List[Dict[str, Any]],
+    marcadas: Dict[int, Dict[str, Any]],
+    codigo_http: int,
+    detalhe: str,
+) -> Dict[str, Any]:
+    """Monta o registro de um exame da bancada que não foi gravado, com as amostras afetadas."""
+    return {
+        "tipo": tipo,
+        "amostras": sorted(
+            item["numero_amostra"]
+            for item in itens
+            if item["bancada"] == tipo and item["numero_amostra"] in marcadas
+        ),
+        "codigo_http": codigo_http,
+        "detail": detalhe,
+    }
+
+
+async def _gravar_exame_isolado(
+    dados_exame: Dict[str, Any],
+    usuario: str,
+    momento: datetime,
+    recebimento_provider: RecebimentoProviderInterface,
+) -> Tuple[Optional[Dict[str, Any]], Optional[Tuple[int, str]]]:
+    """
+    Grava um único exame em transação própria.
+
+    Retorna (exame gravado, None) em caso de sucesso ou (None, (código HTTP, mensagem)) em caso
+    de falha, para que o erro de um exame não impeça a gravação dos demais.
+    """
+    try:
+        gravados = await recebimento_provider.registrar_recebimento([dados_exame], usuario, momento)
+        return gravados[0], None
+    except HTTPException as erro:
+        return None, (erro.status_code, str(erro.detail))
+    except Exception:
+        logger.exception(
+            "Falha inesperada ao gravar o exame %s da solicitação %s.",
+            dados_exame["tipo"],
+            dados_exame["codigo_solicitacao"],
+        )
+        return None, (
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            f"Erro interno ao gravar o exame {dados_exame['tipo']}. Nada foi gravado para ele.",
+        )
 
 def _validar_marcacoes(
     marcacoes: List[Dict[str, Any]],
@@ -525,11 +629,23 @@ async def receber_amostras(
     tipos = sorted({item["bancada"] for item in itens if item["numero_amostra"] in marcadas})
     existentes = await recebimento_provider.listar_exames_da_solicitacao(solicitacao["codigo"])
     recebidos = _numero_recebido_por_tipo(existentes)
-    duplicados = [recebidos[tipo] for tipo in tipos if tipo in recebidos]
-    if duplicados:
+    falhas: List[Dict[str, Any]] = []
+    for tipo in tipos:
+        if tipo in recebidos:
+            falhas.append(
+                _falha_de_recebimento(
+                    tipo,
+                    itens,
+                    marcadas,
+                    status.HTTP_409_CONFLICT,
+                    f"Solicitação já recebida: {recebidos[tipo]}.",
+                )
+            )
+    tipos = [tipo for tipo in tipos if tipo not in recebidos]
+    if not tipos:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Solicitação já recebida: {', '.join(duplicados)}.",
+            detail=f"Solicitação já recebida: {', '.join(recebidos[f['tipo']] for f in falhas)}.",
         )
 
     dados_hp_validos = (
@@ -558,11 +674,29 @@ async def receber_amostras(
             dados_exame["referencia_hp"] = referencia_valida
         dados_exames.append(dados_exame)
 
-    gravados = await recebimento_provider.registrar_recebimento(dados_exames, usuario, momento)
+    # Cada exame é gravado em transação própria: uma falha não desfaz nem impede os demais.
+    gravados_com_dados: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
+    for dados_exame in dados_exames:
+        gravado, erro = await _gravar_exame_isolado(
+            dados_exame, usuario, momento, recebimento_provider
+        )
+        if gravado is not None:
+            gravados_com_dados.append((gravado, dados_exame))
+        elif erro is not None:
+            falhas.append(
+                _falha_de_recebimento(dados_exame["tipo"], itens, marcadas, erro[0], erro[1])
+            )
+
+    if not gravados_com_dados:
+        # Nada foi gravado: mantém o comportamento anterior, com o erro HTTP do primeiro exame.
+        raise HTTPException(
+            status_code=falhas[0]["codigo_http"],
+            detail="; ".join(falha["detail"] for falha in falhas),
+        )
 
     # A auditoria faz commit próprio, por isso só roda depois da transação de negócio.
     status_anterior = _status_anterior_por_tipo(existentes)
-    for exame, dados_exame in zip(gravados, dados_exames):
+    for exame, dados_exame in gravados_com_dados:
         resolvidas = exame["nao_conformidades_resolvidas"]
         anteriores: Dict[str, Any] = {"status": status_anterior.get(exame["tipo"])}
         if resolvidas:
@@ -594,7 +728,8 @@ async def receber_amostras(
 
     return {
         "codigo": solicitacao["codigo"],
-        "exames": [_exame_para_resposta(exame) for exame in gravados],
+        "exames": [_exame_para_resposta(exame) for exame, _ in gravados_com_dados],
+        "falhas": sorted(falhas, key=lambda falha: falha["tipo"]),
     }
 
 

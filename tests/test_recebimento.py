@@ -375,7 +375,7 @@ async def test_idade_e_calculada_com_a_data_do_aghu(api, monkeypatch):
 
 
 # --- Lista inicial paginada ---
-async def test_lista_vem_paginada_da_mais_recente_para_a_mais_antiga(api):
+async def test_lista_vem_paginada_com_urgentes_primeiro_e_depois_da_mais_recente(api):
     resposta = await api.get(f"{URL}?pagina=1&por_pagina=5")
 
     assert resposta.status_code == 200
@@ -383,10 +383,12 @@ async def test_lista_vem_paginada_da_mais_recente_para_a_mais_antiga(api):
     assert (dados["pagina"], dados["por_pagina"]) == (1, 5)
     assert len(dados["solicitacoes"]) == 5
     assert dados["total_paginas"] == -(-dados["total"] // 5)
-    datas = [item["data_solicitacao"] for item in dados["solicitacoes"]]
+    # As duas solicitações com CO (05/03 e 04/03) abrem a lista; as demais seguem por data.
+    assert [item["codigo"] for item in dados["solicitacoes"][:2]] == [CO_E_HP, CO]
+    comuns = dados["solicitacoes"][2:]
+    datas = [item["data_solicitacao"] for item in comuns]
     assert datas == sorted(datas, reverse=True)
-    assert dados["solicitacoes"][0]["codigo"] == SEM_PRONTUARIO_FORA_DE_EXTERNO
-
+    assert comuns[0]["codigo"] == SEM_PRONTUARIO_FORA_DE_EXTERNO
 
 async def test_paginas_nao_repetem_solicitacoes(api):
     primeira = (await api.get(f"{URL}?pagina=1&por_pagina=4")).json()
@@ -1519,11 +1521,22 @@ async def test_provider_postgres_lista_com_filtros_e_paginacao():
         "codigos_lab": ["207"],
         "filtrar_status": True,
         "codigos_status": ["CO"],
+        "filtro_codigo": None,
+        "filtro_data": None,
+        "filtro_paciente": None,
+        "filtro_prontuario": None,
+        "filtro_origem": None,
+        "filtro_clinica": None,
+        "filtrar_bancada": False,
+        "codigos_lab_filtro": [],
+        "codigos_lab_urgentes": [],
+        "codigos_excluidas": [],
+        "ordenar_por": None,
+        "direcao": "asc",
         "limite": 10,
         "deslocamento": 20,
     }
-
-
+    
 async def test_provider_postgres_le_a_view_com_parametro_e_tipos_nativos():
     sessao = SessaoFalsa([linha_da_view()])
 
@@ -1554,3 +1567,345 @@ async def test_sql_de_solicitacao_nao_tem_comando_de_escrita():
         assert not re.search(
             r"\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|CREATE)\b", sql, re.IGNORECASE
         ), arquivo.name
+
+
+# --- Processamento parcial: cada bancada é gravada em transação própria ---
+def _falhar_no_tipo(monkeypatch, tipo: str, erro: Exception) -> None:
+    """Faz a gravação do exame do tipo informado falhar, mantendo as demais."""
+    from src.providers.implementations.recebimento_sqlalchemy_provider import (
+        RecebimentoSqlalchemyProvider,
+    )
+
+    original = RecebimentoSqlalchemyProvider.registrar_recebimento
+
+    async def registrar(self, exames, usuario, momento):
+        """Levanta o erro para o tipo escolhido e delega o resto ao provider real."""
+        if exames[0]["tipo"] == tipo:
+            raise erro
+        return await original(self, exames, usuario, momento)
+
+    monkeypatch.setattr(RecebimentoSqlalchemyProvider, "registrar_recebimento", registrar)
+
+
+async def test_falha_em_uma_bancada_nao_impede_as_demais(api, banco, monkeypatch):
+    _falhar_no_tipo(monkeypatch, "CG", HTTPException(status_code=503, detail="Sistema ocupado."))
+
+    resposta = await receber(api, TRES_BANCADAS, 1, 2, 3)
+
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert sorted(exame["tipo"] for exame in corpo["exames"]) == ["CCV", "HP"]
+    assert corpo["falhas"] == [
+        {"tipo": "CG", "amostras": [2], "codigo_http": 503, "detail": "Sistema ocupado."}
+    ]
+    assert sorted(exame.tipo for exame in await consultar(banco, select(Exame))) == ["CCV", "HP"]
+    assert len(await consultar(banco, select(AuditLog))) == 2
+
+
+async def test_erro_inesperado_em_uma_bancada_vira_falha_sem_vazar_detalhes(api, banco, monkeypatch):
+    _falhar_no_tipo(monkeypatch, "HP", RuntimeError("detalhe interno secreto"))
+
+    resposta = await receber(api, TRES_BANCADAS, 1, 2, 3)
+
+    assert resposta.status_code == 201
+    falha = resposta.json()["falhas"][0]
+    assert falha["tipo"] == "HP" and falha["codigo_http"] == 500
+    assert "secreto" not in falha["detail"]
+    assert sorted(exame.tipo for exame in await consultar(banco, select(Exame))) == ["CCV", "CG"]
+
+
+async def test_todas_as_bancadas_falhando_mantem_o_erro_http_anterior(api, banco, monkeypatch):
+    _falhar_no_tipo(monkeypatch, "HP", HTTPException(status_code=503, detail="Sistema ocupado."))
+
+    resposta = await receber(api, SO_HP, 1)
+
+    assert resposta.status_code == 503
+    assert await consultar(banco, select(Exame)) == []
+
+
+async def test_bancada_ja_recebida_nao_impede_as_outras(api, banco):
+    await receber(api, TRES_BANCADAS, 3)  # recebe só o HP
+
+    resposta = await receber(api, TRES_BANCADAS, 1, 2, 3)
+
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert sorted(exame["tipo"] for exame in corpo["exames"]) == ["CCV", "CG"]
+    assert [(falha["tipo"], falha["codigo_http"]) for falha in corpo["falhas"]] == [("HP", 409)]
+    assert "HP 1" in corpo["falhas"][0]["detail"]
+
+
+async def test_recebimento_completo_nao_traz_falhas(api, banco):
+    resposta = await receber(api, TRES_BANCADAS, 1, 2, 3)
+
+    assert resposta.status_code == 201
+    assert resposta.json()["falhas"] == []
+    assert len(resposta.json()["exames"]) == 3
+    
+
+# --- Etiqueta não encontrada (404) x falha técnica (503) ---
+class ProviderIndisponivel(SolicitacaoProviderInterface):
+    """Simula o AGHU fora do ar: a leitura falha em vez de devolver None."""
+
+    async def obter_solicitacao_por_codigo(self, codigo: str) -> Optional[Dict[str, Any]]:
+        """Levanta o 503 que os providers reais usam para falhas de leitura."""
+        raise HTTPException(status_code=503, detail="Não foi possível ler os dados de solicitações do AGHU.")
+
+    async def listar_solicitacoes(self, *_: Any) -> Dict[str, Any]:
+        """Não é usada nestes testes."""
+        raise HTTPException(status_code=503, detail="indisponível")
+
+
+async def test_falha_de_leitura_do_aghu_retorna_503_e_nao_404(api):
+    app.dependency_overrides[_get_solicitacao_csv_provider] = ProviderIndisponivel
+    try:
+        resposta = await api.get(f"{URL}/{SO_HP}")
+    finally:
+        app.dependency_overrides.pop(_get_solicitacao_csv_provider, None)
+
+    assert resposta.status_code == 503
+    assert "AGHU" in resposta.json()["detail"]
+
+
+async def test_amostra_inexistente_tem_mensagem_propria(api):
+    resposta = await api.get(f"{URL}/{HP_TRES_AMOSTRAS}-9")
+
+    assert resposta.status_code == 404
+    assert resposta.json()["detail"] == f"Amostra 9 não encontrada na solicitação {HP_TRES_AMOSTRAS}."
+
+
+async def test_codigo_inexistente_mantem_mensagem_de_solicitacao(api):
+    resposta = await api.get(f"{URL}/9999999")
+
+    assert resposta.json()["detail"] == "Solicitação 9999999 não encontrada no AGHU."
+
+
+async def test_recebimento_de_etiqueta_inexistente_retorna_404_sem_gravar(api, banco):
+    resposta = await receber(api, "9999999", 1)
+
+    assert resposta.status_code == 404
+    assert await consultar(banco, select(Exame)) == []
+
+
+class SessaoSemConexao:
+    """Sessão cujo `execute` falha como uma conexão recusada, sem ser um SQLAlchemyError."""
+
+    async def execute(self, *_: Any, **__: Any) -> Any:
+        """Simula o servidor do AGHU recusando a conexão."""
+        raise ConnectionRefusedError("recusada")
+
+
+async def test_postgres_sem_conexao_retorna_503_e_nao_none():
+    provider = SolicitacaoPostgresProvider(session=SessaoSemConexao())
+
+    with pytest.raises(HTTPException) as erro:
+        await provider.obter_solicitacao_por_codigo("9000101")
+
+    assert erro.value.status_code == 503
+
+
+# --- Fila de prioridade para urgências ---
+async def test_urgentes_vem_primeiro_em_todas_as_paginas(api):
+    primeira = (await api.get(f"{URL}?pagina=1&por_pagina=1&somente_recebiveis=false")).json()
+    segunda = (await api.get(f"{URL}?pagina=2&por_pagina=1&somente_recebiveis=false")).json()
+    terceira = (await api.get(f"{URL}?pagina=3&por_pagina=1&somente_recebiveis=false")).json()
+
+    assert primeira["solicitacoes"][0]["codigo"] == CO_E_HP
+    assert segunda["solicitacoes"][0]["codigo"] == CO
+    assert terceira["solicitacoes"][0]["urgente"] is False
+
+
+async def test_lista_marca_urgencia_com_a_mesma_regra_do_detalhe(api):
+    linhas = {
+        item["codigo"]: item
+        for item in (await api.get(f"{URL}?por_pagina=100&somente_recebiveis=false")).json()["solicitacoes"]
+    }
+
+    assert linhas[CO]["urgente"] is True
+    assert linhas[SO_HP]["urgente"] is False
+    assert (await api.get(f"{URL}/{CO}")).json()["urgente"] is True
+    assert (await api.get(f"{URL}/{SO_HP}")).json()["urgente"] is False
+
+
+async def test_hp_gravado_como_urgente_destaca_a_linha_sem_furar_a_fila(api):
+    await receber(api, SO_HP, 1, dados_hp={**DADOS_HP, "urgente": True})
+
+    solicitacoes = (await api.get(f"{URL}?por_pagina=100&somente_recebiveis=false")).json()["solicitacoes"]
+    codigos = [item["codigo"] for item in solicitacoes]
+    linhas = {item["codigo"]: item for item in solicitacoes}
+
+    assert linhas[SO_HP]["urgente"] is True
+    assert codigos[:2] == [CO_E_HP, CO]
+
+
+async def test_co_ja_recebido_perde_a_prioridade_mas_continua_marcado(api):
+    resposta = await receber(api, CO, 1)
+    assert resposta.status_code == 201
+
+    solicitacoes = (await api.get(f"{URL}?por_pagina=100&somente_recebiveis=false")).json()["solicitacoes"]
+    codigos = [item["codigo"] for item in solicitacoes]
+    linha_co = next(item for item in solicitacoes if item["codigo"] == CO)
+
+    assert codigos[0] == CO_E_HP
+    assert codigos.index(CO) > 1
+    assert linha_co["urgente"] is True
+
+
+async def test_provider_postgres_envia_os_parametros_de_prioridade():
+    sessao = SessaoFalsa([linha_da_view()])
+
+    await SolicitacaoPostgresProvider(sessao).listar_solicitacoes(
+        1, 10, None, ["205", "207"], ["205"], ["9000105"]
+    )
+
+    assert sessao.parametros["codigos_lab_urgentes"] == ["205"]
+    assert sessao.parametros["codigos_excluidas"] == ["9000105"]
+    assert "prioridade DESC" in sessao.sql
+
+
+# --- Filtros por coluna e ordenação pelos cabeçalhos ---
+async def todas_as_solicitacoes(api, consulta: str = "") -> List[Dict[str, Any]]:
+    """Busca a lista inteira numa só página, com a consulta extra informada."""
+    resposta = await api.get(f"{URL}?por_pagina=100&somente_recebiveis=false{consulta}")
+    assert resposta.status_code == 200
+    return resposta.json()["solicitacoes"]
+
+
+async def test_filtro_por_coluna_vale_para_todas_as_paginas_e_para_o_total(api):
+    todas = await todas_as_solicitacoes(api)
+    esperados = [item["codigo"] for item in todas if "ambul" in item["origem"].lower()]
+    assert 2 < len(esperados) < len(todas)
+
+    encontrados = []
+    pagina = 1
+    while True:
+        corpo = (
+            await api.get(f"{URL}?pagina={pagina}&por_pagina=2&somente_recebiveis=false&filtro_origem=AMBUL")
+        ).json()
+        encontrados += [item["codigo"] for item in corpo["solicitacoes"]]
+        if pagina >= corpo["total_paginas"]:
+            break
+        pagina += 1
+
+    assert corpo["total"] == len(esperados)
+    assert encontrados == esperados
+
+
+async def test_filtros_de_colunas_diferentes_se_combinam(api):
+    todas = await todas_as_solicitacoes(api)
+    esperados = [
+        item["codigo"]
+        for item in todas
+        if "ambul" in item["origem"].lower() and "derma" in f"{item['especialidade']} {item['unidade']}".lower()
+    ]
+
+    filtradas = await todas_as_solicitacoes(api, "&filtro_origem=ambul&filtro_clinica=derma")
+
+    assert [item["codigo"] for item in filtradas] == esperados
+    assert 0 < len(esperados) < len(await todas_as_solicitacoes(api, "&filtro_origem=ambul"))
+
+
+async def test_filtro_por_dia_e_por_codigo(api):
+    todas = await todas_as_solicitacoes(api)
+    dia = todas[0]["data_solicitacao"]
+
+    do_dia = await todas_as_solicitacoes(api, f"&filtro_data={dia}")
+    por_codigo = await todas_as_solicitacoes(api, f"&filtro_codigo={CO}")
+
+    assert do_dia and {item["data_solicitacao"] for item in do_dia} == {dia}
+    assert [item["codigo"] for item in por_codigo] == [CO]
+
+
+async def test_filtro_por_bancada_nao_diferencia_maiusculas_e_ignora_bancada_desconhecida(api):
+    com_co = await todas_as_solicitacoes(api, "&filtro_bancada=co")
+    sem_bancada = await todas_as_solicitacoes(api, "&filtro_bancada=XYZ")
+
+    assert [item["codigo"] for item in com_co] == [CO_E_HP, CO]
+    assert all("CO" in item["bancadas"] for item in com_co)
+    assert sem_bancada == []
+
+
+async def test_filtro_sem_resultado_e_texto_malicioso_voltam_lista_vazia(api):
+    resposta = await api.get(f"{URL}?filtro_paciente=%27%3B%20DROP%20TABLE%20exames%3B--")
+
+    assert resposta.status_code == 200
+    assert resposta.json()["solicitacoes"] == [] and resposta.json()["total"] == 0
+
+
+@pytest.mark.parametrize("coluna", ["paciente", "origem"])
+async def test_ordenar_por_coluna_de_texto_nas_duas_direcoes(api, coluna):
+    crescente = await todas_as_solicitacoes(api, f"&ordenar_por={coluna}&direcao=asc")
+    decrescente = await todas_as_solicitacoes(api, f"&ordenar_por={coluna}&direcao=desc")
+
+    chave = (lambda item: item["paciente"]["nome"].casefold()) if coluna == "paciente" else (
+        lambda item: item["origem"].casefold()
+    )
+    assert [chave(item) for item in crescente] == sorted(chave(item) for item in crescente)
+    assert [chave(item) for item in decrescente] == sorted((chave(item) for item in decrescente), reverse=True)
+    assert {item["codigo"] for item in crescente} == {item["codigo"] for item in decrescente}
+
+
+async def test_ordenar_por_codigo_e_por_data(api):
+    por_codigo = await todas_as_solicitacoes(api, "&ordenar_por=codigo&direcao=desc")
+    por_data = await todas_as_solicitacoes(api, "&ordenar_por=data&direcao=asc")
+
+    codigos = [int(item["codigo"]) for item in por_codigo]
+    datas = [item["data_solicitacao"] for item in por_data]
+    assert codigos == sorted(codigos, reverse=True)
+    assert datas == sorted(datas)
+
+
+async def test_ordenacao_escolhida_vale_no_lugar_da_prioridade_de_urgencia(api):
+    padrao = await todas_as_solicitacoes(api)
+    por_data = await todas_as_solicitacoes(api, "&ordenar_por=data&direcao=desc")
+
+    assert [item["codigo"] for item in padrao[:2]] == [CO_E_HP, CO]
+    datas = [item["data_solicitacao"] for item in por_data]
+    assert datas == sorted(datas, reverse=True)
+    assert [item["codigo"] for item in por_data[:2]] != [CO_E_HP, CO]
+
+
+async def test_ordenacao_e_filtro_juntos_mantem_a_paginacao_consistente(api):
+    todas = await todas_as_solicitacoes(api, "&ordenar_por=paciente&direcao=asc&filtro_origem=e")
+    primeira = (await api.get(f"{URL}?por_pagina=3&ordenar_por=paciente&direcao=asc&filtro_origem=e")).json()
+    segunda = (await api.get(f"{URL}?pagina=2&por_pagina=3&ordenar_por=paciente&direcao=asc&filtro_origem=e")).json()
+
+    codigos = [item["codigo"] for item in primeira["solicitacoes"] + segunda["solicitacoes"]]
+    assert codigos == [item["codigo"] for item in todas][:6]
+    assert primeira["total"] == len(todas)
+
+
+@pytest.mark.parametrize(
+    "consulta", ["ordenar_por=situacao", "direcao=cima", "filtro_data=ontem", "filtro_paciente=" + "x" * 81]
+)
+async def test_consulta_invalida_da_lista_retorna_400(api, consulta):
+    resposta = await api.get(f"{URL}?{consulta}")
+
+    assert resposta.status_code == 400
+    assert isinstance(resposta.json()["detail"], str)
+
+
+async def test_provider_postgres_envia_filtros_e_ordenacao_como_parametros():
+    sessao = SessaoFalsa([linha_da_view()])
+    texto = "x'; DROP TABLE vw_solicitacao;--"
+
+    await SolicitacaoPostgresProvider(sessao).listar_solicitacoes(
+        1,
+        10,
+        None,
+        ["207"],
+        [],
+        [],
+        {
+            "filtros": {"paciente": texto, "data": "2026-03-02"},
+            "codigos_lab_filtro": ["207"],
+            "ordenar_por": "paciente",
+            "direcao": "desc",
+        },
+    )
+
+    assert sessao.parametros["filtro_paciente"] == texto
+    assert sessao.parametros["filtro_data"] == date(2026, 3, 2)
+    assert sessao.parametros["filtrar_bancada"] is True
+    assert (sessao.parametros["ordenar_por"], sessao.parametros["direcao"]) == ("paciente", "desc")
+    assert "DROP TABLE" not in sessao.sql

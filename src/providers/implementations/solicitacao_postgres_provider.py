@@ -1,4 +1,5 @@
 import os
+from datetime import date
 from typing import Any, Dict, List, Optional, Sequence
 
 from fastapi import HTTPException, status
@@ -31,7 +32,7 @@ class SolicitacaoPostgresProvider(SolicitacaoProviderInterface):
         """Guarda a sessão de leitura do banco do AGHU."""
         self.session = session
 
-    def _erro_de_leitura(self, erro: SQLAlchemyError) -> HTTPException:
+    def _erro_de_leitura(self, erro: Exception) -> HTTPException:
         """Registra só o tipo do erro e monta a resposta 503."""
         print(f"Erro ao consultar a vw_solicitacao: {type(erro).__name__}")
         return HTTPException(
@@ -44,7 +45,7 @@ class SolicitacaoPostgresProvider(SolicitacaoProviderInterface):
         try:
             resultado = await self.session.execute(_sql("obter_solicitacao.sql"), {"codigo": codigo})
             linhas = resultado.mappings().all()
-        except SQLAlchemyError as erro:
+        except (SQLAlchemyError, OSError) as erro:
             raise self._erro_de_leitura(erro)
         return montar_solicitacao(list(linhas))
 
@@ -54,22 +55,49 @@ class SolicitacaoPostgresProvider(SolicitacaoProviderInterface):
         por_pagina: int,
         codigos_status: Optional[Sequence[str]],
         codigos_lab: Sequence[str],
+        codigos_lab_urgentes: Sequence[str] = (),
+        codigos_excluidas_da_prioridade: Sequence[str] = (),
+        consulta: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Retorna uma página de solicitações, da mais recente para a mais antiga."""
+        """Retorna uma página de solicitações, as prioritárias primeiro e depois por data."""
+        consulta = consulta or {}
+        por_coluna = consulta.get("filtros") or {}
+        codigos_lab_filtro = consulta.get("codigos_lab_filtro")
+        dia = por_coluna.get("data")
+        # Todos os valores vão como parâmetros do SQL; nada do usuário entra no texto da consulta.
         filtros = {
             "codigos_lab": list(codigos_lab),
             "filtrar_status": codigos_status is not None,
             "codigos_status": list(codigos_status or []),
+            "filtro_codigo": por_coluna.get("codigo"),
+            "filtro_data": date.fromisoformat(dia) if dia else None,
+            "filtro_paciente": por_coluna.get("paciente"),
+            "filtro_prontuario": por_coluna.get("prontuario"),
+            "filtro_origem": por_coluna.get("origem"),
+            "filtro_clinica": por_coluna.get("clinica"),
+            "filtrar_bancada": codigos_lab_filtro is not None,
+            "codigos_lab_filtro": list(codigos_lab_filtro or []),
+        }
+        prioridade = {
+            "codigos_lab_urgentes": list(codigos_lab_urgentes),
+            "codigos_excluidas": list(codigos_excluidas_da_prioridade),
+            "ordenar_por": consulta.get("ordenar_por"),
+            "direcao": consulta.get("direcao") or "asc",
         }
         try:
             total = await self.session.execute(_sql("contar_solicitacoes.sql"), filtros)
             quantidade = total.scalar_one()
             resultado = await self.session.execute(
                 _sql("listar_solicitacoes.sql"),
-                {**filtros, "limite": por_pagina, "deslocamento": (pagina - 1) * por_pagina},
+                                {
+                    **filtros,
+                    **prioridade,
+                    "limite": por_pagina,
+                    "deslocamento": (pagina - 1) * por_pagina,
+                },
             )
             linhas = resultado.mappings().all()
-        except SQLAlchemyError as erro:
+        except (SQLAlchemyError, OSError) as erro:
             raise self._erro_de_leitura(erro)
 
         # O SQL já ordena as solicitações; o dicionário preserva essa ordem.

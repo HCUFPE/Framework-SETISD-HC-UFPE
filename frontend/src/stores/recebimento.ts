@@ -11,6 +11,13 @@ export interface ExameRegistrado {
   recebido_em: string;
 }
 
+export interface FalhaRecebimento {
+  tipo: string;
+  amostras: number[];
+  codigo_http: number;
+  detail: string;
+}
+
 export interface ConferenciaGravada {
   conferido_por: string;
   conferido_em: string;
@@ -95,6 +102,7 @@ export interface LinhaDaLista {
   codigo: string;
   data_solicitacao: string | null;
   paciente: { nome: string; prontuario: string | null; idade: number | null };
+  urgente: boolean;
   origem: string;
   especialidade: string | null;
   unidade: string | null;
@@ -104,6 +112,35 @@ export interface LinhaDaLista {
   numeros_internos: string[];
   situacao: SituacaoSolicitacao;
 }
+
+/** Colunas da lista que o backend sabe ordenar e filtrar (as que vêm do AGHU). */
+export type ColunaDaLista = 'codigo' | 'data' | 'paciente' | 'prontuario' | 'origem' | 'clinica';
+export type DirecaoDaOrdenacao = 'asc' | 'desc';
+
+export interface OrdenacaoDaLista {
+  coluna: ColunaDaLista;
+  direcao: DirecaoDaOrdenacao;
+}
+
+export interface FiltrosDaLista {
+  codigo: string;
+  data: string;
+  paciente: string;
+  prontuario: string;
+  origem: string;
+  clinica: string;
+  bancada: string;
+}
+
+const filtrosVazios = (): FiltrosDaLista => ({
+  codigo: '',
+  data: '',
+  paciente: '',
+  prontuario: '',
+  origem: '',
+  clinica: '',
+  bancada: '',
+});
 
 export interface PaginaDaLista {
   pagina: number;
@@ -131,7 +168,7 @@ export interface DadosNaoConformidade {
 }
 
 export type ResultadoOperacao =
-  | { tipo: 'recebimento'; codigo: string; exames: ExameRegistrado[] }
+  | { tipo: 'recebimento'; codigo: string; exames: ExameRegistrado[]; falhas: FalhaRecebimento[] }
   | { tipo: 'devolucao'; codigo: string; motivo: string };
 
 const BANCADA_HP = 'HP';
@@ -144,6 +181,37 @@ const PADRAO_REFERENCIA_HP = /^HP-\d{4}\/[1-9]\d*$/;
 export function mensagemDeErro(erro: any, padrao: string): string {
   const detalhe = erro?.response?.data?.detail;
   return typeof detalhe === 'string' ? detalhe : padrao;
+}
+
+export type TipoErroBusca = 'nao_encontrada' | 'indisponivel' | 'outro';
+
+/**
+ * Separa a etiqueta inexistente (404) das falhas técnicas, para a tela não tratar uma queda do
+ * AGHU ou da rede como se a etiqueta não existisse.
+ */
+export function classificarErroDaBusca(erro: any): { tipo: TipoErroBusca; mensagem: string } {
+  const status: number | undefined = erro?.response?.status;
+  if (status === 404) {
+    const detalhe = mensagemDeErro(erro, 'Etiqueta não encontrada.');
+    return {
+      tipo: 'nao_encontrada',
+      mensagem: `${detalhe} Confira se a etiqueta foi lida corretamente.`,
+    };
+  }
+  if (!erro?.response) {
+    return {
+      tipo: 'indisponivel',
+      mensagem: 'Sem comunicação com o servidor. Verifique a conexão e tente novamente.',
+    };
+  }
+  if (status !== undefined && status >= 500) {
+    const detalhe = mensagemDeErro(erro, 'Não foi possível consultar o AGHU agora.');
+    return {
+      tipo: 'indisponivel',
+      mensagem: `${detalhe} Isso não significa que a etiqueta não existe. Tente novamente.`,
+    };
+  }
+  return { tipo: 'outro', mensagem: mensagemDeErro(erro, 'Não foi possível buscar a solicitação.') };
 }
 
 /** Cria a linha da tabela. O checklist é do recebimento e fica fora da linha. */
@@ -166,6 +234,11 @@ export const useRecebimentoStore = defineStore('recebimento', () => {
 
   const lista = ref<PaginaDaLista | null>(null);
   const carregandoLista = ref(false);
+  const filtrosDaLista = ref<FiltrosDaLista>(filtrosVazios());
+  const ordenacaoDaLista = ref<OrdenacaoDaLista | null>(null);
+  const filtrosAtivos = computed(() =>
+    Object.values(filtrosDaLista.value).some((valor) => valor.trim() !== ''),
+  );
   let ultimaConsultaDaLista = 0;
 
   // Checklist único do recebimento. Começa desmarcado para exigir a conferência.
@@ -278,22 +351,55 @@ export const useRecebimentoStore = defineStore('recebimento', () => {
     }
   }
 
-  /** Carrega uma página da lista inicial. Se o usuário trocar de página, vale a última consulta. */
+    /**
+   * Carrega uma página da lista inicial, com os filtros e a ordenação atuais, que o backend
+   * aplica antes de paginar. Se o usuário trocar de página, vale a última consulta.
+   */
   async function carregarLista(pagina: number = lista.value?.pagina ?? 1) {
     const consulta = ++ultimaConsultaDaLista;
     carregandoLista.value = true;
     try {
-      const { data } = await api.get<PaginaDaLista>('/api/recebimento/solicitacoes', {
-        params: {
-          pagina,
-          por_pagina: POR_PAGINA,
-          somente_recebiveis: false,
-        },
-      });
+      const params: Record<string, string | number | boolean> = {
+        pagina,
+        por_pagina: POR_PAGINA,
+        somente_recebiveis: false,
+      };
+      for (const [coluna, valor] of Object.entries(filtrosDaLista.value)) {
+        const texto = valor.trim();
+        if (texto) params[`filtro_${coluna}`] = texto;
+      }
+      if (ordenacaoDaLista.value) {
+        params.ordenar_por = ordenacaoDaLista.value.coluna;
+        params.direcao = ordenacaoDaLista.value.direcao;
+      }
+      const { data } = await api.get<PaginaDaLista>('/api/recebimento/solicitacoes', { params });
       if (consulta === ultimaConsultaDaLista) lista.value = data;
     } finally {
       if (consulta === ultimaConsultaDaLista) carregandoLista.value = false;
     }
+  }
+
+  /**
+   * Alterna a ordenação da coluna: crescente, decrescente e, no terceiro clique, volta à ordem
+   * padrão (urgências primeiro e depois as mais recentes). Recarrega a partir da página 1.
+   */
+  async function alternarOrdenacao(coluna: ColunaDaLista) {
+    const atual = ordenacaoDaLista.value;
+    if (!atual || atual.coluna !== coluna) {
+      ordenacaoDaLista.value = { coluna, direcao: 'asc' };
+    } else if (atual.direcao === 'asc') {
+      ordenacaoDaLista.value = { coluna, direcao: 'desc' };
+    } else {
+      ordenacaoDaLista.value = null;
+    }
+    await carregarLista(1);
+  }
+
+  /** Remove todos os filtros e a ordenação e volta à lista padrão. */
+  async function limparFiltrosDaLista() {
+    filtrosDaLista.value = filtrosVazios();
+    ordenacaoDaLista.value = null;
+    await carregarLista(1);
   }
 
   /** Carrega as listas controladas de motivos e de procedimentos de HP. */
@@ -306,11 +412,16 @@ export const useRecebimentoStore = defineStore('recebimento', () => {
     procedimentosHp.value = respostaProcedimentos.data;
   }
 
-  /** Conclui o recebimento das amostras marcadas e guarda os números gerados. */
-  async function concluirRecebimento() {
-    if (!solicitacao.value) return;
+  /**
+   * Conclui o recebimento das amostras marcadas e guarda os números gerados.
+   * Cada bancada é gravada separadamente: se alguma falhar, as demais continuam gravadas e as
+   * falhas voltam na lista retornada, com a solicitação reaberta para mostrar o que falta.
+   */
+  async function concluirRecebimento(): Promise<FalhaRecebimento[]> {
+    if (!solicitacao.value) return [];
     gravando.value = true;
     try {
+      const codigoRecebido = solicitacao.value.codigo;
       const amostras = linhas.value
         .filter((linha) => linha.recebivel)
         .map((linha) => ({
@@ -319,7 +430,7 @@ export const useRecebimentoStore = defineStore('recebimento', () => {
           descricao_informada: linha.exige_descricao ? linha.descricao_informada.trim() : null,
         }));
       const { data } = await api.post(
-        `/api/recebimento/solicitacoes/${encodeURIComponent(solicitacao.value.codigo)}/recebimentos`,
+        `/api/recebimento/solicitacoes/${encodeURIComponent(codigoRecebido)}/recebimentos`,
         {
           amostras,
           sigla_confere: siglaConfere.value,
@@ -335,8 +446,18 @@ export const useRecebimentoStore = defineStore('recebimento', () => {
           referencia_hp: recebeIhq.value ? referenciaHp.value.trim() || null : null,
         },
       );
-      resultado.value = { tipo: 'recebimento', codigo: data.codigo, exames: data.exames };
+      const falhas: FalhaRecebimento[] = data.falhas ?? [];
       limparConferencia();
+      if (falhas.length) {
+        // Reabre a solicitação para mostrar o que foi recebido e o que ainda pode ser recebido.
+        try {
+          await buscar(codigoRecebido);
+        } catch {
+          // O resultado abaixo já informa o que foi gravado e o que falhou.
+        }
+      }
+      resultado.value = { tipo: 'recebimento', codigo: data.codigo, exames: data.exames, falhas };
+      return falhas;
     } finally {
       gravando.value = false;
     }
@@ -368,7 +489,12 @@ export const useRecebimentoStore = defineStore('recebimento', () => {
     gravando,
     lista,
     carregandoLista,
+    filtrosDaLista,
+    ordenacaoDaLista,
+    filtrosAtivos,
     carregarLista,
+    alternarOrdenacao,
+    limparFiltrosDaLista,
     quantidadePecas,
     urgente,
     procedimentoId,
