@@ -18,9 +18,10 @@
     <aside 
       :class="[
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        isCollapsed ? 'md:w-20' : 'md:w-64'
+        isCollapsed ? 'md:w-20 md:cursor-pointer' : 'md:w-56'
       ]" 
       class="bg-paper-sidebar text-gray-100 pt-7 pb-2 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition-all duration-300 ease-in-out z-20 h-full shrink-0 flex flex-col justify-between"
+      @click="expandirAoClicar"
     >
       <div>
         <!-- Identidade do sistema (informativa) + botão próprio para recolher/expandir o menu -->
@@ -38,7 +39,7 @@
             :title="isCollapsed ? 'Expandir menu' : 'Recolher menu'"
             :aria-expanded="!isCollapsed"
             class="focus-ring hidden md:inline-flex shrink-0 items-center justify-center rounded-md p-2 text-gray-300 transition hover:bg-white/10 hover:text-white active:bg-white/20"
-            @click="toggleSidebar"
+            @click.stop="toggleSidebar"
           >
             <PanelRight class="h-5 w-5" aria-hidden="true" />
           </button>
@@ -196,7 +197,7 @@ const secoes = computed<SecaoMenu[]>(() => [
       { chave: 'consulta', rotulo: 'Consulta de casos', para: '/casos', icone: MagnifyingGlassIcon, requerLogin: true },
       {
         chave: 'devolucoes',
-        rotulo: 'Rejeições e devoluções',
+        rotulo: 'Devoluções',
         para: '/rejeicoes-devolucoes',
         icone: ArrowUturnLeftIcon,
         requerLogin: true,
@@ -228,6 +229,11 @@ const secoesVisiveis = computed(() =>
 
 /** Item ativo: o da rota atual ou o indicado em `meta.menu` (subtelas). */
 const itemAtivo = (item: ItemMenu): boolean => route.meta.menu === item.chave || route.path === item.para;
+
+/** Com o menu recolhido, um clique em qualquer parte dele o expande (links continuam navegando). */
+const expandirAoClicar = () => {
+  if (isCollapsed.value) isCollapsed.value = false;
+};
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value;

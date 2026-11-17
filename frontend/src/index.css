@@ -139,6 +139,70 @@
     @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none;
   }
 }
+
+/*
+ * Selects: cursor de mão e destaque das opções ao passar o mouse.
+ * Navegadores com select personalizável (Chrome/Edge 135+) desenham a lista de opções com o
+ * tema do sistema; os demais mantêm a lista nativa (só o cursor muda).
+ */
+select.form-control {
+  cursor: pointer;
+}
+select.form-control:disabled {
+  cursor: not-allowed;
+}
+@supports (appearance: base-select) {
+  select.form-control,
+  select.form-control::picker(select) {
+    appearance: base-select;
+  }
+  select.form-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  select.form-control::picker-icon {
+    color: var(--color-gray-500);
+    transition: rotate 150ms ease;
+  }
+  select.form-control:open::picker-icon {
+    rotate: 180deg;
+  }
+  select.form-control::picker(select) {
+    margin-block: 0.25rem;
+    max-height: 20rem;
+    padding: 0.25rem;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.375rem;
+    background: #fff;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  select.form-control option {
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--color-paper-text);
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+  select.form-control option::checkmark {
+    display: none;
+  }
+  select.form-control option:hover,
+  select.form-control option:focus-visible {
+    background: var(--color-paper-primary-soft);
+    color: var(--color-paper-primary-strong);
+    outline: none;
+  }
+  select.form-control option:checked {
+    font-weight: 700;
+    color: var(--color-paper-primary-strong);
+  }
+  select.form-control option:active {
+    background: color-mix(in srgb, var(--color-paper-primary-soft) 70%, var(--color-paper-primary));
+  }
+}
 /*
  * Impressão (sample-labels): só o conteúdo da pré-visualização (#print-root) vai para a impressora.
  * Etiquetas usam a página nomeada "etiqueta" (50 × 25 mm); a ficha usa A4.
