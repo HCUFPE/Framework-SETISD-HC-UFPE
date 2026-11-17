@@ -1,6 +1,5 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
@@ -9,7 +8,7 @@ from alembic import context
 from dotenv import load_dotenv
 import os
 import asyncio
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +25,18 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from src.resources.database import Base
+from src.models.audit_log import AuditLog  # noqa: F401
+from src.models.refresh_token import RefreshToken  # noqa: F401
+from src.models.ap_reception import (  # noqa: F401
+    ApCaso,
+    ApConferenciaRecebimento,
+    ApDevolucao,
+    ApExameIhq,
+    ApHistoricoCaso,
+    ApItemMaterial,
+    ApNaoConformidade,
+    ApSolicitacao,
+)
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -34,9 +45,7 @@ target_metadata = Base.metadata
 # ... etc.
 
 # Get the SQLite DSN from environment variables
-sqlite_dsn = os.getenv("SQLITE_DSN")
-if not sqlite_dsn:
-    raise ValueError("SQLITE_DSN not found in environment variables.")
+sqlite_dsn = os.getenv("SQLITE_DSN") or os.getenv("APP_DB_URL") or "sqlite+aiosqlite:///data/app.db"
 
 # Set the sqlalchemy.url in the config to the SQLite DSN
 config.set_main_option("sqlalchemy.url", sqlite_dsn)
@@ -83,12 +92,12 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = AsyncEngine(engine_from_config(
+    connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
         future=True,
-    ))
+    )
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

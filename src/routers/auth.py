@@ -4,11 +4,22 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.concurrency import run_in_threadpool
 
-from ..auth.auth import auth_handler, JWT_EXP_HOURS, REFRESH_TOKEN_EXP_DAYS
+from ..auth.auth import auth_handler, JWT_EXP_HOURS, REFRESH_TOKEN_EXP_DAYS, identidade_mock_disponivel
+from ..auth.authorization import USUARIOS_MOCK
 from ..resources.database import get_app_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api", tags=["Authentication"])
+
+@router.get("/auth/options")
+async def auth_options():
+    """Lista identidades fictícias apenas quando o Adapter mock está ativo."""
+    if not identidade_mock_disponivel():
+        return {"mock_enabled": False, "users": []}
+    return {"mock_enabled": True, "users": [
+        {"username": user.username, "displayName": user.nome, "profiles": list(user.perfis)}
+        for user in USUARIOS_MOCK.values()
+    ]}
 
 @router.post("/login")
 async def login(

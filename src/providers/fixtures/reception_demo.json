@@ -1,0 +1,5769 @@
+{
+  "solicitacoes": [
+    {
+      "codigoSolicitacao": "7710214",
+      "prontuario": "2301145",
+      "nomePaciente": "ODETE MARQUES VALADARES",
+      "dataNascimento": "1957-04-18",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Gastroenterologia",
+      "especialidade": "Gastroenterologia",
+      "nomeSolicitante": "Dr. Caio Montenegro",
+      "dataSolicitacao": "2026-09-15T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "BIÓPSIA GÁSTRICA – ANTRO",
+      "informacoesClinicas": "Dispepsia persistente. Endoscopia com área de enantema em antro. Pesquisa de H. pylori.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0001/26"
+    },
+    {
+      "codigoSolicitacao": "7710388",
+      "prontuario": "2287430",
+      "nomePaciente": "GERSON TAVORA LINHARES",
+      "dataNascimento": "1969-11-02",
+      "sexo": "Masculino",
+      "origem": "BLOCO_CIRURGICO",
+      "unidade": "Bloco Cirúrgico Central",
+      "especialidade": "Cirurgia Geral",
+      "nomeSolicitante": "Dr. Tomás Barreira",
+      "dataSolicitacao": "2026-10-03T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "VESÍCULA BILIAR",
+      "informacoesClinicas": "Colelitíase sintomática. Colecistectomia videolaparoscópica eletiva.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0002/26"
+    },
+    {
+      "codigoSolicitacao": "7710457",
+      "prontuario": "2315528",
+      "nomePaciente": "IRACEMA BRAGANÇA FONTES",
+      "dataNascimento": "1972-06-25",
+      "sexo": "Feminino",
+      "origem": "INTERNACAO",
+      "unidade": "Enfermaria de Cirurgia",
+      "especialidade": "Ginecologia",
+      "nomeSolicitante": "Dra. Íris Fontoura",
+      "dataSolicitacao": "2026-10-13T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "ÚTERO E ANEXOS",
+      "informacoesClinicas": "Miomatose uterina com sangramento uterino anormal. Histerectomia total.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0003/26"
+    },
+    {
+      "codigoSolicitacao": "7710593",
+      "prontuario": "2199803",
+      "nomePaciente": "WILSON ALCÂNTARA REIS",
+      "dataNascimento": "1951-01-30",
+      "sexo": "Masculino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Urologia",
+      "especialidade": "Urologia",
+      "nomeSolicitante": "Dr. Natan Seabra",
+      "dataSolicitacao": "2026-10-27T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "BIÓPSIA DE PRÓSTATA – 12 FRAGMENTOS",
+      "informacoesClinicas": "PSA elevado em controle. Toque retal com nódulo em lobo direito.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0004/26"
+    },
+    {
+      "codigoSolicitacao": "7710642",
+      "prontuario": "2340017",
+      "nomePaciente": "NEIDE CAMPELO SARMENTO",
+      "dataNascimento": "1963-09-12",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Gastroenterologia",
+      "especialidade": "Gastroenterologia",
+      "nomeSolicitante": "Dr. Caio Montenegro",
+      "dataSolicitacao": "2026-10-23T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "BIÓPSIA DE CÓLON – SIGMOIDE",
+      "informacoesClinicas": "Alteração do hábito intestinal. Colonoscopia com lesão vegetante em sigmoide.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0005/26"
+    },
+    {
+      "codigoSolicitacao": "7710731",
+      "prontuario": "2352291",
+      "nomePaciente": "TELMA FIGUEIRA LOBO",
+      "dataNascimento": "1978-03-07",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Mastologia",
+      "especialidade": "Mastologia",
+      "nomeSolicitante": "Dra. Olga Bittencourt",
+      "dataSolicitacao": "2026-10-26T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "NÓDULO DE MAMA ESQUERDA – CORE BIOPSY",
+      "informacoesClinicas": "Nódulo palpável em quadrante superior externo da mama esquerda, BI-RADS 4.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0006/26"
+    },
+    {
+      "codigoSolicitacao": "7710866",
+      "prontuario": "2276654",
+      "nomePaciente": "EDNALDO PIMENTA CASTRO",
+      "dataNascimento": "1984-12-19",
+      "sexo": "Masculino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Cabeça e Pescoço",
+      "especialidade": "Cirurgia de Cabeça e Pescoço",
+      "nomeSolicitante": "Dr. Vicente Lacerda",
+      "dataSolicitacao": "2026-10-31T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "LINFONODO CERVICAL",
+      "informacoesClinicas": "Linfonodomegalia cervical persistente há 3 meses, sem febre.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0007/26"
+    },
+    {
+      "codigoSolicitacao": "7711024",
+      "prontuario": "2368140",
+      "nomePaciente": "ZULEIDE MOTA GUSMÃO",
+      "dataNascimento": "1995-08-21",
+      "sexo": "Feminino",
+      "origem": "BLOCO_CIRURGICO",
+      "unidade": "Bloco Cirúrgico Central",
+      "especialidade": "Cirurgia Geral",
+      "nomeSolicitante": "Dr. Tomás Barreira",
+      "dataSolicitacao": "2026-11-07T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "APÊNDICE CECAL",
+      "informacoesClinicas": "Quadro de abdome agudo. Apendicectomia de urgência.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0008/26"
+    },
+    {
+      "codigoSolicitacao": "7711267",
+      "prontuario": "2241976",
+      "nomePaciente": "VALTER CORDEIRO BASTOS",
+      "dataNascimento": "1960-05-14",
+      "sexo": "Masculino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Gastroenterologia",
+      "especialidade": "Gastroenterologia",
+      "nomeSolicitante": "Dr. Caio Montenegro",
+      "dataSolicitacao": "2026-11-11T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "BIÓPSIA GÁSTRICA – CORPO",
+      "informacoesClinicas": "Emagrecimento e lesão ulcerada em corpo gástrico à endoscopia.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0009/26"
+    },
+    {
+      "codigoSolicitacao": "7711390",
+      "prontuario": "2374405",
+      "nomePaciente": "MIRTES ALENCAR PAIXÃO",
+      "dataNascimento": "1968-02-09",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Dermatologia",
+      "especialidade": "Dermatologia",
+      "nomeSolicitante": "Dra. Yasmin Rabelo",
+      "dataSolicitacao": "2026-11-12T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "LESÃO DE PELE – DORSO",
+      "informacoesClinicas": "Lesão pigmentada assimétrica em dorso, 0,8 cm. Exérese com margem.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0010/26"
+    },
+    {
+      "codigoSolicitacao": "7711455",
+      "prontuario": "2229518",
+      "nomePaciente": "JURANDIR VILELA SOBRAL",
+      "dataNascimento": "1956-10-03",
+      "sexo": "Masculino",
+      "origem": "BLOCO_CIRURGICO",
+      "unidade": "Bloco Cirúrgico Central",
+      "especialidade": "Cirurgia Geral",
+      "nomeSolicitante": "Dr. Tomás Barreira",
+      "dataSolicitacao": "2026-11-04T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "SEGMENTO DE INTESTINO DELGADO",
+      "informacoesClinicas": "Obstrução intestinal. Enterectomia segmentar.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "HP-0011/26"
+    },
+    {
+      "codigoSolicitacao": "7710912",
+      "prontuario": "2318862",
+      "nomePaciente": "CLEONICE AMARAL TEIXEIRA",
+      "dataNascimento": "1949-07-28",
+      "sexo": "Feminino",
+      "origem": "INTERNACAO",
+      "unidade": "Enfermaria de Pneumologia",
+      "especialidade": "Clínica Médica",
+      "nomeSolicitante": "Dra. Lívia Cardim",
+      "dataSolicitacao": "2026-11-03T12:00:00.000Z",
+      "siglaExame": "CITO",
+      "nomeExame": "Citologia geral (líquidos e PAAF)",
+      "tipoExameSugerido": "CG",
+      "descricaoMaterial": "LÍQUIDO PLEURAL",
+      "informacoesClinicas": "Derrame pleural à direita de etiologia a esclarecer.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CG-0001/26"
+    },
+    {
+      "codigoSolicitacao": "7711302",
+      "prontuario": "2381037",
+      "nomePaciente": "ADEMIR PORTELA RIBAS",
+      "dataNascimento": "1966-04-11",
+      "sexo": "Masculino",
+      "origem": "INTERNACAO",
+      "unidade": "Enfermaria de Clínica Médica",
+      "especialidade": "Clínica Médica",
+      "nomeSolicitante": "Dra. Lívia Cardim",
+      "dataSolicitacao": "2026-11-12T12:00:00.000Z",
+      "siglaExame": "CITO",
+      "nomeExame": "Citologia geral (líquidos e PAAF)",
+      "tipoExameSugerido": "CG",
+      "descricaoMaterial": "LÍQUIDO ASCÍTICO",
+      "informacoesClinicas": "Ascite volumosa de início recente. Paracentese diagnóstica.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CG-0002/26"
+    },
+    {
+      "codigoSolicitacao": "7711088",
+      "prontuario": "2290715",
+      "nomePaciente": "SOCORRO MACHADO LEAL",
+      "dataNascimento": "1975-12-01",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Cabeça e Pescoço",
+      "especialidade": "Cirurgia de Cabeça e Pescoço",
+      "nomeSolicitante": "Dr. Vicente Lacerda",
+      "dataSolicitacao": "2026-11-05T12:00:00.000Z",
+      "siglaExame": "CITO",
+      "nomeExame": "Citologia geral (líquidos e PAAF)",
+      "tipoExameSugerido": "CG",
+      "descricaoMaterial": "PAAF DE TIREOIDE",
+      "informacoesClinicas": "Nódulo tireoidiano TI-RADS 4 em lobo esquerdo.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CG-0003/26"
+    },
+    {
+      "codigoSolicitacao": "7710805",
+      "prontuario": "2333409",
+      "nomePaciente": "ROSIMERE TOLEDO BRITO",
+      "dataNascimento": "1988-06-16",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Ginecologia",
+      "especialidade": "Ginecologia",
+      "nomeSolicitante": "Dra. Íris Fontoura",
+      "dataSolicitacao": "2026-10-29T12:00:00.000Z",
+      "siglaExame": "CCV",
+      "nomeExame": "Citologia oncótica cérvico-vaginal",
+      "tipoExameSugerido": "CCV",
+      "descricaoMaterial": "ESFREGAÇO CÉRVICO-VAGINAL",
+      "informacoesClinicas": "Rastreamento de rotina. Última coleta há 3 anos.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CCV-0001/26"
+    },
+    {
+      "codigoSolicitacao": "7711199",
+      "prontuario": "2386652",
+      "nomePaciente": "MARINALVA COUTO RANGEL",
+      "dataNascimento": "1991-01-23",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Ginecologia",
+      "especialidade": "Ginecologia",
+      "nomeSolicitante": "Dra. Íris Fontoura",
+      "dataSolicitacao": "2026-11-10T12:00:00.000Z",
+      "siglaExame": "CCV",
+      "nomeExame": "Citologia oncótica cérvico-vaginal",
+      "tipoExameSugerido": "CCV",
+      "descricaoMaterial": "ESFREGAÇO CÉRVICO-VAGINAL",
+      "informacoesClinicas": "Controle após tratamento de lesão de baixo grau.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CCV-0002/26"
+    },
+    {
+      "codigoSolicitacao": "7710301",
+      "prontuario": "2254381",
+      "nomePaciente": "DORALICE PIRES SALGADO",
+      "dataNascimento": "1980-09-30",
+      "sexo": "Feminino",
+      "origem": "EXTERNO",
+      "unidade": "Paciente externo – UBS Vila Esperança (fictícia)",
+      "especialidade": "Ginecologia",
+      "nomeSolicitante": "Dra. Íris Fontoura",
+      "dataSolicitacao": "2026-09-23T12:00:00.000Z",
+      "siglaExame": "CCV",
+      "nomeExame": "Citologia oncótica cérvico-vaginal",
+      "tipoExameSugerido": "CCV",
+      "descricaoMaterial": "ESFREGAÇO CÉRVICO-VAGINAL",
+      "informacoesClinicas": "Rastreamento de rotina.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CCV-0003/26"
+    },
+    {
+      "codigoSolicitacao": "7711501",
+      "prontuario": "2362278",
+      "nomePaciente": "GLÓRIA PASSOS TRINDADE",
+      "dataNascimento": "1970-03-15",
+      "sexo": "Feminino",
+      "origem": "BLOCO_CIRURGICO",
+      "unidade": "Bloco Cirúrgico Central – Sala 3",
+      "especialidade": "Cirurgia de Cabeça e Pescoço",
+      "nomeSolicitante": "Dr. Vicente Lacerda",
+      "dataSolicitacao": "2026-11-13T10:48:00.000Z",
+      "siglaExame": "CONG",
+      "nomeExame": "Exame anatomopatológico por congelação",
+      "tipoExameSugerido": "CO",
+      "descricaoMaterial": "NÓDULO DE TIREOIDE – PEÇA INTRAOPERATÓRIA",
+      "informacoesClinicas": "Tireoidectomia parcial. Avaliar malignidade para decisão de totalização.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CO-0001/26"
+    },
+    {
+      "codigoSolicitacao": "7711143",
+      "prontuario": "2347793",
+      "nomePaciente": "LEONARDO AQUINO BARRETO",
+      "dataNascimento": "1958-08-08",
+      "sexo": "Masculino",
+      "origem": "BLOCO_CIRURGICO",
+      "unidade": "Bloco Cirúrgico Central – Sala 1",
+      "especialidade": "Cirurgia Torácica",
+      "nomeSolicitante": "Dr. Heitor Galvão",
+      "dataSolicitacao": "2026-11-09T12:00:00.000Z",
+      "siglaExame": "CONG",
+      "nomeExame": "Exame anatomopatológico por congelação",
+      "tipoExameSugerido": "CO",
+      "descricaoMaterial": "NÓDULO PULMONAR – CONGELAÇÃO",
+      "informacoesClinicas": "Nódulo pulmonar periférico de 1,9 cm. Ressecção em cunha.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "casoNumero": "CO-0002/26"
+    },
+    {
+      "codigoSolicitacao": "7710980",
+      "prontuario": "2340017",
+      "nomePaciente": "NEIDE CAMPELO SARMENTO",
+      "dataNascimento": "1963-09-12",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Serviço de Anatomia Patológica",
+      "especialidade": "Gastroenterologia",
+      "nomeSolicitante": "Dr. Caio Montenegro",
+      "dataSolicitacao": "2026-10-29T12:00:00.000Z",
+      "siglaExame": "IHQ",
+      "nomeExame": "Imuno-histoquímica",
+      "tipoExameSugerido": "IHQ",
+      "descricaoMaterial": "BLOCO A – HP-0005/26",
+      "informacoesClinicas": "Painel imuno-histoquímico solicitado pela microscopia.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "ihqCodigo": "IH-0001/26",
+      "ihqCasoNumero": "HP-0005/26"
+    },
+    {
+      "codigoSolicitacao": "7711010",
+      "prontuario": "2352291",
+      "nomePaciente": "TELMA FIGUEIRA LOBO",
+      "dataNascimento": "1978-03-07",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Serviço de Anatomia Patológica",
+      "especialidade": "Mastologia",
+      "nomeSolicitante": "Dra. Olga Bittencourt",
+      "dataSolicitacao": "2026-11-01T12:00:00.000Z",
+      "siglaExame": "IHQ",
+      "nomeExame": "Imuno-histoquímica",
+      "tipoExameSugerido": "IHQ",
+      "descricaoMaterial": "BLOCO A – HP-0006/26",
+      "informacoesClinicas": "Painel imuno-histoquímico solicitado pela microscopia.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "ihqCodigo": "IH-0002/26",
+      "ihqCasoNumero": "HP-0006/26"
+    },
+    {
+      "codigoSolicitacao": "7711236",
+      "prontuario": "2276654",
+      "nomePaciente": "EDNALDO PIMENTA CASTRO",
+      "dataNascimento": "1984-12-19",
+      "sexo": "Masculino",
+      "origem": "AMBULATORIO",
+      "unidade": "Serviço de Anatomia Patológica",
+      "especialidade": "Cirurgia de Cabeça e Pescoço",
+      "nomeSolicitante": "Dr. Vicente Lacerda",
+      "dataSolicitacao": "2026-11-08T12:00:00.000Z",
+      "siglaExame": "IHQ",
+      "nomeExame": "Imuno-histoquímica",
+      "tipoExameSugerido": "IHQ",
+      "descricaoMaterial": "BLOCO B – HP-0007/26",
+      "informacoesClinicas": "Painel imuno-histoquímico solicitado pela microscopia.",
+      "statusAghuDescricao": "Recebido",
+      "situacaoRecepcao": "RECEBIDA",
+      "ihqCodigo": "IH-0003/26",
+      "ihqCasoNumero": "HP-0007/26"
+    },
+    {
+      "codigoSolicitacao": "7712045",
+      "prontuario": "2389476",
+      "nomePaciente": "GILVAN ESTEVES PRADO",
+      "dataNascimento": "1977-07-02",
+      "sexo": "Masculino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Dermatologia",
+      "especialidade": "Dermatologia",
+      "nomeSolicitante": "Dra. Yasmin Rabelo",
+      "dataSolicitacao": "2026-11-08T12:00:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "BIÓPSIA DE PELE – ANTEBRAÇO",
+      "informacoesClinicas": "Lesão eritematodescamativa em antebraço direito há 6 meses.",
+      "statusAghuDescricao": "Solicitado",
+      "situacaoRecepcao": "DEVOLVIDA",
+      "devolucaoId": 2
+    },
+    {
+      "codigoSolicitacao": "7712301",
+      "prontuario": "2390114",
+      "nomePaciente": "AURÉLIO MATOS REBOUÇAS",
+      "dataNascimento": "1962-11-27",
+      "sexo": "Masculino",
+      "origem": "AMBULATORIO",
+      "unidade": "Ambulatório de Gastroenterologia",
+      "especialidade": "Gastroenterologia",
+      "nomeSolicitante": "Dr. Caio Montenegro",
+      "dataSolicitacao": "2026-11-13T07:12:00.000Z",
+      "siglaExame": "AP",
+      "nomeExame": "Exame anatomopatológico",
+      "tipoExameSugerido": "HP",
+      "descricaoMaterial": "BIÓPSIA DE ESÔFAGO DISTAL",
+      "informacoesClinicas": "Pirose crônica. Endoscopia com mucosa de aspecto colunar em esôfago distal.",
+      "statusAghuDescricao": "Solicitado",
+      "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO"
+    },
+    {
+      "codigoSolicitacao": "7712318",
+      "prontuario": "2391560",
+      "nomePaciente": "ERIVALDO SANTANA MENDONÇA",
+      "dataNascimento": "1954-02-04",
+      "sexo": "Masculino",
+      "origem": "INTERNACAO",
+      "unidade": "Enfermaria de Cirurgia",
+      "especialidade": "Cirurgia Geral",
+      "nomeSolicitante": "Dr. Tomás Barreira",
+      "dataSolicitacao": "2026-11-13T08:24:00.000Z",
+      "siglaExame": "CITO",
+      "nomeExame": "Citologia geral (líquidos e PAAF)",
+      "tipoExameSugerido": "CG",
+      "descricaoMaterial": "LÍQUIDO PERITONEAL",
+      "informacoesClinicas": "Ascite em paciente com massa pélvica em investigação.",
+      "statusAghuDescricao": "Solicitado",
+      "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO"
+    },
+    {
+      "codigoSolicitacao": "7712325",
+      "prontuario": "2392007",
+      "nomePaciente": "JANDIRA NOVAES COELHO",
+      "dataNascimento": "1983-05-19",
+      "sexo": "Feminino",
+      "origem": "EXTERNO",
+      "unidade": "Paciente externo – UBS Jardim das Acácias (fictícia)",
+      "especialidade": "Ginecologia",
+      "nomeSolicitante": "Dra. Íris Fontoura",
+      "dataSolicitacao": "2026-11-12T12:00:00.000Z",
+      "siglaExame": "CCV",
+      "nomeExame": "Citologia oncótica cérvico-vaginal",
+      "tipoExameSugerido": "CCV",
+      "descricaoMaterial": "ESFREGAÇO CÉRVICO-VAGINAL",
+      "informacoesClinicas": "Rastreamento de rotina encaminhado pela rede municipal.",
+      "statusAghuDescricao": "Solicitado",
+      "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO"
+    },
+    {
+      "codigoSolicitacao": "7712340",
+      "prontuario": "2392843",
+      "nomePaciente": "OSVALDO FERRAZ LIMEIRA",
+      "dataNascimento": "1965-10-10",
+      "sexo": "Masculino",
+      "origem": "BLOCO_CIRURGICO",
+      "unidade": "Bloco Cirúrgico Central – Sala 5",
+      "especialidade": "Cirurgia Geral",
+      "nomeSolicitante": "Dr. Tomás Barreira",
+      "dataSolicitacao": "2026-11-13T11:31:12.000Z",
+      "siglaExame": "CONG",
+      "nomeExame": "Exame anatomopatológico por congelação",
+      "tipoExameSugerido": "CO",
+      "descricaoMaterial": "NÓDULO HEPÁTICO – PEÇA INTRAOPERATÓRIA",
+      "informacoesClinicas": "Hepatectomia em andamento. Avaliar margem e natureza da lesão.",
+      "statusAghuDescricao": "Solicitado",
+      "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO"
+    },
+    {
+      "codigoSolicitacao": "7712356",
+      "prontuario": "2340017",
+      "nomePaciente": "NEIDE CAMPELO SARMENTO",
+      "dataNascimento": "1963-09-12",
+      "sexo": "Feminino",
+      "origem": "AMBULATORIO",
+      "unidade": "Serviço de Anatomia Patológica",
+      "especialidade": "Gastroenterologia",
+      "nomeSolicitante": "Dr. Caio Montenegro",
+      "dataSolicitacao": "2026-11-13T09:36:00.000Z",
+      "siglaExame": "IHQ",
+      "nomeExame": "Imuno-histoquímica",
+      "tipoExameSugerido": "IHQ",
+      "descricaoMaterial": "BLOCO A – HP-0005/26 (AMPLIAÇÃO DE PAINEL)",
+      "informacoesClinicas": "Ampliação do painel imuno-histoquímico solicitada pela microscopia.",
+      "statusAghuDescricao": "Solicitado",
+      "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO"
+    },
+    {
+      "codigoSolicitacao": "7712372",
+      "prontuario": "2276645",
+      "nomePaciente": "EDNALDO PIMENTA CASTRO",
+      "dataNascimento": "1984-12-19",
+      "sexo": "Masculino",
+      "origem": "AMBULATORIO",
+      "unidade": "Serviço de Anatomia Patológica",
+      "especialidade": "Cirurgia de Cabeça e Pescoço",
+      "nomeSolicitante": "Dr. Vicente Lacerda",
+      "dataSolicitacao": "2026-11-13T10:48:00.000Z",
+      "siglaExame": "IHQ",
+      "nomeExame": "Imuno-histoquímica",
+      "tipoExameSugerido": "IHQ",
+      "descricaoMaterial": "BLOCO B – LINFONODO CERVICAL (PAINEL COMPLEMENTAR)",
+      "informacoesClinicas": "Painel complementar para linfoma solicitado pela microscopia.",
+      "statusAghuDescricao": "Solicitado",
+      "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO"
+    }
+  ],
+  "casos": [
+    {
+      "numeroInterno": "HP-0001/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7710214",
+        "prontuario": "2301145",
+        "nomePaciente": "ODETE MARQUES VALADARES",
+        "dataNascimento": "1957-04-18",
+        "sexo": "Feminino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Gastroenterologia",
+        "especialidade": "Gastroenterologia",
+        "nomeSolicitante": "Dr. Caio Montenegro",
+        "dataSolicitacao": "2026-09-15T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "BIÓPSIA GÁSTRICA – ANTRO",
+        "informacoesClinicas": "Dispepsia persistente. Endoscopia com área de enantema em antro. Pesquisa de H. pylori.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0001/26"
+      },
+      "status": "ARQUIVADO",
+      "etapaAtual": null,
+      "etapaAtualDesde": "2026-10-31T02:46:09.230Z",
+      "dataEntradaSap": "2026-09-16T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Biópsia endoscópica",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-09-16T12:00:00.000Z",
+          "concluidaEm": "2026-09-16T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-09-17T20:07:23.076Z",
+          "concluidaEm": "2026-09-25T10:09:13.846Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-09-26T18:16:36.923Z",
+          "concluidaEm": "2026-10-04T08:18:27.692Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 4,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-05T16:25:50.769Z",
+          "concluidaEm": "2026-10-13T06:27:41.538Z",
+          "responsavelInicio": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "responsavelFim": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          }
+        },
+        {
+          "etapa": "APROVACAO",
+          "sequencia": 5,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-14T14:35:04.615Z",
+          "concluidaEm": "2026-10-22T04:36:55.384Z",
+          "responsavelInicio": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "responsavelFim": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          }
+        },
+        {
+          "etapa": "ARQUIVO",
+          "sequencia": 6,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-23T12:44:18.461Z",
+          "concluidaEm": "2026-10-31T02:46:09.230Z",
+          "responsavelInicio": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "responsavelFim": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-09-25T10:09:13.846Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "BIÓPSIA GÁSTRICA – ANTRO"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "1"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Não"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"BIÓPSIA GÁSTRICA – ANTRO\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 1 cassete(s)."
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-10-04T08:18:27.692Z",
+          "titulo": "Processamento técnico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Histotécnico"
+            },
+            {
+              "rotulo": "Blocos",
+              "valor": "1"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "1"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Hematoxilina-eosina (HE)"
+            }
+          ]
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "responsavel": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "registradoEm": "2026-10-13T06:27:41.538Z",
+          "titulo": "Parecer preliminar",
+          "campos": [
+            {
+              "rotulo": "Residente",
+              "valor": "Dr. Danilo Ventura"
+            }
+          ],
+          "texto": "Cortes histológicos/esfregaços examinados. Achados descritos para revisão e validação pela preceptoria."
+        },
+        {
+          "etapa": "APROVACAO",
+          "responsavel": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "registradoEm": "2026-10-22T04:36:55.384Z",
+          "titulo": "Laudo",
+          "campos": [
+            {
+              "rotulo": "Patologista responsável",
+              "valor": "Dra. Selma Aranha"
+            },
+            {
+              "rotulo": "Residente",
+              "valor": "Dr. Danilo Ventura"
+            }
+          ],
+          "texto": "Conclusão diagnóstica registrada (texto fictício para demonstração). Laudo liberado no AGHU pela rotina institucional."
+        },
+        {
+          "etapa": "ARQUIVO",
+          "responsavel": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "registradoEm": "2026-10-31T02:46:09.230Z",
+          "titulo": "Arquivamento",
+          "campos": [
+            {
+              "rotulo": "Local",
+              "valor": "Arquivo de blocos e lâminas – Armário 3, gaveta 12"
+            },
+            {
+              "rotulo": "Ficha arquivada",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Cadastro no Siscan",
+              "valor": "Não se aplica"
+            }
+          ]
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0001/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · BIÓPSIA GÁSTRICA – ANTRO",
+          "origem": "ROTINA",
+          "status": "ARQUIVADO",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-09-16T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0001/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "ARQUIVADO",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-09-25T10:09:13.846Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0001/26-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "ARQUIVADO",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-10-04T08:18:27.692Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 1,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0001/26 gerado a partir da solicitação AGHU 7710214. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-09-16T12:00:00.000Z"
+        },
+        {
+          "id": 2,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-09-17T20:07:23.076Z"
+        },
+        {
+          "id": 3,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-09-25T10:09:13.846Z"
+        },
+        {
+          "id": 4,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-09-26T18:16:36.923Z"
+        },
+        {
+          "id": 5,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-04T08:18:27.692Z"
+        },
+        {
+          "id": 6,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-10-05T16:25:50.769Z"
+        },
+        {
+          "id": 7,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Microscopia concluída",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-10-13T06:27:41.538Z"
+        },
+        {
+          "id": 8,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Aprovação",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-10-14T14:35:04.615Z"
+        },
+        {
+          "id": 9,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Aprovação concluída",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-10-22T04:36:55.384Z"
+        },
+        {
+          "id": 10,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Arquivo",
+          "setor": "Arquivo",
+          "usuario": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "ocorridoEm": "2026-10-23T12:44:18.461Z"
+        },
+        {
+          "id": 11,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Arquivo concluída",
+          "setor": "Arquivo",
+          "usuario": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "ocorridoEm": "2026-10-31T02:46:09.230Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0002/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7710388",
+        "prontuario": "2287430",
+        "nomePaciente": "GERSON TAVORA LINHARES",
+        "dataNascimento": "1969-11-02",
+        "sexo": "Masculino",
+        "origem": "BLOCO_CIRURGICO",
+        "unidade": "Bloco Cirúrgico Central",
+        "especialidade": "Cirurgia Geral",
+        "nomeSolicitante": "Dr. Tomás Barreira",
+        "dataSolicitacao": "2026-10-03T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "VESÍCULA BILIAR",
+        "informacoesClinicas": "Colelitíase sintomática. Colecistectomia videolaparoscópica eletiva.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0002/26"
+      },
+      "status": "EM_ARQUIVAMENTO",
+      "etapaAtual": "ARQUIVO",
+      "etapaAtualDesde": "2026-11-03T10:28:21.818Z",
+      "dataEntradaSap": "2026-10-03T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Ressecção cirúrgica",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-03T12:00:00.000Z",
+          "concluidaEm": "2026-10-03T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-04T14:50:10.909Z",
+          "concluidaEm": "2026-10-10T22:54:32.727Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-12T01:44:43.636Z",
+          "concluidaEm": "2026-10-18T09:49:05.454Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 4,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-19T12:39:16.363Z",
+          "concluidaEm": "2026-10-25T20:43:38.181Z",
+          "responsavelInicio": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "responsavelFim": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          }
+        },
+        {
+          "etapa": "APROVACAO",
+          "sequencia": 5,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-26T23:33:49.090Z",
+          "concluidaEm": "2026-11-02T07:38:10.909Z",
+          "responsavelInicio": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "responsavelFim": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          }
+        },
+        {
+          "etapa": "ARQUIVO",
+          "sequencia": 6,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-03T10:28:21.818Z",
+          "responsavelInicio": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-10-10T22:54:32.727Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "VESÍCULA BILIAR"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "3"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"VESÍCULA BILIAR\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 2 cassete(s)."
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-10-18T09:49:05.454Z",
+          "titulo": "Processamento técnico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Histotécnico"
+            },
+            {
+              "rotulo": "Blocos",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Hematoxilina-eosina (HE)"
+            }
+          ]
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "responsavel": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "registradoEm": "2026-10-25T20:43:38.181Z",
+          "titulo": "Parecer preliminar",
+          "campos": [
+            {
+              "rotulo": "Residente",
+              "valor": "Dr. Danilo Ventura"
+            }
+          ],
+          "texto": "Cortes histológicos/esfregaços examinados. Achados descritos para revisão e validação pela preceptoria."
+        },
+        {
+          "etapa": "APROVACAO",
+          "responsavel": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "registradoEm": "2026-11-02T07:38:10.909Z",
+          "titulo": "Laudo",
+          "campos": [
+            {
+              "rotulo": "Patologista responsável",
+              "valor": "Dra. Selma Aranha"
+            },
+            {
+              "rotulo": "Residente",
+              "valor": "Dr. Danilo Ventura"
+            }
+          ],
+          "texto": "Conclusão diagnóstica registrada (texto fictício para demonstração). Laudo liberado no AGHU pela rotina institucional."
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0002/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · VESÍCULA BILIAR",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-10-03T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0002/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-10T22:54:32.727Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0002/26-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-10-18T09:49:05.454Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0002/26-B",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco B",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-10T22:54:32.727Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0002/26-B-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina B-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-10-18T09:49:05.454Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 12,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0002/26 gerado a partir da solicitação AGHU 7710388. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-10-03T12:00:00.000Z"
+        },
+        {
+          "id": 13,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-04T14:50:10.909Z"
+        },
+        {
+          "id": 14,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-10T22:54:32.727Z"
+        },
+        {
+          "id": 15,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-12T01:44:43.636Z"
+        },
+        {
+          "id": 16,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-18T09:49:05.454Z"
+        },
+        {
+          "id": 17,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-10-19T12:39:16.363Z"
+        },
+        {
+          "id": 18,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Microscopia concluída",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-10-25T20:43:38.181Z"
+        },
+        {
+          "id": 19,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Aprovação",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-10-26T23:33:49.090Z"
+        },
+        {
+          "id": 20,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Aprovação concluída",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-11-02T07:38:10.909Z"
+        },
+        {
+          "id": 21,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Arquivo",
+          "setor": "Arquivo",
+          "usuario": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "ocorridoEm": "2026-11-03T10:28:21.818Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0003/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7710457",
+        "prontuario": "2315528",
+        "nomePaciente": "IRACEMA BRAGANÇA FONTES",
+        "dataNascimento": "1972-06-25",
+        "sexo": "Feminino",
+        "origem": "INTERNACAO",
+        "unidade": "Enfermaria de Cirurgia",
+        "especialidade": "Ginecologia",
+        "nomeSolicitante": "Dra. Íris Fontoura",
+        "dataSolicitacao": "2026-10-13T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "ÚTERO E ANEXOS",
+        "informacoesClinicas": "Miomatose uterina com sangramento uterino anormal. Histerectomia total.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0003/26"
+      },
+      "status": "LAUDO_CONCLUIDO",
+      "etapaAtual": "ARQUIVO",
+      "etapaAtualDesde": "2026-11-05T07:38:10.909Z",
+      "dataEntradaSap": "2026-10-14T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Histerectomia",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-14T12:00:00.000Z",
+          "concluidaEm": "2026-10-14T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-15T07:38:10.909Z",
+          "concluidaEm": "2026-10-19T22:54:32.727Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-20T18:32:43.636Z",
+          "concluidaEm": "2026-10-25T09:49:05.454Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 4,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-26T05:27:16.363Z",
+          "concluidaEm": "2026-10-30T20:43:38.181Z",
+          "responsavelInicio": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "responsavelFim": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          }
+        },
+        {
+          "etapa": "APROVACAO",
+          "sequencia": 5,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-31T16:21:49.090Z",
+          "concluidaEm": "2026-11-05T07:38:10.909Z",
+          "responsavelInicio": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "responsavelFim": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          }
+        },
+        {
+          "etapa": "ARQUIVO",
+          "sequencia": 6,
+          "status": "PENDENTE"
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-10-19T22:54:32.727Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "ÚTERO E ANEXOS"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "5"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "4"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"ÚTERO E ANEXOS\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 4 cassete(s)."
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-10-25T09:49:05.454Z",
+          "titulo": "Processamento técnico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Histotécnico"
+            },
+            {
+              "rotulo": "Blocos",
+              "valor": "4"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "4"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Hematoxilina-eosina (HE)"
+            }
+          ]
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "responsavel": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "registradoEm": "2026-10-30T20:43:38.181Z",
+          "titulo": "Parecer preliminar",
+          "campos": [
+            {
+              "rotulo": "Residente",
+              "valor": "Dr. Danilo Ventura"
+            }
+          ],
+          "texto": "Cortes histológicos/esfregaços examinados. Achados descritos para revisão e validação pela preceptoria."
+        },
+        {
+          "etapa": "APROVACAO",
+          "responsavel": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "registradoEm": "2026-11-05T07:38:10.909Z",
+          "titulo": "Laudo",
+          "campos": [
+            {
+              "rotulo": "Patologista responsável",
+              "valor": "Dra. Selma Aranha"
+            },
+            {
+              "rotulo": "Residente",
+              "valor": "Dr. Danilo Ventura"
+            }
+          ],
+          "texto": "Conclusão diagnóstica registrada (texto fictício para demonstração). Laudo liberado no AGHU pela rotina institucional."
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0003/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · ÚTERO E ANEXOS",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-10-14T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0003/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-19T22:54:32.727Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0003/26-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-10-25T09:49:05.454Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0003/26-B",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco B",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-19T22:54:32.727Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0003/26-B-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina B-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-10-25T09:49:05.454Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0003/26-C",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco C",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-19T22:54:32.727Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0003/26-C-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina C-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-10-25T09:49:05.454Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0003/26-D",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco D",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-19T22:54:32.727Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0003/26-D-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina D-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-10-25T09:49:05.454Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 22,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0003/26 gerado a partir da solicitação AGHU 7710457. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-10-14T12:00:00.000Z"
+        },
+        {
+          "id": 23,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-15T07:38:10.909Z"
+        },
+        {
+          "id": 24,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-19T22:54:32.727Z"
+        },
+        {
+          "id": 25,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-20T18:32:43.636Z"
+        },
+        {
+          "id": 26,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-25T09:49:05.454Z"
+        },
+        {
+          "id": 27,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-10-26T05:27:16.363Z"
+        },
+        {
+          "id": 28,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Microscopia concluída",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-10-30T20:43:38.181Z"
+        },
+        {
+          "id": 29,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Aprovação",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-10-31T16:21:49.090Z"
+        },
+        {
+          "id": 30,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Aprovação concluída",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-11-05T07:38:10.909Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0004/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7710593",
+        "prontuario": "2199803",
+        "nomePaciente": "WILSON ALCÂNTARA REIS",
+        "dataNascimento": "1951-01-30",
+        "sexo": "Masculino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Urologia",
+        "especialidade": "Urologia",
+        "nomeSolicitante": "Dr. Natan Seabra",
+        "dataSolicitacao": "2026-10-27T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "BIÓPSIA DE PRÓSTATA – 12 FRAGMENTOS",
+        "informacoesClinicas": "PSA elevado em controle. Toque retal com nódulo em lobo direito.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0004/26"
+      },
+      "status": "AGUARDANDO_APROVACAO",
+      "etapaAtual": "APROVACAO",
+      "etapaAtualDesde": "2026-11-08T16:48:00.000Z",
+      "dataEntradaSap": "2026-10-28T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": true,
+      "motivoUrgencia": "Programação de cirurgia oncológica",
+      "procedimento": "Biópsia por agulha grossa",
+      "quantidade": 2,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-28T12:00:00.000Z",
+          "concluidaEm": "2026-10-28T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-29T00:48:00.000Z",
+          "concluidaEm": "2026-11-01T01:20:00.000Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-01T14:08:00.000Z",
+          "concluidaEm": "2026-11-04T14:40:00.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 4,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-05T03:28:00.000Z",
+          "concluidaEm": "2026-11-08T04:00:00.000Z",
+          "responsavelInicio": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "responsavelFim": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          }
+        },
+        {
+          "etapa": "APROVACAO",
+          "sequencia": 5,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-08T16:48:00.000Z",
+          "responsavelInicio": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-11-01T01:20:00.000Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "BIÓPSIA DE PRÓSTATA – 12 FRAGMENTOS"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "3"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"BIÓPSIA DE PRÓSTATA – 12 FRAGMENTOS\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 2 cassete(s)."
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-11-04T14:40:00.000Z",
+          "titulo": "Processamento técnico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Histotécnico"
+            },
+            {
+              "rotulo": "Blocos",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Hematoxilina-eosina (HE)"
+            }
+          ]
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "responsavel": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "registradoEm": "2026-11-08T04:00:00.000Z",
+          "titulo": "Parecer preliminar",
+          "campos": [
+            {
+              "rotulo": "Residente",
+              "valor": "Dr. Danilo Ventura"
+            }
+          ],
+          "texto": "Cortes histológicos/esfregaços examinados. Achados descritos para revisão e validação pela preceptoria."
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0004/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · BIÓPSIA DE PRÓSTATA – 12 FRAGMENTOS",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-10-28T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0004/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-11-01T01:20:00.000Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0004/26-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-04T14:40:00.000Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0004/26-B",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco B",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-11-01T01:20:00.000Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0004/26-B-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina B-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-04T14:40:00.000Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "codigo": "HP-0004/26-F2",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 2 · BIÓPSIA DE PRÓSTATA – 12 FRAGMENTOS",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-10-28T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0004/26-F2-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-11-01T01:20:00.000Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0004/26-F2-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-04T14:40:00.000Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0004/26-F2-B",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco B",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-11-01T01:20:00.000Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0004/26-F2-B-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina B-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-04T14:40:00.000Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 31,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0004/26 gerado a partir da solicitação AGHU 7710593. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-10-28T12:00:00.000Z"
+        },
+        {
+          "id": 32,
+          "evento": "URGENCIA_MARCADA",
+          "titulo": "Marcado como URGENTE",
+          "descricao": "Programação de cirurgia oncológica",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-10-28T12:00:00.000Z"
+        },
+        {
+          "id": 33,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-29T00:48:00.000Z"
+        },
+        {
+          "id": 34,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-01T01:20:00.000Z"
+        },
+        {
+          "id": 35,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-01T14:08:00.000Z"
+        },
+        {
+          "id": 36,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-04T14:40:00.000Z"
+        },
+        {
+          "id": 37,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-11-05T03:28:00.000Z"
+        },
+        {
+          "id": 38,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Microscopia concluída",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-11-08T04:00:00.000Z"
+        },
+        {
+          "id": 39,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Aprovação",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-11-08T16:48:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0005/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7710642",
+        "prontuario": "2340017",
+        "nomePaciente": "NEIDE CAMPELO SARMENTO",
+        "dataNascimento": "1963-09-12",
+        "sexo": "Feminino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Gastroenterologia",
+        "especialidade": "Gastroenterologia",
+        "nomeSolicitante": "Dr. Caio Montenegro",
+        "dataSolicitacao": "2026-10-23T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "BIÓPSIA DE CÓLON – SIGMOIDE",
+        "informacoesClinicas": "Alteração do hábito intestinal. Colonoscopia com lesão vegetante em sigmoide.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0005/26"
+      },
+      "status": "EM_MICROSCOPIA",
+      "etapaAtual": "MICROSCOPIA",
+      "etapaAtualDesde": "2026-11-07T12:00:00.000Z",
+      "dataEntradaSap": "2026-10-24T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Biópsia endoscópica",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-24T12:00:00.000Z",
+          "concluidaEm": "2026-10-24T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-25T04:00:00.000Z",
+          "concluidaEm": "2026-10-28T22:40:00.000Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-29T14:40:00.000Z",
+          "concluidaEm": "2026-11-02T09:20:00.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "IHQ",
+          "sequencia": 4,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-03T01:20:00.000Z",
+          "concluidaEm": "2026-11-06T20:00:00.000Z",
+          "responsavelInicio": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          },
+          "responsavelFim": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 5,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-07T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-10-28T22:40:00.000Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "BIÓPSIA DE CÓLON – SIGMOIDE"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "3"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"BIÓPSIA DE CÓLON – SIGMOIDE\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 2 cassete(s)."
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-11-02T09:20:00.000Z",
+          "titulo": "Processamento técnico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Histotécnico"
+            },
+            {
+              "rotulo": "Blocos",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Hematoxilina-eosina (HE)"
+            }
+          ]
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0005/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · BIÓPSIA DE CÓLON – SIGMOIDE",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-10-24T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0005/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-28T22:40:00.000Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0005/26-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-02T09:20:00.000Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0005/26-B",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco B",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-28T22:40:00.000Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0005/26-B-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina B-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-02T09:20:00.000Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [
+        {
+          "codigoInternoIhq": "IH-0001/26",
+          "status": "RESULTADO_REGISTRADO",
+          "solicitacaoAghuCodigo": "7710980",
+          "anticorpos": [
+            "CK7",
+            "CK20",
+            "CDX2"
+          ],
+          "resultadoTecnico": "Reações realizadas internamente; controles adequados.",
+          "recebidaEm": "2026-11-02T09:20:00.000Z",
+          "registradaPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        }
+      ],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 40,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0005/26 gerado a partir da solicitação AGHU 7710642. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-10-24T12:00:00.000Z"
+        },
+        {
+          "id": 41,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-25T04:00:00.000Z"
+        },
+        {
+          "id": 42,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-28T22:40:00.000Z"
+        },
+        {
+          "id": 43,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-29T14:40:00.000Z"
+        },
+        {
+          "id": 44,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-02T09:20:00.000Z"
+        },
+        {
+          "id": 45,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Imuno-histoquímica",
+          "setor": "Imuno-histoquímica",
+          "usuario": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          },
+          "ocorridoEm": "2026-11-03T01:20:00.000Z"
+        },
+        {
+          "id": 46,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Imuno-histoquímica concluída",
+          "setor": "Imuno-histoquímica",
+          "usuario": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          },
+          "ocorridoEm": "2026-11-06T20:00:00.000Z"
+        },
+        {
+          "id": 47,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-11-07T12:00:00.000Z"
+        },
+        {
+          "id": 48,
+          "evento": "IHQ_VINCULADA",
+          "titulo": "IHQ IH-0001/26 vinculada ao caso",
+          "descricao": "Solicitação AGHU 7710980 recebida pela recepção.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-02T09:20:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0006/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7710731",
+        "prontuario": "2352291",
+        "nomePaciente": "TELMA FIGUEIRA LOBO",
+        "dataNascimento": "1978-03-07",
+        "sexo": "Feminino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Mastologia",
+        "especialidade": "Mastologia",
+        "nomeSolicitante": "Dra. Olga Bittencourt",
+        "dataSolicitacao": "2026-10-26T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "NÓDULO DE MAMA ESQUERDA – CORE BIOPSY",
+        "informacoesClinicas": "Nódulo palpável em quadrante superior externo da mama esquerda, BI-RADS 4.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0006/26"
+      },
+      "status": "IHQ_AGUARDANDO_EXTERNO",
+      "etapaAtual": "IHQ",
+      "etapaAtualDesde": "2026-11-06T13:22:17.142Z",
+      "dataEntradaSap": "2026-10-26T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Biópsia por agulha grossa",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-26T12:00:00.000Z",
+          "concluidaEm": "2026-10-26T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-27T06:30:51.428Z",
+          "concluidaEm": "2026-10-31T15:25:42.857Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-01T09:56:34.285Z",
+          "concluidaEm": "2026-11-05T18:51:25.714Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "IHQ",
+          "sequencia": 4,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-06T13:22:17.142Z",
+          "responsavelInicio": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-10-31T15:25:42.857Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "NÓDULO DE MAMA ESQUERDA – CORE BIOPSY"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "3"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"NÓDULO DE MAMA ESQUERDA – CORE BIOPSY\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 2 cassete(s)."
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-11-05T18:51:25.714Z",
+          "titulo": "Processamento técnico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Histotécnico"
+            },
+            {
+              "rotulo": "Blocos",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Hematoxilina-eosina (HE)"
+            }
+          ]
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0006/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · NÓDULO DE MAMA ESQUERDA – CORE BIOPSY",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-10-26T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0006/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-31T15:25:42.857Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0006/26-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-05T18:51:25.714Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0006/26-B",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco B",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-10-31T15:25:42.857Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0006/26-B-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina B-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-05T18:51:25.714Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [
+        {
+          "codigoInternoIhq": "IH-0002/26",
+          "status": "AGUARDANDO_EXTERNO",
+          "solicitacaoAghuCodigo": "7711010",
+          "anticorpos": [
+            "HER2"
+          ],
+          "laboratorioExterno": "Laboratório de Referência em Patologia (fictício)",
+          "recebidaEm": "2026-11-05T18:51:25.714Z",
+          "registradaPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        }
+      ],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 49,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0006/26 gerado a partir da solicitação AGHU 7710731. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-10-26T12:00:00.000Z"
+        },
+        {
+          "id": 50,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-27T06:30:51.428Z"
+        },
+        {
+          "id": 51,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-10-31T15:25:42.857Z"
+        },
+        {
+          "id": 52,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-01T09:56:34.285Z"
+        },
+        {
+          "id": 53,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-05T18:51:25.714Z"
+        },
+        {
+          "id": 54,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Imuno-histoquímica",
+          "setor": "Imuno-histoquímica",
+          "usuario": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          },
+          "ocorridoEm": "2026-11-06T13:22:17.142Z"
+        },
+        {
+          "id": 55,
+          "evento": "IHQ_VINCULADA",
+          "titulo": "IHQ IH-0002/26 vinculada ao caso",
+          "descricao": "Solicitação AGHU 7711010 recebida pela recepção.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-05T18:51:25.714Z"
+        },
+        {
+          "id": 56,
+          "evento": "IHQ_ENVIADA_EXTERNO",
+          "titulo": "IHQ IH-0002/26 enviada ao laboratório externo",
+          "descricao": "Laboratório de Referência em Patologia (fictício)",
+          "setor": "Imuno-histoquímica",
+          "usuario": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          },
+          "ocorridoEm": "2026-11-05T20:51:25.714Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0007/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7710866",
+        "prontuario": "2276654",
+        "nomePaciente": "EDNALDO PIMENTA CASTRO",
+        "dataNascimento": "1984-12-19",
+        "sexo": "Masculino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Cabeça e Pescoço",
+        "especialidade": "Cirurgia de Cabeça e Pescoço",
+        "nomeSolicitante": "Dr. Vicente Lacerda",
+        "dataSolicitacao": "2026-10-31T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "LINFONODO CERVICAL",
+        "informacoesClinicas": "Linfonodomegalia cervical persistente há 3 meses, sem febre.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0007/26"
+      },
+      "status": "EM_IHQ",
+      "etapaAtual": "IHQ",
+      "etapaAtualDesde": "2026-11-08T20:54:51.428Z",
+      "dataEntradaSap": "2026-11-01T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Biópsia excisional",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-01T12:00:00.000Z",
+          "concluidaEm": "2026-11-01T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-02T00:20:34.285Z",
+          "concluidaEm": "2026-11-04T22:17:08.571Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-05T10:37:42.857Z",
+          "concluidaEm": "2026-11-08T08:34:17.142Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "IHQ",
+          "sequencia": 4,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-08T20:54:51.428Z",
+          "responsavelInicio": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-11-04T22:17:08.571Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "LINFONODO CERVICAL"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "3"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"LINFONODO CERVICAL\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 2 cassete(s)."
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-11-08T08:34:17.142Z",
+          "titulo": "Processamento técnico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Histotécnico"
+            },
+            {
+              "rotulo": "Blocos",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Hematoxilina-eosina (HE)"
+            }
+          ]
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0007/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · LINFONODO CERVICAL",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-01T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0007/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-11-04T22:17:08.571Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0007/26-A-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina A-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-08T08:34:17.142Z",
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "codigo": "HP-0007/26-B",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco B",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-11-04T22:17:08.571Z",
+              "filhos": [
+                {
+                  "codigo": "HP-0007/26-B-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina B-01 · HE",
+                  "origem": "ROTINA",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "rui.peixoto",
+                    "nome": "Rui Peixoto"
+                  },
+                  "criadoEm": "2026-11-08T08:34:17.142Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [
+        {
+          "codigoInternoIhq": "IH-0003/26",
+          "status": "EM_EXECUCAO_INTERNA",
+          "solicitacaoAghuCodigo": "7711236",
+          "anticorpos": [
+            "CD20",
+            "CD3",
+            "Ki-67"
+          ],
+          "recebidaEm": "2026-11-08T08:34:17.142Z",
+          "registradaPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        }
+      ],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 57,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0007/26 gerado a partir da solicitação AGHU 7710866. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-01T12:00:00.000Z"
+        },
+        {
+          "id": 58,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-02T00:20:34.285Z"
+        },
+        {
+          "id": 59,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-04T22:17:08.571Z"
+        },
+        {
+          "id": 60,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-05T10:37:42.857Z"
+        },
+        {
+          "id": 61,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-08T08:34:17.142Z"
+        },
+        {
+          "id": 62,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Imuno-histoquímica",
+          "setor": "Imuno-histoquímica",
+          "usuario": {
+            "login": "nadia.quintela",
+            "nome": "Nádia Quintela"
+          },
+          "ocorridoEm": "2026-11-08T20:54:51.428Z"
+        },
+        {
+          "id": 63,
+          "evento": "IHQ_VINCULADA",
+          "titulo": "IHQ IH-0003/26 vinculada ao caso",
+          "descricao": "Solicitação AGHU 7711236 recebida pela recepção.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-08T08:34:17.142Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0008/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7711024",
+        "prontuario": "2368140",
+        "nomePaciente": "ZULEIDE MOTA GUSMÃO",
+        "dataNascimento": "1995-08-21",
+        "sexo": "Feminino",
+        "origem": "BLOCO_CIRURGICO",
+        "unidade": "Bloco Cirúrgico Central",
+        "especialidade": "Cirurgia Geral",
+        "nomeSolicitante": "Dr. Tomás Barreira",
+        "dataSolicitacao": "2026-11-07T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "APÊNDICE CECAL",
+        "informacoesClinicas": "Quadro de abdome agudo. Apendicectomia de urgência.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0008/26"
+      },
+      "status": "EM_PROCESSAMENTO",
+      "etapaAtual": "PROCESSAMENTO",
+      "etapaAtualDesde": "2026-11-10T06:14:24.000Z",
+      "dataEntradaSap": "2026-11-07T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Ressecção cirúrgica",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-07T12:00:00.000Z",
+          "concluidaEm": "2026-11-07T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-07T20:38:24.000Z",
+          "concluidaEm": "2026-11-09T21:36:00.000Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "responsavelFim": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 3,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-10T06:14:24.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "MACROSCOPIA",
+          "responsavel": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "registradoEm": "2026-11-09T21:36:00.000Z",
+          "titulo": "Descrição macroscópica",
+          "campos": [
+            {
+              "rotulo": "Tipo de material",
+              "valor": "APÊNDICE CECAL"
+            },
+            {
+              "rotulo": "Fragmentos",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Cassetes",
+              "valor": "1"
+            },
+            {
+              "rotulo": "Sobra em fixador",
+              "valor": "Não"
+            },
+            {
+              "rotulo": "Rota de processamento",
+              "valor": "Histotécnico"
+            }
+          ],
+          "texto": "Recebido em frasco com formol a 10% material identificado como \"APÊNDICE CECAL\". Mede em conjunto 2,1 x 1,4 x 0,7 cm, superfície pardacenta e consistência elástica. Material incluído em 1 cassete(s)."
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "HP-0008/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · APÊNDICE CECAL",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-07T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "HP-0008/26-A",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco A",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "elisa.matarazzo",
+                "nome": "Elisa Matarazzo"
+              },
+              "criadoEm": "2026-11-09T21:36:00.000Z",
+              "filhos": []
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 64,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0008/26 gerado a partir da solicitação AGHU 7711024. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-07T12:00:00.000Z"
+        },
+        {
+          "id": 65,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-07T20:38:24.000Z"
+        },
+        {
+          "id": 66,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Macroscopia concluída",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-09T21:36:00.000Z"
+        },
+        {
+          "id": 67,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-10T06:14:24.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0009/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7711267",
+        "prontuario": "2241976",
+        "nomePaciente": "VALTER CORDEIRO BASTOS",
+        "dataNascimento": "1960-05-14",
+        "sexo": "Masculino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Gastroenterologia",
+        "especialidade": "Gastroenterologia",
+        "nomeSolicitante": "Dr. Caio Montenegro",
+        "dataSolicitacao": "2026-11-11T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "BIÓPSIA GÁSTRICA – CORPO",
+        "informacoesClinicas": "Emagrecimento e lesão ulcerada em corpo gástrico à endoscopia.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0009/26"
+      },
+      "status": "EM_MACROSCOPIA",
+      "etapaAtual": "MACROSCOPIA",
+      "etapaAtualDesde": "2026-11-11T16:48:00.000Z",
+      "dataEntradaSap": "2026-11-11T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": true,
+      "motivoUrgencia": "Suspeita de neoplasia gástrica com indicação cirúrgica",
+      "procedimento": "Biópsia endoscópica",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-11T12:00:00.000Z",
+          "concluidaEm": "2026-11-11T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-11T16:48:00.000Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        }
+      ],
+      "registros": [],
+      "materiais": [
+        {
+          "codigo": "HP-0009/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · BIÓPSIA GÁSTRICA – CORPO",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-11T12:00:00.000Z",
+          "filhos": []
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 68,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0009/26 gerado a partir da solicitação AGHU 7711267. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-11T12:00:00.000Z"
+        },
+        {
+          "id": 69,
+          "evento": "URGENCIA_MARCADA",
+          "titulo": "Marcado como URGENTE",
+          "descricao": "Suspeita de neoplasia gástrica com indicação cirúrgica",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-11T12:00:00.000Z"
+        },
+        {
+          "id": 70,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-11T16:48:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0010/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7711390",
+        "prontuario": "2374405",
+        "nomePaciente": "MIRTES ALENCAR PAIXÃO",
+        "dataNascimento": "1968-02-09",
+        "sexo": "Feminino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Dermatologia",
+        "especialidade": "Dermatologia",
+        "nomeSolicitante": "Dra. Yasmin Rabelo",
+        "dataSolicitacao": "2026-11-12T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "LESÃO DE PELE – DORSO",
+        "informacoesClinicas": "Lesão pigmentada assimétrica em dorso, 0,8 cm. Exérese com margem.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0010/26"
+      },
+      "status": "RECEBIDO",
+      "etapaAtual": "MACROSCOPIA",
+      "etapaAtualDesde": "2026-11-13T04:48:00.000Z",
+      "dataEntradaSap": "2026-11-13T04:48:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Exérese de lesão cutânea",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-13T04:48:00.000Z",
+          "concluidaEm": "2026-11-13T04:48:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "PENDENTE"
+        }
+      ],
+      "registros": [],
+      "materiais": [
+        {
+          "codigo": "HP-0010/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · LESÃO DE PELE – DORSO",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-13T04:48:00.000Z",
+          "filhos": []
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 71,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0010/26 gerado a partir da solicitação AGHU 7711390. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-13T04:48:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "HP-0011/26",
+      "tipoExame": "HP",
+      "solicitacao": {
+        "codigoSolicitacao": "7711455",
+        "prontuario": "2229518",
+        "nomePaciente": "JURANDIR VILELA SOBRAL",
+        "dataNascimento": "1956-10-03",
+        "sexo": "Masculino",
+        "origem": "BLOCO_CIRURGICO",
+        "unidade": "Bloco Cirúrgico Central",
+        "especialidade": "Cirurgia Geral",
+        "nomeSolicitante": "Dr. Tomás Barreira",
+        "dataSolicitacao": "2026-11-04T12:00:00.000Z",
+        "siglaExame": "AP",
+        "nomeExame": "Exame anatomopatológico",
+        "tipoExameSugerido": "HP",
+        "descricaoMaterial": "SEGMENTO DE INTESTINO DELGADO",
+        "informacoesClinicas": "Obstrução intestinal. Enterectomia segmentar.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "HP-0011/26"
+      },
+      "status": "DEVOLVIDO",
+      "etapaAtual": "MACROSCOPIA",
+      "etapaAtualDesde": "2026-11-05T09:36:00.000Z",
+      "dataEntradaSap": "2026-11-04T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Ressecção cirúrgica",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-04T12:00:00.000Z",
+          "concluidaEm": "2026-11-04T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "MACROSCOPIA",
+          "sequencia": 2,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-05T09:36:00.000Z",
+          "responsavelInicio": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          }
+        }
+      ],
+      "registros": [],
+      "materiais": [
+        {
+          "codigo": "HP-0011/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · SEGMENTO DE INTESTINO DELGADO",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-04T12:00:00.000Z",
+          "filhos": []
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 72,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno HP-0011/26 gerado a partir da solicitação AGHU 7711455. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-04T12:00:00.000Z"
+        },
+        {
+          "id": 73,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Macroscopia",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-05T09:36:00.000Z"
+        },
+        {
+          "id": 111,
+          "evento": "NAO_CONFORMIDADE",
+          "titulo": "Não conformidade registrada",
+          "descricao": "Ausência de fixador/fixação inadequada — Peça recebida sem formol no recipiente.",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-05T08:00:00.000Z"
+        },
+        {
+          "id": 112,
+          "evento": "DEVOLUCAO",
+          "titulo": "Material devolvido à origem",
+          "descricao": "Devolvido à unidade de origem. Nova amostra solicitada: Sim.",
+          "setor": "Macroscopia",
+          "usuario": {
+            "login": "elisa.matarazzo",
+            "nome": "Elisa Matarazzo"
+          },
+          "ocorridoEm": "2026-11-05T08:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "CG-0001/26",
+      "tipoExame": "CG",
+      "solicitacao": {
+        "codigoSolicitacao": "7710912",
+        "prontuario": "2318862",
+        "nomePaciente": "CLEONICE AMARAL TEIXEIRA",
+        "dataNascimento": "1949-07-28",
+        "sexo": "Feminino",
+        "origem": "INTERNACAO",
+        "unidade": "Enfermaria de Pneumologia",
+        "especialidade": "Clínica Médica",
+        "nomeSolicitante": "Dra. Lívia Cardim",
+        "dataSolicitacao": "2026-11-03T12:00:00.000Z",
+        "siglaExame": "CITO",
+        "nomeExame": "Citologia geral (líquidos e PAAF)",
+        "tipoExameSugerido": "CG",
+        "descricaoMaterial": "LÍQUIDO PLEURAL",
+        "informacoesClinicas": "Derrame pleural à direita de etiologia a esclarecer.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CG-0001/26"
+      },
+      "status": "EM_MICROSCOPIA",
+      "etapaAtual": "MICROSCOPIA",
+      "etapaAtualDesde": "2026-11-08T02:24:00.000Z",
+      "dataEntradaSap": "2026-11-03T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Coleta de líquido cavitário",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-03T12:00:00.000Z",
+          "concluidaEm": "2026-11-03T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-04T02:24:00.000Z",
+          "concluidaEm": "2026-11-07T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 3,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-08T02:24:00.000Z",
+          "responsavelInicio": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-11-07T12:00:00.000Z",
+          "titulo": "Processamento citológico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Citologia direta"
+            },
+            {
+              "rotulo": "Material líquido",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Centrifugado",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Cell-block",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Papanicolaou"
+            }
+          ]
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "CG-0001/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · LÍQUIDO PLEURAL",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-03T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "CG-0001/26-CB",
+              "tipoItem": "CELL_BLOCK",
+              "rotulo": "Cell-block",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "rui.peixoto",
+                "nome": "Rui Peixoto"
+              },
+              "criadoEm": "2026-11-07T12:00:00.000Z",
+              "filhos": []
+            },
+            {
+              "codigo": "CG-0001/26-L01",
+              "tipoItem": "LAMINA",
+              "rotulo": "Lâmina direta 01 · Papanicolaou",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "rui.peixoto",
+                "nome": "Rui Peixoto"
+              },
+              "criadoEm": "2026-11-07T12:00:00.000Z",
+              "filhos": []
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 74,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CG-0001/26 gerado a partir da solicitação AGHU 7710912. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-03T12:00:00.000Z"
+        },
+        {
+          "id": 75,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-04T02:24:00.000Z"
+        },
+        {
+          "id": 76,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-07T12:00:00.000Z"
+        },
+        {
+          "id": 77,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-11-08T02:24:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "CG-0002/26",
+      "tipoExame": "CG",
+      "solicitacao": {
+        "codigoSolicitacao": "7711302",
+        "prontuario": "2381037",
+        "nomePaciente": "ADEMIR PORTELA RIBAS",
+        "dataNascimento": "1966-04-11",
+        "sexo": "Masculino",
+        "origem": "INTERNACAO",
+        "unidade": "Enfermaria de Clínica Médica",
+        "especialidade": "Clínica Médica",
+        "nomeSolicitante": "Dra. Lívia Cardim",
+        "dataSolicitacao": "2026-11-12T12:00:00.000Z",
+        "siglaExame": "CITO",
+        "nomeExame": "Citologia geral (líquidos e PAAF)",
+        "tipoExameSugerido": "CG",
+        "descricaoMaterial": "LÍQUIDO ASCÍTICO",
+        "informacoesClinicas": "Ascite volumosa de início recente. Paracentese diagnóstica.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CG-0002/26"
+      },
+      "status": "EM_PROCESSAMENTO",
+      "etapaAtual": "PROCESSAMENTO",
+      "etapaAtualDesde": "2026-11-12T14:24:00.000Z",
+      "dataEntradaSap": "2026-11-12T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": true,
+      "motivoUrgencia": "Paciente internado aguardando definição terapêutica",
+      "procedimento": "Coleta de líquido cavitário",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-12T12:00:00.000Z",
+          "concluidaEm": "2026-11-12T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 2,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-12T14:24:00.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        }
+      ],
+      "registros": [],
+      "materiais": [
+        {
+          "codigo": "CG-0002/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · LÍQUIDO ASCÍTICO",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-12T12:00:00.000Z",
+          "filhos": []
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 78,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CG-0002/26 gerado a partir da solicitação AGHU 7711302. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-12T12:00:00.000Z"
+        },
+        {
+          "id": 79,
+          "evento": "URGENCIA_MARCADA",
+          "titulo": "Marcado como URGENTE",
+          "descricao": "Paciente internado aguardando definição terapêutica",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-12T12:00:00.000Z"
+        },
+        {
+          "id": 80,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-12T14:24:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "CG-0003/26",
+      "tipoExame": "CG",
+      "solicitacao": {
+        "codigoSolicitacao": "7711088",
+        "prontuario": "2290715",
+        "nomePaciente": "SOCORRO MACHADO LEAL",
+        "dataNascimento": "1975-12-01",
+        "sexo": "Feminino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Cabeça e Pescoço",
+        "especialidade": "Cirurgia de Cabeça e Pescoço",
+        "nomeSolicitante": "Dr. Vicente Lacerda",
+        "dataSolicitacao": "2026-11-05T12:00:00.000Z",
+        "siglaExame": "CITO",
+        "nomeExame": "Citologia geral (líquidos e PAAF)",
+        "tipoExameSugerido": "CG",
+        "descricaoMaterial": "PAAF DE TIREOIDE",
+        "informacoesClinicas": "Nódulo tireoidiano TI-RADS 4 em lobo esquerdo.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CG-0003/26"
+      },
+      "status": "CANCELADO",
+      "etapaAtual": "PROCESSAMENTO",
+      "etapaAtualDesde": "2026-11-07T04:48:00.000Z",
+      "dataEntradaSap": "2026-11-06T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Punção aspirativa por agulha fina (PAAF)",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-06T12:00:00.000Z",
+          "concluidaEm": "2026-11-06T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 2,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-07T04:48:00.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        }
+      ],
+      "registros": [],
+      "materiais": [
+        {
+          "codigo": "CG-0003/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · PAAF DE TIREOIDE",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-06T12:00:00.000Z",
+          "filhos": []
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 81,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CG-0003/26 gerado a partir da solicitação AGHU 7711088. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-06T12:00:00.000Z"
+        },
+        {
+          "id": 82,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-07T04:48:00.000Z"
+        },
+        {
+          "id": 113,
+          "evento": "CASO_CANCELADO",
+          "titulo": "Caso cancelado",
+          "descricao": "Solicitação duplicada no AGHU: o mesmo material foi registrado em outra solicitação.",
+          "setor": "Chefia",
+          "usuario": {
+            "login": "regina.marinho",
+            "nome": "Dra. Regina Marinho"
+          },
+          "ocorridoEm": "2026-11-07T12:00:00.000Z"
+        }
+      ],
+      "cancelamento": {
+        "motivo": "Solicitação duplicada no AGHU: o mesmo material foi registrado em outra solicitação.",
+        "canceladoPor": {
+          "login": "regina.marinho",
+          "nome": "Dra. Regina Marinho"
+        },
+        "canceladoEm": "2026-11-07T12:00:00.000Z"
+      }
+    },
+    {
+      "numeroInterno": "CCV-0001/26",
+      "tipoExame": "CCV",
+      "solicitacao": {
+        "codigoSolicitacao": "7710805",
+        "prontuario": "2333409",
+        "nomePaciente": "ROSIMERE TOLEDO BRITO",
+        "dataNascimento": "1988-06-16",
+        "sexo": "Feminino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Ginecologia",
+        "especialidade": "Ginecologia",
+        "nomeSolicitante": "Dra. Íris Fontoura",
+        "dataSolicitacao": "2026-10-29T12:00:00.000Z",
+        "siglaExame": "CCV",
+        "nomeExame": "Citologia oncótica cérvico-vaginal",
+        "tipoExameSugerido": "CCV",
+        "descricaoMaterial": "ESFREGAÇO CÉRVICO-VAGINAL",
+        "informacoesClinicas": "Rastreamento de rotina. Última coleta há 3 anos.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CCV-0001/26"
+      },
+      "status": "AGUARDANDO_APROVACAO",
+      "etapaAtual": "APROVACAO",
+      "etapaAtualDesde": "2026-11-09T07:12:00.000Z",
+      "dataEntradaSap": "2026-10-30T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Coleta de citologia cérvico-vaginal",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-30T12:00:00.000Z",
+          "concluidaEm": "2026-10-30T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-30T23:12:00.000Z",
+          "concluidaEm": "2026-11-02T14:40:00.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "TRIAGEM_CITO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-03T01:52:00.000Z",
+          "concluidaEm": "2026-11-05T17:20:00.000Z",
+          "responsavelInicio": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "responsavelFim": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 4,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-06T04:32:00.000Z",
+          "concluidaEm": "2026-11-08T20:00:00.000Z",
+          "responsavelInicio": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "responsavelFim": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          }
+        },
+        {
+          "etapa": "APROVACAO",
+          "sequencia": 5,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-09T07:12:00.000Z",
+          "responsavelInicio": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-11-02T14:40:00.000Z",
+          "titulo": "Processamento citológico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Citologia direta"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "1"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Papanicolaou"
+            }
+          ]
+        },
+        {
+          "etapa": "TRIAGEM_CITO",
+          "responsavel": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "registradoEm": "2026-11-05T17:20:00.000Z",
+          "titulo": "Triagem citotécnica",
+          "campos": [
+            {
+              "rotulo": "Adequabilidade",
+              "valor": "Satisfatória"
+            },
+            {
+              "rotulo": "Resultado da triagem",
+              "valor": "Sem alterações citológicas significativas"
+            }
+          ]
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "responsavel": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "registradoEm": "2026-11-08T20:00:00.000Z",
+          "titulo": "Parecer preliminar",
+          "campos": [
+            {
+              "rotulo": "Residente",
+              "valor": "Dra. Bianca Saldanha"
+            }
+          ],
+          "texto": "Cortes histológicos/esfregaços examinados. Achados descritos para revisão e validação pela preceptoria."
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "CCV-0001/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · ESFREGAÇO CÉRVICO-VAGINAL",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-10-30T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "CCV-0001/26-L01",
+              "tipoItem": "LAMINA",
+              "rotulo": "Lâmina direta 01 · Papanicolaou",
+              "origem": "ROTINA",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "rui.peixoto",
+                "nome": "Rui Peixoto"
+              },
+              "criadoEm": "2026-11-02T14:40:00.000Z",
+              "filhos": []
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 83,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CCV-0001/26 gerado a partir da solicitação AGHU 7710805. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-10-30T12:00:00.000Z"
+        },
+        {
+          "id": 84,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-30T23:12:00.000Z"
+        },
+        {
+          "id": 85,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-02T14:40:00.000Z"
+        },
+        {
+          "id": 86,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Triagem citotécnica",
+          "setor": "Triagem citotécnica",
+          "usuario": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "ocorridoEm": "2026-11-03T01:52:00.000Z"
+        },
+        {
+          "id": 87,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Triagem citotécnica concluída",
+          "setor": "Triagem citotécnica",
+          "usuario": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "ocorridoEm": "2026-11-05T17:20:00.000Z"
+        },
+        {
+          "id": 88,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "ocorridoEm": "2026-11-06T04:32:00.000Z"
+        },
+        {
+          "id": 89,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Microscopia concluída",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "ocorridoEm": "2026-11-08T20:00:00.000Z"
+        },
+        {
+          "id": 90,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Aprovação",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-11-09T07:12:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "CCV-0002/26",
+      "tipoExame": "CCV",
+      "solicitacao": {
+        "codigoSolicitacao": "7711199",
+        "prontuario": "2386652",
+        "nomePaciente": "MARINALVA COUTO RANGEL",
+        "dataNascimento": "1991-01-23",
+        "sexo": "Feminino",
+        "origem": "AMBULATORIO",
+        "unidade": "Ambulatório de Ginecologia",
+        "especialidade": "Ginecologia",
+        "nomeSolicitante": "Dra. Íris Fontoura",
+        "dataSolicitacao": "2026-11-10T12:00:00.000Z",
+        "siglaExame": "CCV",
+        "nomeExame": "Citologia oncótica cérvico-vaginal",
+        "tipoExameSugerido": "CCV",
+        "descricaoMaterial": "ESFREGAÇO CÉRVICO-VAGINAL",
+        "informacoesClinicas": "Controle após tratamento de lesão de baixo grau.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CCV-0002/26"
+      },
+      "status": "EM_PROCESSAMENTO",
+      "etapaAtual": "PROCESSAMENTO",
+      "etapaAtualDesde": "2026-11-10T19:12:00.000Z",
+      "dataEntradaSap": "2026-11-10T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Coleta de citologia cérvico-vaginal",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-10T12:00:00.000Z",
+          "concluidaEm": "2026-11-10T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 2,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-10T19:12:00.000Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        }
+      ],
+      "registros": [],
+      "materiais": [
+        {
+          "codigo": "CCV-0002/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · ESFREGAÇO CÉRVICO-VAGINAL",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-10T12:00:00.000Z",
+          "filhos": []
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 91,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CCV-0002/26 gerado a partir da solicitação AGHU 7711199. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-10T12:00:00.000Z"
+        },
+        {
+          "id": 92,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-11-10T19:12:00.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "CCV-0003/26",
+      "tipoExame": "CCV",
+      "solicitacao": {
+        "codigoSolicitacao": "7710301",
+        "prontuario": "2254381",
+        "nomePaciente": "DORALICE PIRES SALGADO",
+        "dataNascimento": "1980-09-30",
+        "sexo": "Feminino",
+        "origem": "EXTERNO",
+        "unidade": "Paciente externo – UBS Vila Esperança (fictícia)",
+        "especialidade": "Ginecologia",
+        "nomeSolicitante": "Dra. Íris Fontoura",
+        "dataSolicitacao": "2026-09-23T12:00:00.000Z",
+        "siglaExame": "CCV",
+        "nomeExame": "Citologia oncótica cérvico-vaginal",
+        "tipoExameSugerido": "CCV",
+        "descricaoMaterial": "ESFREGAÇO CÉRVICO-VAGINAL",
+        "informacoesClinicas": "Rastreamento de rotina.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CCV-0003/26"
+      },
+      "status": "ARQUIVADO",
+      "etapaAtual": null,
+      "etapaAtualDesde": "2026-11-01T23:04:36.923Z",
+      "dataEntradaSap": "2026-09-24T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Coleta de citologia cérvico-vaginal",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-09-24T12:00:00.000Z",
+          "concluidaEm": "2026-09-24T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "PROCESSAMENTO",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-09-25T15:41:32.307Z",
+          "concluidaEm": "2026-10-02T04:36:55.384Z",
+          "responsavelInicio": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "responsavelFim": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          }
+        },
+        {
+          "etapa": "TRIAGEM_CITO",
+          "sequencia": 3,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-03T08:18:27.692Z",
+          "concluidaEm": "2026-10-09T21:13:50.769Z",
+          "responsavelInicio": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "responsavelFim": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 4,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-11T00:55:23.076Z",
+          "concluidaEm": "2026-10-17T13:50:46.153Z",
+          "responsavelInicio": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "responsavelFim": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          }
+        },
+        {
+          "etapa": "APROVACAO",
+          "sequencia": 5,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-18T17:32:18.461Z",
+          "concluidaEm": "2026-10-25T06:27:41.538Z",
+          "responsavelInicio": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "responsavelFim": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          }
+        },
+        {
+          "etapa": "ARQUIVO",
+          "sequencia": 6,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-10-26T10:09:13.846Z",
+          "concluidaEm": "2026-11-01T23:04:36.923Z",
+          "responsavelInicio": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "responsavelFim": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "PROCESSAMENTO",
+          "responsavel": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "registradoEm": "2026-10-02T04:36:55.384Z",
+          "titulo": "Processamento citológico",
+          "campos": [
+            {
+              "rotulo": "Rota",
+              "valor": "Citologia direta"
+            },
+            {
+              "rotulo": "Lâminas",
+              "valor": "1"
+            },
+            {
+              "rotulo": "Coloração",
+              "valor": "Papanicolaou"
+            }
+          ]
+        },
+        {
+          "etapa": "TRIAGEM_CITO",
+          "responsavel": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "registradoEm": "2026-10-09T21:13:50.769Z",
+          "titulo": "Triagem citotécnica",
+          "campos": [
+            {
+              "rotulo": "Adequabilidade",
+              "valor": "Satisfatória"
+            },
+            {
+              "rotulo": "Resultado da triagem",
+              "valor": "Sem alterações citológicas significativas"
+            }
+          ]
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "responsavel": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "registradoEm": "2026-10-17T13:50:46.153Z",
+          "titulo": "Parecer preliminar",
+          "campos": [
+            {
+              "rotulo": "Residente",
+              "valor": "Dra. Bianca Saldanha"
+            }
+          ],
+          "texto": "Cortes histológicos/esfregaços examinados. Achados descritos para revisão e validação pela preceptoria."
+        },
+        {
+          "etapa": "APROVACAO",
+          "responsavel": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "registradoEm": "2026-10-25T06:27:41.538Z",
+          "titulo": "Laudo",
+          "campos": [
+            {
+              "rotulo": "Patologista responsável",
+              "valor": "Dra. Selma Aranha"
+            },
+            {
+              "rotulo": "Residente",
+              "valor": "Dra. Bianca Saldanha"
+            }
+          ],
+          "texto": "Conclusão diagnóstica registrada (texto fictício para demonstração). Laudo liberado no AGHU pela rotina institucional."
+        },
+        {
+          "etapa": "ARQUIVO",
+          "responsavel": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "registradoEm": "2026-11-01T23:04:36.923Z",
+          "titulo": "Arquivamento",
+          "campos": [
+            {
+              "rotulo": "Local",
+              "valor": "Arquivo de blocos e lâminas – Armário 3, gaveta 12"
+            },
+            {
+              "rotulo": "Ficha arquivada",
+              "valor": "Sim"
+            },
+            {
+              "rotulo": "Cadastro no Siscan",
+              "valor": "Realizado"
+            }
+          ]
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "CCV-0003/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · ESFREGAÇO CÉRVICO-VAGINAL",
+          "origem": "ROTINA",
+          "status": "ARQUIVADO",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-09-24T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "CCV-0003/26-L01",
+              "tipoItem": "LAMINA",
+              "rotulo": "Lâmina direta 01 · Papanicolaou",
+              "origem": "ROTINA",
+              "status": "ARQUIVADO",
+              "criadoPor": {
+                "login": "rui.peixoto",
+                "nome": "Rui Peixoto"
+              },
+              "criadoEm": "2026-10-02T04:36:55.384Z",
+              "filhos": []
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 93,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CCV-0003/26 gerado a partir da solicitação AGHU 7710301. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-09-24T12:00:00.000Z"
+        },
+        {
+          "id": 94,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Processamento técnico",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-09-25T15:41:32.307Z"
+        },
+        {
+          "id": 95,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Processamento técnico concluída",
+          "setor": "Processamento técnico",
+          "usuario": {
+            "login": "rui.peixoto",
+            "nome": "Rui Peixoto"
+          },
+          "ocorridoEm": "2026-10-02T04:36:55.384Z"
+        },
+        {
+          "id": 96,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Triagem citotécnica",
+          "setor": "Triagem citotécnica",
+          "usuario": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "ocorridoEm": "2026-10-03T08:18:27.692Z"
+        },
+        {
+          "id": 97,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Triagem citotécnica concluída",
+          "setor": "Triagem citotécnica",
+          "usuario": {
+            "login": "cecilia.prates",
+            "nome": "Cecília Prates"
+          },
+          "ocorridoEm": "2026-10-09T21:13:50.769Z"
+        },
+        {
+          "id": 98,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "ocorridoEm": "2026-10-11T00:55:23.076Z"
+        },
+        {
+          "id": 99,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Microscopia concluída",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "bianca.saldanha",
+            "nome": "Dra. Bianca Saldanha"
+          },
+          "ocorridoEm": "2026-10-17T13:50:46.153Z"
+        },
+        {
+          "id": 100,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Aprovação",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-10-18T17:32:18.461Z"
+        },
+        {
+          "id": 101,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Aprovação concluída",
+          "setor": "Aprovação",
+          "usuario": {
+            "login": "selma.aranha",
+            "nome": "Dra. Selma Aranha"
+          },
+          "ocorridoEm": "2026-10-25T06:27:41.538Z"
+        },
+        {
+          "id": 102,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Arquivo",
+          "setor": "Arquivo",
+          "usuario": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "ocorridoEm": "2026-10-26T10:09:13.846Z"
+        },
+        {
+          "id": 103,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Arquivo concluída",
+          "setor": "Arquivo",
+          "usuario": {
+            "login": "wagner.amorim",
+            "nome": "Wagner Amorim"
+          },
+          "ocorridoEm": "2026-11-01T23:04:36.923Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "CO-0001/26",
+      "tipoExame": "CO",
+      "solicitacao": {
+        "codigoSolicitacao": "7711501",
+        "prontuario": "2362278",
+        "nomePaciente": "GLÓRIA PASSOS TRINDADE",
+        "dataNascimento": "1970-03-15",
+        "sexo": "Feminino",
+        "origem": "BLOCO_CIRURGICO",
+        "unidade": "Bloco Cirúrgico Central – Sala 3",
+        "especialidade": "Cirurgia de Cabeça e Pescoço",
+        "nomeSolicitante": "Dr. Vicente Lacerda",
+        "dataSolicitacao": "2026-11-13T10:48:00.000Z",
+        "siglaExame": "CONG",
+        "nomeExame": "Exame anatomopatológico por congelação",
+        "tipoExameSugerido": "CO",
+        "descricaoMaterial": "NÓDULO DE TIREOIDE – PEÇA INTRAOPERATÓRIA",
+        "informacoesClinicas": "Tireoidectomia parcial. Avaliar malignidade para decisão de totalização.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CO-0001/26"
+      },
+      "status": "EM_CONGELACAO",
+      "etapaAtual": "CONGELACAO",
+      "etapaAtualDesde": "2026-11-13T11:28:30.000Z",
+      "dataEntradaSap": "2026-11-13T11:25:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": true,
+      "motivoUrgencia": "Cirurgia em andamento — diagnóstico intraoperatório",
+      "procedimento": "Biópsia intraoperatória",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-13T11:25:00.000Z",
+          "concluidaEm": "2026-11-13T11:25:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "CONGELACAO",
+          "sequencia": 2,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-13T11:28:30.000Z",
+          "responsavelInicio": {
+            "login": "julio.paranhos",
+            "nome": "Dr. Júlio Paranhos"
+          }
+        }
+      ],
+      "registros": [],
+      "materiais": [
+        {
+          "codigo": "CO-0001/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · NÓDULO DE TIREOIDE – PEÇA INTRAOPERATÓRIA",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-13T11:25:00.000Z",
+          "filhos": []
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 104,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CO-0001/26 gerado a partir da solicitação AGHU 7711501. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-13T11:25:00.000Z"
+        },
+        {
+          "id": 105,
+          "evento": "URGENCIA_MARCADA",
+          "titulo": "Marcado como URGENTE",
+          "descricao": "Cirurgia em andamento — diagnóstico intraoperatório",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-13T11:25:00.000Z"
+        },
+        {
+          "id": 106,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Congelação",
+          "setor": "Congelação",
+          "usuario": {
+            "login": "julio.paranhos",
+            "nome": "Dr. Júlio Paranhos"
+          },
+          "ocorridoEm": "2026-11-13T11:28:30.000Z"
+        }
+      ]
+    },
+    {
+      "numeroInterno": "CO-0002/26",
+      "tipoExame": "CO",
+      "solicitacao": {
+        "codigoSolicitacao": "7711143",
+        "prontuario": "2347793",
+        "nomePaciente": "LEONARDO AQUINO BARRETO",
+        "dataNascimento": "1958-08-08",
+        "sexo": "Masculino",
+        "origem": "BLOCO_CIRURGICO",
+        "unidade": "Bloco Cirúrgico Central – Sala 1",
+        "especialidade": "Cirurgia Torácica",
+        "nomeSolicitante": "Dr. Heitor Galvão",
+        "dataSolicitacao": "2026-11-09T12:00:00.000Z",
+        "siglaExame": "CONG",
+        "nomeExame": "Exame anatomopatológico por congelação",
+        "tipoExameSugerido": "CO",
+        "descricaoMaterial": "NÓDULO PULMONAR – CONGELAÇÃO",
+        "informacoesClinicas": "Nódulo pulmonar periférico de 1,9 cm. Ressecção em cunha.",
+        "statusAghuDescricao": "Recebido",
+        "situacaoRecepcao": "RECEBIDA",
+        "casoNumero": "CO-0002/26"
+      },
+      "status": "EM_MICROSCOPIA",
+      "etapaAtual": "MICROSCOPIA",
+      "etapaAtualDesde": "2026-11-11T08:09:36.000Z",
+      "dataEntradaSap": "2026-11-09T12:00:00.000Z",
+      "responsavelEntrada": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "urgente": false,
+      "procedimento": "Biópsia intraoperatória",
+      "quantidade": 1,
+      "etapas": [
+        {
+          "etapa": "RECEPCAO",
+          "sequencia": 1,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-09T12:00:00.000Z",
+          "concluidaEm": "2026-11-09T12:00:00.000Z",
+          "responsavelInicio": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "responsavelFim": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          }
+        },
+        {
+          "etapa": "CONGELACAO",
+          "sequencia": 2,
+          "status": "CONCLUIDA",
+          "iniciadaEm": "2026-11-09T17:45:36.000Z",
+          "concluidaEm": "2026-11-11T02:24:00.000Z",
+          "responsavelInicio": {
+            "login": "julio.paranhos",
+            "nome": "Dr. Júlio Paranhos"
+          },
+          "responsavelFim": {
+            "login": "julio.paranhos",
+            "nome": "Dr. Júlio Paranhos"
+          }
+        },
+        {
+          "etapa": "MICROSCOPIA",
+          "sequencia": 3,
+          "status": "EM_ANDAMENTO",
+          "iniciadaEm": "2026-11-11T08:09:36.000Z",
+          "responsavelInicio": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          }
+        }
+      ],
+      "registros": [
+        {
+          "etapa": "CONGELACAO",
+          "responsavel": {
+            "login": "julio.paranhos",
+            "nome": "Dr. Júlio Paranhos"
+          },
+          "registradoEm": "2026-11-11T02:24:00.000Z",
+          "titulo": "Exame intraoperatório (congelação)",
+          "campos": [
+            {
+              "rotulo": "Patologista de plantão",
+              "valor": "Dr. Júlio Paranhos"
+            },
+            {
+              "rotulo": "Lâminas no criostato",
+              "valor": "2"
+            },
+            {
+              "rotulo": "Resultado comunicado à sala às",
+              "valor": "23:24"
+            }
+          ],
+          "texto": "Diagnóstico intraoperatório: lesão representada no material examinado. Conclusão definitiva após processamento em parafina."
+        }
+      ],
+      "materiais": [
+        {
+          "codigo": "CO-0002/26",
+          "tipoItem": "AMOSTRA",
+          "rotulo": "Amostra 1 · NÓDULO PULMONAR – CONGELAÇÃO",
+          "origem": "ROTINA",
+          "status": "DISPONIVEL",
+          "criadoPor": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "criadoEm": "2026-11-09T12:00:00.000Z",
+          "filhos": [
+            {
+              "codigo": "CO-0002/26-C",
+              "tipoItem": "BLOCO",
+              "rotulo": "Bloco de congelação",
+              "origem": "CONGELACAO",
+              "status": "DISPONIVEL",
+              "criadoPor": {
+                "login": "julio.paranhos",
+                "nome": "Dr. Júlio Paranhos"
+              },
+              "criadoEm": "2026-11-11T02:24:00.000Z",
+              "filhos": [
+                {
+                  "codigo": "CO-0002/26-C-01",
+                  "tipoItem": "LAMINA",
+                  "rotulo": "Lâmina C-01 · criostato",
+                  "origem": "CONGELACAO",
+                  "status": "DISPONIVEL",
+                  "criadoPor": {
+                    "login": "julio.paranhos",
+                    "nome": "Dr. Júlio Paranhos"
+                  },
+                  "criadoEm": "2026-11-11T02:24:00.000Z",
+                  "filhos": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ihqs": [],
+      "naoConformidades": [],
+      "devolucoes": [],
+      "historico": [
+        {
+          "id": 107,
+          "evento": "ENTRADA_CONFIRMADA",
+          "titulo": "Entrada confirmada",
+          "descricao": "Nº interno CO-0002/26 gerado a partir da solicitação AGHU 7711143. Conferência aceita.",
+          "setor": "Recepção",
+          "usuario": {
+            "login": "joana.valenca",
+            "nome": "Joana Valença"
+          },
+          "ocorridoEm": "2026-11-09T12:00:00.000Z"
+        },
+        {
+          "id": 108,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Congelação",
+          "setor": "Congelação",
+          "usuario": {
+            "login": "julio.paranhos",
+            "nome": "Dr. Júlio Paranhos"
+          },
+          "ocorridoEm": "2026-11-09T17:45:36.000Z"
+        },
+        {
+          "id": 109,
+          "evento": "ETAPA_CONCLUIDA",
+          "titulo": "Congelação concluída",
+          "setor": "Congelação",
+          "usuario": {
+            "login": "julio.paranhos",
+            "nome": "Dr. Júlio Paranhos"
+          },
+          "ocorridoEm": "2026-11-11T02:24:00.000Z"
+        },
+        {
+          "id": 110,
+          "evento": "ETAPA_RECEBIDA",
+          "titulo": "Chegada registrada em Microscopia",
+          "setor": "Microscopia",
+          "usuario": {
+            "login": "danilo.ventura",
+            "nome": "Dr. Danilo Ventura"
+          },
+          "ocorridoEm": "2026-11-11T08:09:36.000Z"
+        }
+      ]
+    }
+  ],
+  "conferencias": [
+    {
+      "id": 1,
+      "solicitacaoCodigo": "7710214",
+      "casoNumero": "HP-0001/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-09-16T12:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "solicitacaoCodigo": "7710388",
+      "casoNumero": "HP-0002/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-10-03T12:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "solicitacaoCodigo": "7710457",
+      "casoNumero": "HP-0003/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-10-14T12:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "solicitacaoCodigo": "7710593",
+      "casoNumero": "HP-0004/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-10-28T12:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "solicitacaoCodigo": "7710642",
+      "casoNumero": "HP-0005/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-10-24T12:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "solicitacaoCodigo": "7710731",
+      "casoNumero": "HP-0006/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-10-26T12:00:00.000Z"
+    },
+    {
+      "id": 7,
+      "solicitacaoCodigo": "7710866",
+      "casoNumero": "HP-0007/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-01T12:00:00.000Z"
+    },
+    {
+      "id": 8,
+      "solicitacaoCodigo": "7711024",
+      "casoNumero": "HP-0008/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-07T12:00:00.000Z"
+    },
+    {
+      "id": 9,
+      "solicitacaoCodigo": "7711267",
+      "casoNumero": "HP-0009/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-11T12:00:00.000Z"
+    },
+    {
+      "id": 10,
+      "solicitacaoCodigo": "7711390",
+      "casoNumero": "HP-0010/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-13T04:48:00.000Z"
+    },
+    {
+      "id": 11,
+      "solicitacaoCodigo": "7711455",
+      "casoNumero": "HP-0011/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-04T12:00:00.000Z"
+    },
+    {
+      "id": 12,
+      "solicitacaoCodigo": "7710912",
+      "casoNumero": "CG-0001/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-03T12:00:00.000Z"
+    },
+    {
+      "id": 13,
+      "solicitacaoCodigo": "7711302",
+      "casoNumero": "CG-0002/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-12T12:00:00.000Z"
+    },
+    {
+      "id": 14,
+      "solicitacaoCodigo": "7711088",
+      "casoNumero": "CG-0003/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-06T12:00:00.000Z"
+    },
+    {
+      "id": 15,
+      "solicitacaoCodigo": "7710805",
+      "casoNumero": "CCV-0001/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-10-30T12:00:00.000Z"
+    },
+    {
+      "id": 16,
+      "solicitacaoCodigo": "7711199",
+      "casoNumero": "CCV-0002/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-10T12:00:00.000Z"
+    },
+    {
+      "id": 17,
+      "solicitacaoCodigo": "7710301",
+      "casoNumero": "CCV-0003/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-09-24T12:00:00.000Z"
+    },
+    {
+      "id": 18,
+      "solicitacaoCodigo": "7711501",
+      "casoNumero": "CO-0001/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-13T11:25:00.000Z"
+    },
+    {
+      "id": 19,
+      "solicitacaoCodigo": "7711143",
+      "casoNumero": "CO-0002/26",
+      "resultado": "ACEITA",
+      "identificacaoConfere": true,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "conferidoEm": "2026-11-09T12:00:00.000Z"
+    },
+    {
+      "id": 20,
+      "solicitacaoCodigo": "7712045",
+      "resultado": "REJEITADA",
+      "identificacaoConfere": false,
+      "materialConfere": true,
+      "quantidadeConfere": true,
+      "recipienteAdequado": true,
+      "conferidoPor": {
+        "login": "italo.brennand",
+        "nome": "Ítalo Brennand"
+      },
+      "conferidoEm": "2026-11-09T12:00:00.000Z"
+    }
+  ],
+  "naoConformidades": [
+    {
+      "id": 1,
+      "casoNumero": "HP-0011/26",
+      "solicitacaoCodigo": "7711455",
+      "tipo": "FIXACAO_INADEQUADA",
+      "descricao": "Peça recebida sem formol no recipiente, com sinais de ressecamento.",
+      "setor": "Macroscopia",
+      "etapa": "Macroscopia",
+      "etapaCodigo": "MACROSCOPIA",
+      "unidadeOrigem": "Bloco Cirúrgico Central",
+      "registradoPor": {
+        "login": "elisa.matarazzo",
+        "nome": "Elisa Matarazzo"
+      },
+      "registradoEm": "2026-11-05T08:00:00.000Z",
+      "status": "ABERTA"
+    },
+    {
+      "id": 2,
+      "solicitacaoCodigo": "7712045",
+      "tipo": "IDENTIFICACAO_DIVERGENTE",
+      "descricao": "Nome no frasco diverge do nome na requisição (sobrenome trocado).",
+      "setor": "Recepção",
+      "etapa": "Recepção (conferência)",
+      "etapaCodigo": "RECEPCAO",
+      "unidadeOrigem": "Ambulatório de Dermatologia",
+      "registradoPor": {
+        "login": "italo.brennand",
+        "nome": "Ítalo Brennand"
+      },
+      "registradoEm": "2026-11-09T12:00:00.000Z",
+      "status": "ABERTA"
+    },
+    {
+      "id": 3,
+      "tipo": "SEM_ETIQUETA_AGHU",
+      "descricao": "Frasco com fragmento de colo uterino sem etiqueta do AGHU, apenas identificação manuscrita.",
+      "setor": "Recepção",
+      "etapa": "Recepção (leitura)",
+      "etapaCodigo": "RECEPCAO",
+      "unidadeOrigem": "Ambulatório de Ginecologia",
+      "registradoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "registradoEm": "2026-11-11T12:00:00.000Z",
+      "status": "RESOLVIDA"
+    }
+  ],
+  "devolucoes": [
+    {
+      "id": 1,
+      "naoConformidadeId": 1,
+      "casoNumero": "HP-0011/26",
+      "solicitacaoCodigo": "7711455",
+      "unidadeOrigem": "Bloco Cirúrgico Central",
+      "devolvidoPor": {
+        "login": "elisa.matarazzo",
+        "nome": "Elisa Matarazzo"
+      },
+      "novaAmostraSolicitada": true,
+      "situacao": "AGUARDANDO_NOVA_AMOSTRA",
+      "devolvidaEm": "2026-11-05T08:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "naoConformidadeId": 2,
+      "solicitacaoCodigo": "7712045",
+      "unidadeOrigem": "Ambulatório de Dermatologia",
+      "devolvidoPor": {
+        "login": "italo.brennand",
+        "nome": "Ítalo Brennand"
+      },
+      "novaAmostraSolicitada": true,
+      "situacao": "AGUARDANDO_NOVA_AMOSTRA",
+      "devolvidaEm": "2026-11-09T12:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "naoConformidadeId": 3,
+      "unidadeOrigem": "Ambulatório de Ginecologia",
+      "devolvidoPor": {
+        "login": "joana.valenca",
+        "nome": "Joana Valença"
+      },
+      "novaAmostraSolicitada": true,
+      "situacao": "NOVA_AMOSTRA_RECEBIDA",
+      "devolvidaEm": "2026-11-11T12:00:00.000Z"
+    }
+  ],
+  "auditoria": [],
+  "aghuDisponivel": true,
+  "sequencias": {
+    "historico": 113,
+    "conferencia": 20,
+    "naoConformidade": 3,
+    "devolucao": 3,
+    "auditoria": 0
+  }
+}

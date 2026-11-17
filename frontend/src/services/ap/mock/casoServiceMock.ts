@@ -8,7 +8,6 @@ import {
   SETOR_RECEPCAO,
   STATUS_CASO,
   STATUS_INELEGIVEIS_IHQ,
-  TIPOS_EXAME,
   casoEstaAtivo,
   etapaAposRecepcao,
 } from '../../../constants/ap';
@@ -23,7 +22,6 @@ import type {
   ResultadoBuscaCasos,
   Responsavel,
   SolicitacaoAghu,
-  TipoImpressao,
   VincularIhqInput,
 } from '../../../types/ap';
 import { ServiceError, type CasoService } from '../types';
@@ -308,16 +306,6 @@ export const casoServiceMock: CasoService = {
       { status: 'CANCELADO', motivo: motivoLimpo },
     );
     return montarCaso(caso);
-  },
-
-  async registrarImpressao(numeroInterno: string, tipo: TipoImpressao, usuario: Responsavel): Promise<void> {
-    await latencia(100);
-    const caso = exigirCaso(numeroInterno);
-    const titulo = tipo === 'ETIQUETAS' ? 'Etiquetas impressas' : 'Ficha de trabalho impressa';
-    const descricao =
-      tipo === 'ETIQUETAS' ? `${caso.materiais.length} etiqueta(s) de frasco.` : `Ficha de trabalho ${TIPOS_EXAME[caso.tipoExame].nome}.`;
-    registrarHistorico(caso, usuario, SETOR_RECEPCAO, tipo === 'ETIQUETAS' ? 'ETIQUETAS_IMPRESSAS' : 'FICHA_IMPRESSA', titulo, descricao);
-    registrarAuditoria(usuario, tipo === 'ETIQUETAS' ? 'ETIQUETAS_IMPRESSAS' : 'FICHA_IMPRESSA', `caso_ap:${caso.numeroInterno}`, null, { tipo });
   },
 
   async registrarAcionamentoPlantao(numeroInterno: string, usuario: Responsavel): Promise<CasoAp> {

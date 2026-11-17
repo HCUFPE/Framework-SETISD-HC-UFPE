@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useResponsavel } from '../composables/useResponsavel';
 import { auditoriaService, casoService } from '../services/ap';
-import type { AuditLog, CasoAp, CasoElegivelIhq, ResultadoBuscaCasos, StatusCaso, TipoCasoPrincipal, TipoImpressao } from '../types/ap';
+import type { AuditLog, CasoAp, CasoElegivelIhq, ResultadoBuscaCasos, StatusCaso, TipoCasoPrincipal } from '../types/ap';
 
 /** Filtros da Consulta de casos (mantidos ao ir e voltar do detalhe). */
 export interface FiltrosConsulta {
@@ -68,11 +68,6 @@ export const useCasosStore = defineStore('casos', () => {
     return caso;
   }
 
-  async function registrarImpressao(numeroInterno: string, tipo: TipoImpressao): Promise<void> {
-    await casoService.registrarImpressao(numeroInterno, tipo, responsavel.value);
-    if (casoAtual.value?.numeroInterno === numeroInterno) await recarregarCasoAtual();
-  }
-
   function buscarElegiveisIhq(termo: string): Promise<CasoElegivelIhq[]> {
     return casoService.buscarElegiveisIhq(termo);
   }
@@ -99,7 +94,6 @@ export const useCasosStore = defineStore('casos', () => {
     carregarCaso,
     recarregarCasoAtual,
     cancelar,
-    registrarImpressao,
     buscarElegiveisIhq,
     buscar,
     carregarAuditoria,

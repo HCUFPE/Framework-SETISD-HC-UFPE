@@ -9,14 +9,19 @@
           <label class="block text-sm font-bold mb-2" for="username">
             Usuário
           </label>
-          <input v-model="username" class="shadow-inner appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" id="username" type="text" placeholder="E.g., EBSERHNET\\user">
+          <select v-if="authStore.mockEnabled" v-model="username" class="form-control" id="username">
+            <option v-for="mockUser in authStore.mockUsers" :key="mockUser.username" :value="mockUser.username">
+              {{ mockUser.displayName }}<template v-if="mockUser.profiles.length"> — {{ mockUser.profiles.join(', ') }}</template>
+            </option>
+          </select>
+          <input v-else v-model="username" class="form-control" id="username" type="text" autocomplete="username" placeholder="Identificador institucional">
         </div>
         <div class="mb-6">
           <label class="block text-sm font-bold mb-2" for="password">
             Senha
           </label>
           <div class="relative">
-            <input v-model="password" class="shadow-inner appearance-none border rounded w-full py-2 px-3 pr-10 leading-tight focus:outline-none focus:shadow-outline" id="password" :type="passwordFieldType" placeholder="******************">
+            <input v-model="password" class="form-control pr-10" id="password" :type="passwordFieldType" autocomplete="current-password" :placeholder="authStore.mockEnabled ? 'Senha de desenvolvimento: demo' : 'Senha'">
             <button
               type="button"
               :aria-label="passwordFieldType === 'password' ? 'Mostrar senha' : 'Ocultar senha'"
@@ -63,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import Card from '../components/Card.vue';
@@ -71,8 +76,8 @@ import Button from '../components/Button.vue';
 import { ArrowRightOnRectangleIcon, EyeIcon, EyeSlashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import { APP_VERSION, HOSPITAL_NAME, DEPARTMENT_NAME } from '../config/version';
 
-const username = ref('');
-const password = ref('');
+const username = ref('recepcionista');
+const password = ref('demo');
 const rememberMe = ref(false);
 const error = ref('');
 const loading = ref(false);
@@ -80,6 +85,16 @@ const passwordVisible = ref(false);
 
 const router = useRouter();
 const authStore = useAuthStore();
+
+onMounted(async () => {
+  try {
+    await authStore.loadAuthOptions();
+    const recepcionista = authStore.mockUsers.find((mockUser) => mockUser.username === 'recepcionista');
+    if (recepcionista) username.value = recepcionista.username;
+  } catch {
+    authStore.mockEnabled = false;
+  }
+});
 
 const passwordFieldType = computed(() => passwordVisible.value ? 'text' : 'password');
 

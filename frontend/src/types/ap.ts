@@ -100,7 +100,7 @@ export type StatusExameIhq =
 /** Categorias da trilha de auditoria (`audit_logs`). */
 export type CategoriaAuditoria = 'SEGURANCA' | 'NEGOCIO_CLINICO' | 'CONFIGURACAO';
 
-/** Tipos de impressão registrados no histórico. */
+/** Formatos de impressão física disponíveis no navegador. */
 export type TipoImpressao = 'ETIQUETAS' | 'FICHA_TRABALHO';
 
 // ---------------------------------------------------------------------------

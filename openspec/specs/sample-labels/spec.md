@@ -13,13 +13,6 @@ A impressão de etiquetas e da ficha SHALL abrir uma pré-visualização em esca
 - **WHEN** o usuário clica em "Imprimir" na pré-visualização
 - **THEN** a janela de impressão do navegador é aberta só com as etiquetas ou a ficha
 
-### Requirement: Registro da impressão
-Cada impressão SHALL registrar um evento no histórico do caso ("Etiquetas impressas" ou "Ficha de trabalho impressa"), com o usuário e a data e hora.
-
-#### Scenario: Reimpressão
-- **WHEN** o usuário imprime a ficha de trabalho pela segunda vez
-- **THEN** o histórico passa a ter dois eventos "Ficha de trabalho impressa"
-
 ### Requirement: Código de barras opaco
 O código de barras da etiqueta e da ficha SHALL codificar apenas o código do item ou o número interno do caso, nunca nome, prontuário ou outro dado pessoal. A leitura desse código pelo campo global de leitura SHALL abrir o caso correspondente.
 

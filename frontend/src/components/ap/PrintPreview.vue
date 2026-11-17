@@ -19,7 +19,7 @@
         </div>
         <div class="flex gap-2">
           <Button variant="secondary" @click="emit('close')">Fechar</Button>
-          <Button variant="primary" :loading="imprimindo" @click="imprimir">
+          <Button variant="primary" @click="imprimir">
             <PrinterIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Imprimir
           </Button>
         </div>
@@ -44,21 +44,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useToast } from 'vue-toastification';
 import { PrinterIcon } from '@heroicons/vue/24/outline';
 import Button from '../Button.vue';
 import EtiquetaFrasco from './EtiquetaFrasco.vue';
 import FichaTrabalho from './FichaTrabalho.vue';
-import { mensagemDeErro } from '../../services/ap';
-import { useCasosStore } from '../../stores/casos';
 import type { CasoAp, TipoImpressao } from '../../types/ap';
 
 const props = defineProps<{ show: boolean; caso: CasoAp | null; tipo: TipoImpressao }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'impresso'): void }>();
 
-const toast = useToast();
-const casosStore = useCasosStore();
-const imprimindo = ref(false);
 const emitidaEm = ref(new Date().toISOString());
 
 const titulo = computed(() =>
@@ -75,19 +69,11 @@ watch(
   },
 );
 
-/** Registra a impressão no histórico e abre a janela de impressão do navegador. */
-const imprimir = async () => {
+/** Abre a impressão física do conteúdo pré-visualizado no navegador. */
+const imprimir = () => {
   if (!props.caso) return;
-  imprimindo.value = true;
-  try {
-    await casosStore.registrarImpressao(props.caso.numeroInterno, props.tipo);
-    emit('impresso');
-    window.print();
-  } catch (erro) {
-    toast.error(mensagemDeErro(erro, 'Não foi possível registrar a impressão.'));
-  } finally {
-    imprimindo.value = false;
-  }
+  window.print();
+  emit('impresso');
 };
 
 const aoTeclar = (evento: KeyboardEvent) => {

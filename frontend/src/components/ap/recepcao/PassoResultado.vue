@@ -38,6 +38,7 @@
       >
         <p>A cirurgia está em andamento. Avise o patologista de plantão agora e registre o acionamento.</p>
         <Button
+          v-if="authStore.hasPermission('recepcao:acionar_plantao')"
           class="mt-3"
           variant="danger"
           size="sm"
@@ -59,12 +60,10 @@
       </Alert>
 
       <div class="mt-6 flex flex-wrap justify-center gap-2">
-        <Button variant="outline" @click="imprimir('ETIQUETAS')">
-          <PrinterIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Imprimir etiqueta(s)
-        </Button>
-        <Button variant="outline" @click="imprimir('FICHA_TRABALHO')">
-          <DocumentTextIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Imprimir ficha de trabalho
-        </Button>
+        <template v-if="resultado.tipo === 'CASO'">
+          <Button variant="secondary" @click="abrirPreviaImpressao('ETIQUETAS')">Imprimir etiquetas</Button>
+          <Button variant="secondary" @click="abrirPreviaImpressao('FICHA_TRABALHO')">Imprimir ficha</Button>
+        </template>
         <router-link
           :to="rotaDoCaso(resultado.caso.numeroInterno, { aba: resultado.tipo === 'IHQ' ? 'ihq' : undefined })"
           class="focus-ring inline-flex items-center rounded border border-gray-300 bg-white px-4 py-2 font-bold text-gray-700 transition hover:bg-gray-50 active:bg-gray-100"
@@ -78,8 +77,15 @@
       </div>
     </div>
 
-    <PrintPreview :show="impressao !== null" :caso="resultado.caso" :tipo="impressao ?? 'ETIQUETAS'" @close="impressao = null" />
   </Card>
+  <PrintPreview
+    v-if="resultado?.tipo === 'CASO'"
+    :show="previaImpressaoAberta"
+    :caso="resultado.caso"
+    :tipo="tipoImpressao"
+    @close="previaImpressaoAberta = false"
+    @impresso="previaImpressaoAberta = false"
+  />
 </template>
 
 <script setup lang="ts">
@@ -91,8 +97,6 @@ import {
   BellAlertIcon,
   CheckCircleIcon,
   ClipboardDocumentIcon,
-  DocumentTextIcon,
-  PrinterIcon,
 } from '@heroicons/vue/24/outline';
 import Alert from '../../Alert.vue';
 import Badge from '../../Badge.vue';
@@ -102,16 +106,24 @@ import PrintPreview from '../PrintPreview.vue';
 import { ETAPAS } from '../../../constants/ap';
 import { rotaDoCaso } from '../../../helpers/rotas';
 import { mensagemDeErro } from '../../../services/ap';
+import { useAuthStore } from '../../../stores/auth';
 import { useRecepcaoStore } from '../../../stores/recepcao';
 import type { TipoImpressao } from '../../../types/ap';
 
 const emit = defineEmits<{ (e: 'proxima'): void }>();
 
 const toast = useToast();
+const authStore = useAuthStore();
 const recepcao = useRecepcaoStore();
 const resultado = computed(() => recepcao.resultado);
 const registrandoPlantao = ref(false);
-const impressao = ref<TipoImpressao | null>(null);
+const previaImpressaoAberta = ref(false);
+const tipoImpressao = ref<TipoImpressao>('ETIQUETAS');
+
+const abrirPreviaImpressao = (tipo: TipoImpressao) => {
+  tipoImpressao.value = tipo;
+  previaImpressaoAberta.value = true;
+};
 
 const numeroGerado = computed(() => {
   const r = resultado.value;
@@ -148,7 +160,4 @@ const registrarPlantao = async () => {
   }
 };
 
-const imprimir = (tipo: TipoImpressao) => {
-  impressao.value = tipo;
-};
 </script>

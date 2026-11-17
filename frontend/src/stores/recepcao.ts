@@ -173,7 +173,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     await atualizarContagem();
   }
 
-  /** Vincula a IHQ ao caso de origem. */
+  /** Mantido no mock de desenvolvimento; associação institucional será automática e definida depois. */
   async function vincularIhq(dados: Omit<VincularIhqInput, 'solicitacaoCodigo' | 'conferencia'>): Promise<void> {
     if (!solicitacao.value) return;
     const { caso, ihq } = await casoService.vincularIhq(

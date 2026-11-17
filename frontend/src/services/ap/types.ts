@@ -5,9 +5,9 @@
  * (`./mock`); a integração com o backend troca apenas as implementações exportadas em `./index.ts`.
  */
 import type {
+  CasoElegivelIhq,
   AuditLog,
   CasoAp,
-  CasoElegivelIhq,
   ConfirmarEntradaInput,
   DevolucaoDetalhada,
   ExameIhq,
@@ -17,7 +17,6 @@ import type {
   Responsavel,
   SituacaoDevolucao,
   SolicitacaoAghu,
-  TipoImpressao,
   VincularIhqInput,
 } from '../../types/ap';
 
@@ -56,14 +55,11 @@ export interface AghuService {
 export interface CasoService {
   listar(): Promise<CasoAp[]>;
   obter(numeroInterno: string): Promise<CasoAp | null>;
-  /** Casos que podem receber a IHQ, com a indicação de elegibilidade. */
   buscarElegiveisIhq(termo: string): Promise<CasoElegivelIhq[]>;
   /** Confirma a entrada de um caso principal (HP, CG, CCV, CO). */
   confirmarEntrada(input: ConfirmarEntradaInput, usuario: Responsavel): Promise<CasoAp>;
-  /** Vincula uma IHQ recebida a um caso existente, sem criar caso novo. */
   vincularIhq(input: VincularIhqInput, usuario: Responsavel): Promise<{ caso: CasoAp; ihq: ExameIhq }>;
   cancelar(numeroInterno: string, motivo: string, usuario: Responsavel): Promise<CasoAp>;
-  registrarImpressao(numeroInterno: string, tipo: TipoImpressao, usuario: Responsavel): Promise<void>;
   registrarAcionamentoPlantao(numeroInterno: string, usuario: Responsavel): Promise<CasoAp>;
   /**
    * Busca casos cadastrados por número interno, prontuário ou nome do paciente

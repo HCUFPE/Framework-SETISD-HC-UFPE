@@ -1,5 +1,5 @@
 <template>
-  <Card v-if="recepcao.solicitacao">
+  <Card v-if="recepcao.solicitacao && recepcao.solicitacao.tipoExameSugerido !== 'IHQ'">
     <template #header>
       <div class="flex flex-wrap items-start justify-between gap-2">
         <div>
@@ -33,7 +33,7 @@
         <legend class="form-label">Tipo de exame <span class="text-paper-danger">*</span></legend>
         <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5" role="radiogroup">
           <label
-            v-for="sigla in ORDEM_TIPOS_EXAME"
+            v-for="sigla in tiposDisponiveis"
             :key="sigla"
             :class="tipo === sigla ? 'border-paper-primary bg-paper-primary-soft ring-2 ring-paper-primary/40' : 'border-gray-200 bg-white hover:bg-gray-50'"
             class="relative has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-paper-primary flex cursor-pointer flex-col rounded-lg border p-3 transition active:bg-gray-100"
@@ -156,6 +156,11 @@
       </div>
     </form>
   </Card>
+  <Card v-else-if="recepcao.solicitacao">
+    <Alert variant="warning" title="Associação automática da IHQ em definição">
+      A associação das solicitações IHQ será automática. O mecanismo ainda está sendo definido e não há uma ação manual na Recepção.
+    </Alert>
+  </Card>
 </template>
 
 <script setup lang="ts">
@@ -180,6 +185,7 @@ type Campo = 'tipo' | 'quantidade' | 'urgente' | 'motivoUrgencia' | 'procediment
 const toast = useToast();
 const recepcao = useRecepcaoStore();
 const responsavel = useResponsavel();
+const tiposDisponiveis = ORDEM_TIPOS_EXAME.filter((sigla) => sigla !== 'IHQ');
 
 const salvando = ref(false);
 const tentouConfirmar = ref(false);

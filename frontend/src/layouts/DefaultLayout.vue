@@ -166,6 +166,7 @@ interface ItemMenu {
   icone: Component;
   /** Exibido apenas para usuários autenticados. */
   requerLogin?: boolean;
+  permissao?: string;
   contador?: number;
 }
 
@@ -191,15 +192,17 @@ const secoes = computed<SecaoMenu[]>(() => [
         para: '/recepcao',
         icone: InboxArrowDownIcon,
         requerLogin: true,
+        permissao: 'recepcao:receber',
         contador: recepcaoStore.contagemPendentes,
       },
-      { chave: 'consulta', rotulo: 'Consulta de casos', para: '/casos', icone: MagnifyingGlassIcon, requerLogin: true },
+      { chave: 'consulta', rotulo: 'Consulta de casos', para: '/casos', icone: MagnifyingGlassIcon, requerLogin: true, permissao: 'casos:consultar' },
       {
         chave: 'devolucoes',
         rotulo: 'Rejeições e devoluções',
         para: '/rejeicoes-devolucoes',
         icone: ArrowUturnLeftIcon,
         requerLogin: true,
+        permissao: 'devolucoes:consultar',
       },
     ],
   },
@@ -211,7 +214,7 @@ const secoes = computed<SecaoMenu[]>(() => [
       // Vitrine das mudanças do change evolve-base-components.
       { chave: 'novidades', rotulo: 'Novidades dos Componentes', para: '/novidades-componentes', icone: SparklesIcon },
       { chave: 'exemplo', rotulo: 'Exemplo', para: '/exemplo', icone: DocumentTextIcon, requerLogin: true },
-      { chave: 'configuracoes', rotulo: 'Configurações', para: '/configuracoes', icone: Cog6ToothIcon, requerLogin: true },
+      { chave: 'configuracoes', rotulo: 'Configurações', para: '/configuracoes', icone: Cog6ToothIcon, requerLogin: true, permissao: 'usuarios:gerenciar' },
     ],
   },
 ]);
@@ -221,7 +224,10 @@ const secoesVisiveis = computed(() =>
   secoes.value
     .map((secao) => ({
       ...secao,
-      itens: secao.itens.filter((item) => !item.requerLogin || authStore.isAuthenticated),
+      itens: secao.itens.filter((item) =>
+        (!item.requerLogin || authStore.isAuthenticated) &&
+        (!item.permissao || authStore.hasPermission(item.permissao)),
+      ),
     }))
     .filter((secao) => secao.itens.length > 0),
 );

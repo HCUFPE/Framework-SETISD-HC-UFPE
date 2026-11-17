@@ -1,92 +1,21 @@
-# Sistema de Autenticação
+# Autenticação e autorização do Sistema AP
 
-O framework implementa um sistema de autenticação híbrido e robusto, projetado para funcionar tanto em um ambiente corporativo com Active Directory (AD) quanto em um ambiente de desenvolvimento local sem acesso à rede.
+## Estado atual
 
-## Estratégia de Autenticação Dupla
+Autenticação identifica a pessoa; autorização aplica os perfis e permissões locais definidos em `src/auth/authorization.py`. O frontend recebe a identidade e as permissões por `GET /api/users/me`. Tokens JWT preservam a identidade normalizada, não os grupos do provedor como fonte de privilégios.
 
-O sistema utiliza um padrão de provedor para a lógica de autenticação, permitindo alternar entre dois modos:
+O Adapter ativo nesta etapa é `MockIdentityProvider`. Selecione uma identidade fictícia na tela de login e use a senha `demo`; `admin/admin` permanece como compatibilidade de desenvolvimento para o usuário Coordenação/Administrador. A identidade `sem-perfil` valida o comportamento de negação padrão. Não use dados ou credenciais reais.
 
-1.  **ActiveDirectoryAuthProvider**: O provedor padrão para produção. Ele se conecta a um servidor LDAP para validar as credenciais do usuário e buscar suas informações e grupos de acesso.
+`AUTH_PROVIDER=mock` só é permitido em `ENV=development`, `test` ou `testing`. Em produção, a aplicação falha ao iniciar com o provedor mock. Não há integração institucional nesta versão. A equipe de TI do HC deverá implementar `IdentityProvider`, definir como validar a identidade institucional e mapear um identificador estável; protocolo, claims, fluxo de sessão e gestão de perfis ainda serão decisões institucionais.
 
-2.  **MockAuthProvider**: Um provedor para desenvolvimento offline. Ele não requer conexão de rede e simula a autenticação, permitindo que desenvolvedores testem rotas protegidas e funcionalidades de diferentes níveis de acesso.
+## Perfis e permissões
 
-## Seleção Automática do Provedor
+`src/auth/authorization.py` contém os nove identificadores de perfil, o catálogo de permissões e a união explícita para usuários com múltiplos perfis. Dependências FastAPI usam `exigir_permissao(...)`; identidade autenticada sem concessão recebe HTTP 403. Ausência de token recebe HTTP 401. Grupos vindos de provedores externos não autorizam ações.
 
-A escolha entre o provedor `ActiveDirectory` e o `Mock` é feita automaticamente na inicialização da aplicação, com base na presença de variáveis de ambiente.
+As concessões de operações atuais derivam dos atores associados aos casos de uso em `docs/especificacao/03-casos-uso.md`. Permissões sem ator/operação claramente associado ficam negadas. Alterar a situação da devolução e gerir usuários não está concedido a perfil algum nesta implementação. As permissões de trabalho do Citotécnico em etapas futuras permanecem pendentes de validação SAP/HC; neste catálogo o perfil só tem consulta, conforme os casos de consulta comuns.
 
--   **Para ativar a autenticação com Active Directory:**
-    -   Descomente e preencha as variáveis de ambiente relacionadas ao AD no seu arquivo `.env`. No mínimo, a variável `AD_URL` deve estar presente.
-    ```env
-    # .env
-    AD_URL="ldap://seu-servidor-ad:389"
-    AD_BASEDN="dc=sua-empresa,dc=com"
-    # ... outras variáveis de AD
-    ```
-    Ao iniciar, a aplicação detectará `AD_URL` e utilizará o `ActiveDirectoryAuthProvider`.
+## Limite importante da Recepção
 
--   **Para ativar a autenticação Mock (offline):**
-    -   Comente ou remova as variáveis de ambiente do AD do seu arquivo `.env`.
-    ```env
-    # .env
-    # AD_URL="ldap://seu-servidor-ad:389"
-    # AD_BASEDN="dc=sua-empresa,dc=com"
-    ```
-    Ao iniciar, a aplicação não encontrará `AD_URL` e, por segurança, utilizará o `MockAuthProvider`. Uma mensagem de aviso será exibida no console.
+Os serviços de Recepção ainda estão implementados como mocks em memória no navegador. Guards e ações ocultas no Vue melhoram a interface, mas não são uma barreira de segurança. Até que cada operação de domínio seja transferida para um endpoint FastAPI protegido, esse estado local não deve ser tratado como dado persistente nem como fluxo pronto para produção. O backend desta etapa protege os endpoints de dados que já existem; ele não cria nem simula endpoints de negócio da Recepção.
 
-### Credenciais do Provedor Mock
-
-Quando o `MockAuthProvider` está ativo, você pode se autenticar com as seguintes credenciais:
-
--   **Usuário:** `admin`
--   **Senha:** `admin`
-
-Este usuário receberá um conjunto de grupos pré-definidos, incluindo o grupo de administrador (`GLO-SEC-HCPE-SETISD`), permitindo testar todas as funcionalidades restritas do frontend.
-
-## Fluxo de Tokens (JWT)
-
-Independentemente do provedor utilizado, após a autenticação bem-sucedida, o sistema gera um **Access Token (JWT)** e um **Refresh Token**.
-
--   **Access Token**: É um token de curta duração (configurável via `JWT_EXP_HOURS`) que é enviado em cada requisição à API para autorizar o acesso.
--   **Refresh Token**: É um token de longa duração (configurável via `REFRESH_TOKEN_EXP_DAYS`) armazenado em um cookie `HttpOnly`. Ele é usado para obter um novo Access Token sem que o usuário precise fazer login novamente.
-
----
-
-## Modelo de Segurança Híbrido (Autenticação AD + RBAC Local)
-
-Para combinar **máxima segurança corporativa** com **autonomia da gestão hospitalar**, todo sistema construído sobre este framework deve seguir o modelo em 2 etapas:
-
-### 1. Etapa 1: Autenticação no Active Directory (AD / LDAP)
-- Garante a autenticidade da conta corporativa na rede Ebserh (`EBSERHNET`).
-- **Segurança Máxima:** Se um funcionário for desligado do hospital, a TI desativa a conta dele no AD e o acesso a todos os sistemas cessa automaticamente.
-- **Zero Burocracia na TI:** Elimina a necessidade de criar grupos de segurança no AD para cada novo sistema.
-
-### 2. Etapa 2: Autorização Local por Perfis (RBAC no Banco `data/app.db`)
-- Cada sistema mantém sua tabela de usuários autorizados no banco local (`data/app.db`).
-- **Validação Pró-ativa no AD:** Durante o cadastro de um novo usuário na interface de **Configurações**, a chefia/gestão clica em **"Consultar AD"**. O backend realiza uma busca LDAP no AD (ou provedor Mock) via `GET /api/admin/ad-user-search/{username}` para validar a existência da conta corporativa e extrair automaticamente o **Nome Completo**, **E-mail** e **Lotação / Setor**.
-- Apenas usuários validados e com cadastro prévio no banco local recebem autorização de acesso ao sistema.
-- Mesmo com senha do AD correta, um funcionário sem cadastro prévio na tabela local de usuários do sistema recebe mensagem de acesso negado.
-
-### Exemplos de Perfis de Acesso (Exemplificativos / Customizáveis por Sistema)
-Cada sistema construído com o framework definirá seus próprios perfis de acordo com as necessidades do negócio do setor. Abaixo estão alguns exemplos comuns:
-
-1. 🛡️ **`ADMINISTRADOR`**: Acesso total às configurações, auditoria e gestão de usuários/perfis.
-2. 👨‍⚕️ **`MEDICO`**: Acesso a evolução clínica, prescrições e altas hospitalares.
-3. 🩺 **`ENFERMAGEM`**: Acesso ao censo diário de leitos, checagem e sinais vitais.
-4. 💊 **`FARMACEUTICO`**: Acesso à dispensação de medicamentos e controle de estoque.
-5. 📊 **`GESTOR_UNIDADE`**: Acesso a relatórios estratégicos, indicadores e dashboards.
-6. 👁️ **`CONSULTA`**: Acesso estritamente somente-leitura (Read-Only) para consulta.
-
----
-
-### Proteção de Rotas por Padrão (Default-Private Router Pattern)
-Para evitar que endpoints que manipulam dados clínicos ou hospitalares sejam expostos publicamente por esquecimento, o framework estabelece como norma declarar a dependência de autenticação diretamente no nível do `APIRouter`:
-
-```python
-router = APIRouter(
-    prefix="/api/pacientes",
-    tags=["Pacientes"],
-    dependencies=[Depends(auth_handler.decode_token)]  # Protege TODAS as rotas deste roteador por padrão!
-)
-```
-Dessa forma, qualquer nova rota criada dentro do arquivo herdará automaticamente a proteção JWT sem necessidade de adicionar `Depends(...)` manualmente em cada método HTTP. Rotas públicas (como `POST /api/login` e `GET /api/health`) são mantidas isoladas em roteadores específicos sem essa dependência.
-
+O mock de usuários não é uma ferramenta de provisionamento. A tela antiga de gestão de usuários permanece indisponível; atribuições institucionais dependem de governança aprovada pelo HC.
