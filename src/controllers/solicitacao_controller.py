@@ -32,7 +32,7 @@ SIGLA_PARA_TIPO_EXAME: Dict[str, str] = {
 ORIGEM_PARA_CODIGO: Dict[str, str] = {
     "Ambulatório": "AMBULATORIO",
     "Internação": "INTERNACAO",
-    "Cirurgia": "BLOCO_CIRURGICO",
+    "Cirurgia": "CIRURGIA",
     "Paciente Externo": "EXTERNO",
 }
 
@@ -62,6 +62,18 @@ def _texto(row: Dict[str, Any], chave: str) -> str:
     """Retorna o valor da coluna como string (vazia se ausente)."""
     valor = row.get(chave)
     return "" if valor is None else str(valor)
+
+
+# Caracteres invisíveis encontrados em valores do AGHU (ver data/dicionario_dados.md).
+_INVISIVEIS = "\u200b\u200c\u200d\ufeff"
+
+
+def _texto_limpo(row: Dict[str, Any], chave: str) -> str:
+    """Retorna o valor da coluna sem caracteres invisíveis nem espaços nas pontas."""
+    texto = _texto(row, chave)
+    for caractere in _INVISIVEIS:
+        texto = texto.replace(caractere, "")
+    return texto.strip()
 
 
 SEPARADOR_ID = "-"
@@ -107,7 +119,7 @@ def _mapear_linha(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "dataNascimento": _converter_data(_texto(row, "data_nascimento")),
         "sexo": None,
         "origem": ORIGEM_PARA_CODIGO.get(_texto(row, "origem").strip()),
-        "unidade": _texto(row, "unidade"),
+        "unidade": _texto_limpo(row, "unidade"),
         "especialidade": _texto(row, "especialidade"),
         "nomeSolicitante": None,
         "dataSolicitacao": _converter_data(_texto(row, "data_solicitacao")),
@@ -138,7 +150,11 @@ async def listar_solicitacoes(
     data_fim: Optional[date] = None,
     tipo: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Lista itens de exame de AP, filtrados por período e tipo, mais recentes primeiro."""
+    """Lista itens de exame de AP, filtrados por período e tipo, mais recentes primeiro.
+
+    O `limite` conta solicitações distintas: todas as amostras de cada solicitação
+    incluída são devolvidas, para que nenhuma solicitação venha cortada ao meio.
+    """
     itens = _mapear_linhas(await provider.listar_solicitacoes())
 
     inicio = data_inicio.isoformat() if data_inicio else None
@@ -161,7 +177,16 @@ async def listar_solicitacoes(
         key=lambda i: (i["dataSolicitacao"] or "", i["codigoSolicitacao"], i["numeroAmostra"]),
         reverse=True,
     )
-    return filtrados[:limite]
+    codigos_incluidos: set = set()
+    resultado: List[Dict[str, Any]] = []
+    for item in filtrados:
+        codigo = item["codigoSolicitacao"]
+        if codigo not in codigos_incluidos:
+            if len(codigos_incluidos) >= limite:
+                continue
+            codigos_incluidos.add(codigo)
+        resultado.append(item)
+    return resultado
 
 
 async def obter_solicitacao(

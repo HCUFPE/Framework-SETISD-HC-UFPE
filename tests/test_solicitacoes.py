@@ -62,7 +62,7 @@ def test_origens_mapeadas(api, headers):
     origens = {i["codigoSolicitacao"]: i["origem"] for i in itens}
     assert origens["900001"] == "AMBULATORIO"
     assert origens["900002"] == "INTERNACAO"
-    assert origens["900003"] == "BLOCO_CIRURGICO"
+    assert origens["900003"] == "CIRURGIA"
     assert origens["900004"] == "EXTERNO"
 
 
@@ -71,7 +71,7 @@ def test_lista_ignora_sigla_fora_do_mapa_e_ordena_desc(api, headers):
     resp = api.get("/api/solicitacoes", headers=headers)
     assert resp.status_code == 200
     itens = resp.json()
-    assert len(itens) == 6
+    assert len(itens) == 8
     assert all(i["siglaExame"] != "HEMOG" for i in itens)
     datas = [i["dataSolicitacao"] for i in itens]
     assert datas == sorted(datas, reverse=True)
@@ -101,9 +101,26 @@ def test_limite(api, headers):
     """O parâmetro limite corta a lista e valores acima de 1000 são rejeitados."""
     itens = api.get("/api/solicitacoes", params={"limite": 2}, headers=headers).json()
     assert len(itens) == 2
+    assert {i["codigoSolicitacao"] for i in itens} == {"900006", "900004"}
     resp = api.get("/api/solicitacoes", params={"limite": 1001}, headers=headers)
     assert resp.status_code == 400
     assert "detail" in resp.json()
+
+
+def test_limite_conta_solicitacoes_sem_cortar_amostras(api, headers):
+    """O limite conta solicitações distintas e devolve todas as amostras de cada uma."""
+    itens = api.get("/api/solicitacoes", params={"limite": 5}, headers=headers).json()
+    codigos = {i["codigoSolicitacao"] for i in itens}
+    assert codigos == {"900006", "900004", "900003", "900002", "900001"}
+    assert sorted(i["numeroAmostra"] for i in itens if i["codigoSolicitacao"] == "900001") == ["1", "2"]
+
+
+def test_unidade_sem_caractere_invisivel(api, headers):
+    """A unidade vem sem zero-width space nem espaços nas pontas."""
+    itens = api.get("/api/solicitacoes/900007", headers=headers).json()
+    assert len(itens) == 2
+    assert all(i["unidade"] == "UNIDADE TESTE G" for i in itens)
+    assert {i["codStatusItem"] for i in itens} == {"LI", "AC"}
 
 
 def test_ids_unicos_na_lista(api, headers):

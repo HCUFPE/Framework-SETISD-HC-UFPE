@@ -22,7 +22,7 @@ router = APIRouter(
 
 @router.get("", response_model=List[dict])
 async def listar_solicitacoes(
-    limite: int = Query(100, ge=1, le=1000, description="Máximo de itens retornados"),
+    limite: int = Query(100, ge=1, le=1000, description="Máximo de solicitações distintas retornadas (todas as amostras de cada uma)"),
     data_inicio: Optional[date] = Query(None, description="Data inicial da solicitação (AAAA-MM-DD)"),
     data_fim: Optional[date] = Query(None, description="Data final da solicitação (AAAA-MM-DD)"),
     tipo: Optional[Literal["HP", "CG", "CCV", "CO", "IHQ"]] = Query(None, description="Tipo de exame sugerido"),
