@@ -43,27 +43,17 @@
               <ClipboardDocumentIcon class="h-5 w-5" />
             </button>
             <StatusCasoBadge :status="caso.status" size="md" />
-            <span v-if="caso.urgente" class="group relative">
-              <span
-                tabindex="0"
-                aria-describedby="motivo-urgencia"
-                class="focus-ring inline-flex cursor-help items-center rounded-md bg-paper-danger-soft px-2.5 py-1 text-sm font-bold text-paper-danger-strong"
-              >
-                URGENTE
-              </span>
-              <span
-                id="motivo-urgencia"
-                role="tooltip"
-                class="invisible absolute left-0 top-full z-20 mt-1 w-64 rounded-md bg-gray-900 px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
-              >
-                Motivo da urgência: {{ caso.motivoUrgencia }}
-              </span>
+            <span
+              v-if="caso.urgente"
+              class="inline-flex items-center rounded-md bg-paper-danger-soft px-2.5 py-1 text-sm font-bold text-paper-danger-strong"
+            >
+              URGENTE
             </span>
           </div>
 
           <!-- Ações: Não conformidade, Cancelar caso, Imprimir -->
           <div class="flex flex-wrap gap-2">
-            <Button v-if="ativo" variant="danger" @click="ncAberta = true">
+            <Button v-if="ativo" variant="danger" aria-haspopup="dialog" @click="ncAberta = true">
               <ExclamationTriangleIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Não conformidade
             </Button>
             <Button v-if="ativo" variant="secondary" @click="cancelamentoAberto = true">
@@ -94,10 +84,18 @@
             </div>
           </div>
         </div>
+        <NaoConformidadeModal
+          :show="ncAberta && ativo"
+          :contexto="{ tipo: 'CASO', casoNumero: caso.numeroInterno }"
+          :etapa-caso="caso.etapaAtual"
+          @close="ncAberta = false"
+          @registrado="aposAlteracao"
+        />
+
         <p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
           <span><strong>{{ caso.tipoExame }}</strong> · {{ TIPOS_EXAME[caso.tipoExame].nome }}</span>
-          <span>{{ caso.solicitacao.nomePaciente }} · Pront. {{ caso.solicitacao.prontuario }}</span>
-          <span>Material: {{ caso.solicitacao.descricaoMaterial }}</span>
+          <span>{{ caso.solicitacao.nomePaciente }} · Pront. {{ caso.solicitacao.prontuario || NAO_INFORMADO }}</span>
+          <span>Material: {{ resumoMaterial(caso.solicitacao) }}</span>
           <span>Entrada: {{ formatarDataHora(caso.dataEntradaSap) }}</span>
         </p>
 
@@ -156,7 +154,7 @@
           </template>
 
           <template #aghu>
-            <DadosSolicitacao :solicitacao="caso.solicitacao" />
+            <DadosSolicitacao :solicitacao="caso.solicitacao" titulo="Amostras do caso" />
           </template>
 
           <template #recepcao>
@@ -174,13 +172,19 @@
                 </Badge>
               </div>
               <template v-if="caso.conferencia">
+                <p class="mb-2 text-sm font-semibold text-gray-700">
+                  Amostras conferidas ({{ rotuloQuantidadeAmostras(caso.conferencia.amostras.length) }})
+                </p>
                 <ul class="grid gap-2 sm:grid-cols-2">
-                  <li v-for="item in ITENS_CONFERENCIA" :key="item.chave" class="flex items-center gap-2 text-sm">
-                    <CheckCircleIcon v-if="caso.conferencia[item.chave]" class="h-5 w-5 text-paper-success" aria-label="Confere" />
-                    <XCircleIcon v-else class="h-5 w-5 text-paper-danger" aria-label="Não confere" />
-                    {{ item.rotulo }}
+                  <li v-for="numero in caso.conferencia.amostras" :key="numero" class="flex items-start gap-2 text-sm">
+                    <CheckCircleIcon class="h-5 w-5 shrink-0 text-paper-success" aria-hidden="true" />
+                    <span>
+                      <strong>Amostra {{ numero }}</strong> ·
+                      {{ caso.solicitacao.amostras.find((a) => a.numeroAmostra === numero)?.descricaoMaterial || NAO_INFORMADO }}
+                    </span>
                   </li>
                 </ul>
+                <p v-if="caso.conferencia.observacao" class="mt-2 text-sm text-gray-700">{{ caso.conferencia.observacao }}</p>
                 <p class="mt-3 text-xs text-gray-500">
                   Conferido por {{ caso.conferencia.conferidoPor.nome }} em {{ formatarDataHora(caso.conferencia.conferidoEm) }}
                 </p>
@@ -245,13 +249,13 @@
             <div class="space-y-4">
               <article v-for="nc in caso.naoConformidades" :key="nc.id" class="rounded-lg border border-paper-danger/40 p-4">
                 <header class="mb-2 flex flex-wrap items-center gap-2">
-                  <h3 class="font-bold text-gray-900">{{ TIPOS_NAO_CONFORMIDADE[nc.tipo] }}</h3>
+                  <h3 class="font-bold text-gray-900">{{ rotuloNaoConformidade(nc) }}</h3>
                   <Badge variant="default" size="sm">{{ STATUS_NAO_CONFORMIDADE[nc.status] }}</Badge>
                   <Badge v-if="devolucaoDe(nc.id)" :variant="SITUACOES_DEVOLUCAO[devolucaoDe(nc.id)!.situacao].variante" size="sm">
                     {{ SITUACOES_DEVOLUCAO[devolucaoDe(nc.id)!.situacao].rotulo }}
                   </Badge>
                 </header>
-                <p class="text-sm text-gray-800">{{ nc.descricao }}</p>
+                <p v-if="nc.observacao" class="text-sm text-gray-800"><strong>Observação:</strong> {{ nc.observacao }}</p>
                 <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                   <div><dt class="text-xs font-bold uppercase text-gray-500">Setor / etapa</dt><dd>{{ nc.setor }} · {{ nc.etapa }}</dd></div>
                   <div><dt class="text-xs font-bold uppercase text-gray-500">Data/hora</dt><dd>{{ formatarDataHora(nc.registradoEm) }}</dd></div>
@@ -289,13 +293,6 @@
         </Tabs>
       </Card>
 
-      <NaoConformidadeModal
-        :show="ncAberta"
-        :contexto="{ tipo: 'CASO', casoNumero: caso.numeroInterno }"
-        :caso="caso"
-        @close="ncAberta = false"
-        @registrado="aposAlteracao"
-      />
       <CancelarCasoModal :show="cancelamentoAberto" :caso="caso" @close="cancelamentoAberto = false" @cancelado="cancelamentoAberto = false" />
       <PrintPreview :show="impressao !== null" :caso="caso" :tipo="impressao ?? 'ETIQUETAS'" @close="impressao = null" />
     </template>
@@ -331,7 +328,7 @@ import FluxoCaso from '../../components/ap/caso/FluxoCaso.vue';
 import RegistrosEtapa from '../../components/ap/caso/RegistrosEtapa.vue';
 import {
   ETAPAS,
-  ITENS_CONFERENCIA,
+  NAO_INFORMADO,
   PRAZO_ETAPA_HORAS,
   RESULTADOS_CONFERENCIA,
   SITUACOES_DEVOLUCAO,
@@ -340,9 +337,10 @@ import {
   STATUS_NAO_CONFORMIDADE,
   TIPOS_EXAME,
   TIPOS_ITEM_MATERIAL,
-  TIPOS_NAO_CONFORMIDADE,
   casoEstaAtivo,
+  rotuloNaoConformidade,
 } from '../../constants/ap';
+import { resumoMaterial, rotuloQuantidadeAmostras } from '../../helpers/aghu';
 import { formatarDataHora, horasDesde, tempoDecorrido } from '../../helpers/formato';
 import { useCasosStore } from '../../stores/casos';
 import type { EtapaCodigo, ItemMaterial, TipoImpressao, TipoItemMaterial } from '../../types/ap';
@@ -437,8 +435,8 @@ const camposRecepcao = computed(() => {
     { rotulo: 'Entrada no SAP', valor: formatarDataHora(c.dataEntradaSap) },
     { rotulo: 'Responsável', valor: c.responsavelEntrada.nome },
     { rotulo: 'Tipo de exame', valor: `${c.tipoExame} · ${TIPOS_EXAME[c.tipoExame].nome}` },
-    { rotulo: 'Quantidade de peças/frascos', valor: String(c.quantidade) },
-    { rotulo: 'Urgente', valor: c.urgente ? `Sim — ${c.motivoUrgencia}` : 'Não', largo: c.urgente },
+    { rotulo: 'Quantidade de amostras', valor: rotuloQuantidadeAmostras(c.quantidade) },
+    { rotulo: 'Urgente', valor: c.urgente ? 'Sim' : 'Não' },
     { rotulo: 'Procedimento', valor: c.procedimento },
     { rotulo: 'Observações', valor: c.observacoes || '—', largo: true },
   ];

@@ -12,6 +12,7 @@ import {
   casoEstaAtivo,
   etapaAposRecepcao,
 } from '../../../constants/ap';
+import { resumoMaterial, rotuloQuantidadeAmostras } from '../../../helpers/aghu';
 import { db, proximoId } from '../../../mocks/ap/db';
 import type {
   CasoAp,
@@ -19,7 +20,6 @@ import type {
   ConfirmarEntradaInput,
   ExameIhq,
   ItemMaterial,
-  ItensConferencia,
   ResultadoBuscaCasos,
   Responsavel,
   SolicitacaoAghu,
@@ -41,41 +41,28 @@ import {
   registrarHistorico,
 } from './util';
 
-/** Solicitação pendente pelo número, ou erro. */
-function solicitacaoPendente(codigo: string): SolicitacaoAghu {
-  const solicitacao = db.solicitacoes.find((s) => s.codigoSolicitacao === normalizarCodigo(codigo));
-  if (!solicitacao) throw new ServiceError(404, `Nenhuma solicitação encontrada para ${codigo}.`);
+/** Exame da solicitação pendente pela chave de recebimento, ou erro. */
+function solicitacaoPendente(id: string): SolicitacaoAghu {
+  const solicitacao = db.solicitacoes.find((s) => s.id === normalizarCodigo(id));
+  if (!solicitacao) throw new ServiceError(404, `Nenhuma solicitação encontrada para ${id}.`);
   if (solicitacao.situacaoRecepcao !== 'AGUARDANDO_RECEBIMENTO') {
-    throw new ServiceError(409, `A solicitação ${codigo} não está aguardando recebimento.`);
+    throw new ServiceError(
+      409,
+      `O exame ${solicitacao.siglaExame} da solicitação ${solicitacao.codigoSolicitacao} não está aguardando recebimento.`,
+    );
   }
   return solicitacao;
 }
 
-/** Exige os quatro itens da conferência marcados. */
-function exigirConferenciaCompleta(conferencia: ItensConferencia): void {
-  const completa =
-    conferencia.identificacaoConfere &&
-    conferencia.materialConfere &&
-    conferencia.quantidadeConfere &&
-    conferencia.recipienteAdequado;
-  if (!completa) {
-    throw new ServiceError(422, 'Marque todos os itens da conferência ou registre uma não conformidade.');
-  }
-}
-
-/** Registra a conferência aceita. */
-function registrarConferenciaAceita(
-  solicitacaoCodigo: string,
-  casoNumero: string,
-  conferencia: ItensConferencia,
-  usuario: Responsavel,
-): void {
+/** Registra a conferência aceita com as amostras do exame. */
+function registrarConferenciaAceita(solicitacao: SolicitacaoAghu, casoNumero: string, usuario: Responsavel): void {
   db.conferencias.push({
     id: proximoId('conferencia'),
-    solicitacaoCodigo,
+    solicitacaoId: solicitacao.id,
+    solicitacaoCodigo: solicitacao.codigoSolicitacao,
     casoNumero,
+    amostras: solicitacao.amostras.map((a) => a.numeroAmostra),
     resultado: 'ACEITA',
-    ...conferencia,
     conferidoPor: usuario,
     conferidoEm: agoraIso(),
   });
@@ -123,7 +110,7 @@ export const casoServiceMock: CasoService = {
           numeroInterno: c.numeroInterno,
           nomePaciente: c.solicitacao.nomePaciente,
           prontuario: c.solicitacao.prontuario,
-          descricaoMaterial: c.solicitacao.descricaoMaterial,
+          descricaoMaterial: resumoMaterial(c.solicitacao),
           status: c.status,
           elegivel: !inelegivel,
           motivoInelegivel: inelegivel
@@ -136,24 +123,22 @@ export const casoServiceMock: CasoService = {
   async confirmarEntrada(input: ConfirmarEntradaInput, usuario: Responsavel): Promise<CasoAp> {
     await latencia();
     exigirAghuDisponivel();
-    const solicitacao = solicitacaoPendente(input.solicitacaoCodigo);
-    exigirConferenciaCompleta(input.conferencia);
-    if (!Number.isInteger(input.quantidade) || input.quantidade < 1) {
-      throw new ServiceError(400, 'Informe a quantidade de peças/frascos (1 ou mais).');
-    }
-    if (input.urgente && !input.motivoUrgencia?.trim()) {
-      throw new ServiceError(400, 'Descreva o motivo da urgência.');
-    }
+    const solicitacao = solicitacaoPendente(input.solicitacaoId);
+    if (solicitacao.amostras.length === 0) throw new ServiceError(422, 'O exame não tem amostras no AGHU.');
     if (!input.procedimento.trim()) throw new ServiceError(400, 'Selecione o procedimento.');
 
     const agora = agoraIso();
     const numero = proximoNumero(input.tipoExame, db.casos.map((c) => c.numeroInterno));
     const proximaEtapa = etapaAposRecepcao(input.tipoExame);
 
-    const materiais: ItemMaterial[] = Array.from({ length: input.quantidade }, (_, i) => ({
+    // Uma amostra do caso por amostra do exame no AGHU, com o número e a descrição dela.
+    const quantidade = solicitacao.amostras.length;
+    const materiais: ItemMaterial[] = solicitacao.amostras.map((amostra, i) => ({
       codigo: i === 0 ? numero : `${numero}-F${i + 1}`,
       tipoItem: 'AMOSTRA',
-      rotulo: `Amostra ${i + 1} · ${solicitacao.descricaoMaterial}`,
+      rotulo: `Amostra ${amostra.numeroAmostra}`,
+      descricao: amostra.descricaoMaterial,
+      numeroAmostraAghu: amostra.numeroAmostra,
       origem: 'ROTINA',
       status: 'DISPONIVEL',
       criadoPor: usuario,
@@ -174,9 +159,8 @@ export const casoServiceMock: CasoService = {
       dataEntradaSap: agora,
       responsavelEntrada: usuario,
       urgente: input.urgente,
-      motivoUrgencia: input.urgente ? input.motivoUrgencia?.trim() : undefined,
       procedimento: input.procedimento,
-      quantidade: input.quantidade,
+      quantidade,
       observacoes: input.observacoes?.trim() || undefined,
       etapas: [
         {
@@ -198,7 +182,7 @@ export const casoServiceMock: CasoService = {
       historico: [],
     };
     db.casos.push(caso);
-    registrarConferenciaAceita(solicitacao.codigoSolicitacao, numero, input.conferencia, usuario);
+    registrarConferenciaAceita(solicitacao, numero, usuario);
 
     registrarHistorico(
       caso,
@@ -206,24 +190,24 @@ export const casoServiceMock: CasoService = {
       SETOR_RECEPCAO,
       'ENTRADA_CONFIRMADA',
       'Entrada confirmada',
-      `Nº interno ${numero} gerado a partir da solicitação AGHU ${solicitacao.codigoSolicitacao}. Conferência aceita. Encaminhado para ${ETAPAS[proximaEtapa]}.`,
+      `Nº interno ${numero} gerado a partir da solicitação AGHU ${solicitacao.codigoSolicitacao} (exame ${solicitacao.siglaExame}, ${rotuloQuantidadeAmostras(quantidade)}: ${solicitacao.amostras.map((a) => a.numeroAmostra).join(', ')}). Conferência aceita. Encaminhado para ${ETAPAS[proximaEtapa]}.`,
     );
     if (caso.urgente) {
-      registrarHistorico(caso, usuario, SETOR_RECEPCAO, 'URGENCIA_MARCADA', 'Marcado como URGENTE', caso.motivoUrgencia);
+      registrarHistorico(caso, usuario, SETOR_RECEPCAO, 'URGENCIA_MARCADA', 'Marcado como URGENTE', 'Urgência da solicitação AGHU.');
     }
     registrarAuditoria(
       usuario,
       'ENTRADA_CONFIRMADA',
       `caso_ap:${numero}`,
-      { solicitacao: solicitacao.codigoSolicitacao, situacaoRecepcao: 'AGUARDANDO_RECEBIMENTO' },
+      { solicitacao: solicitacao.codigoSolicitacao, exame: solicitacao.siglaExame, situacaoRecepcao: 'AGUARDANDO_RECEBIMENTO' },
       {
         numeroInterno: numero,
         tipoExame: input.tipoExame,
         status: 'RECEBIDO',
         etapaAtual: proximaEtapa,
         urgente: caso.urgente,
-        motivoUrgencia: caso.motivoUrgencia ?? null,
-        quantidade: input.quantidade,
+        quantidade,
+        amostras: solicitacao.amostras.map((a) => a.numeroAmostra),
         procedimento: input.procedimento,
       },
     );
@@ -233,8 +217,7 @@ export const casoServiceMock: CasoService = {
   async vincularIhq(input: VincularIhqInput, usuario: Responsavel) {
     await latencia();
     exigirAghuDisponivel();
-    const solicitacao = solicitacaoPendente(input.solicitacaoCodigo);
-    exigirConferenciaCompleta(input.conferencia);
+    const solicitacao = solicitacaoPendente(input.solicitacaoId);
     const caso = exigirCaso(input.casoOrigemNumero);
     if (STATUS_INELEGIVEIS_IHQ.includes(caso.status)) {
       throw new ServiceError(422, `O caso ${caso.numeroInterno} está ${STATUS_CASO[caso.status].rotulo.toLowerCase()} e não pode receber IHQ.`);
@@ -259,7 +242,7 @@ export const casoServiceMock: CasoService = {
     solicitacao.situacaoRecepcao = 'RECEBIDA';
     solicitacao.ihqCodigo = ihq.codigoInternoIhq;
     solicitacao.ihqCasoNumero = caso.numeroInterno;
-    registrarConferenciaAceita(solicitacao.codigoSolicitacao, caso.numeroInterno, input.conferencia, usuario);
+    registrarConferenciaAceita(solicitacao, caso.numeroInterno, usuario);
 
     const avisoDivergencia = divergente
       ? ` Vínculo confirmado apesar do prontuário divergente (solicitação ${solicitacao.prontuario}, caso ${caso.solicitacao.prontuario}).`
@@ -270,13 +253,13 @@ export const casoServiceMock: CasoService = {
       SETOR_RECEPCAO,
       'IHQ_VINCULADA',
       `IHQ ${ihq.codigoInternoIhq} vinculada ao caso`,
-      `Solicitação AGHU ${solicitacao.codigoSolicitacao} recebida pela recepção.${avisoDivergencia}`,
+      `Solicitação AGHU ${solicitacao.codigoSolicitacao} (exame ${solicitacao.siglaExame}, amostra(s) ${solicitacao.amostras.map((a) => a.numeroAmostra).join(', ')}) recebida pela recepção.${avisoDivergencia}`,
     );
     registrarAuditoria(
       usuario,
       'IHQ_VINCULADA',
       `exame_ihq:${ihq.codigoInternoIhq}`,
-      { solicitacao: solicitacao.codigoSolicitacao, situacaoRecepcao: 'AGUARDANDO_RECEBIMENTO' },
+      { solicitacao: solicitacao.codigoSolicitacao, exame: solicitacao.siglaExame, situacaoRecepcao: 'AGUARDANDO_RECEBIMENTO' },
       {
         codigoInternoIhq: ihq.codigoInternoIhq,
         casoOrigem: caso.numeroInterno,
@@ -310,14 +293,27 @@ export const casoServiceMock: CasoService = {
     return montarCaso(caso);
   },
 
-  async registrarImpressao(numeroInterno: string, tipo: TipoImpressao, usuario: Responsavel): Promise<void> {
+  async registrarImpressao(numeroInterno: string, tipo: TipoImpressao, usuario: Responsavel, amostras?: string[]): Promise<void> {
     await latencia(100);
     const caso = exigirCaso(numeroInterno);
     const titulo = tipo === 'ETIQUETAS' ? 'Etiquetas impressas' : 'Ficha de trabalho impressa';
+    const numeros =
+      amostras && amostras.length > 0
+        ? amostras
+        : caso.materiais.filter((m) => m.tipoItem === 'AMOSTRA').map((m) => m.numeroAmostraAghu ?? m.rotulo);
+    if (tipo === 'ETIQUETAS' && numeros.length === 0) throw new ServiceError(400, 'Selecione ao menos uma amostra para imprimir.');
     const descricao =
-      tipo === 'ETIQUETAS' ? `${caso.materiais.length} etiqueta(s) de frasco.` : `Ficha de trabalho ${TIPOS_EXAME[caso.tipoExame].nome}.`;
+      tipo === 'ETIQUETAS'
+        ? `${numeros.length} etiqueta(s) de frasco · amostra(s) ${numeros.join(', ')}.`
+        : `Ficha de trabalho ${TIPOS_EXAME[caso.tipoExame].nome}.`;
     registrarHistorico(caso, usuario, SETOR_RECEPCAO, tipo === 'ETIQUETAS' ? 'ETIQUETAS_IMPRESSAS' : 'FICHA_IMPRESSA', titulo, descricao);
-    registrarAuditoria(usuario, tipo === 'ETIQUETAS' ? 'ETIQUETAS_IMPRESSAS' : 'FICHA_IMPRESSA', `caso_ap:${caso.numeroInterno}`, null, { tipo });
+    registrarAuditoria(
+      usuario,
+      tipo === 'ETIQUETAS' ? 'ETIQUETAS_IMPRESSAS' : 'FICHA_IMPRESSA',
+      `caso_ap:${caso.numeroInterno}`,
+      null,
+      tipo === 'ETIQUETAS' ? { tipo, amostras: numeros } : { tipo },
+    );
   },
 
   async registrarAcionamentoPlantao(numeroInterno: string, usuario: Responsavel): Promise<CasoAp> {
@@ -344,13 +340,20 @@ export const casoServiceMock: CasoService = {
     if (!alvo) return { itens: [], total: 0 };
     const encontrados = db.casos
       .filter((c) =>
-        [c.numeroInterno, c.solicitacao.prontuario, c.solicitacao.nomePaciente].some((campo) =>
-          normalizarTexto(campo).includes(alvo),
-        ),
+        [
+          c.numeroInterno,
+          c.solicitacao.prontuario,
+          c.solicitacao.nomePaciente,
+          c.solicitacao.codigoSolicitacao,
+          // IHQ vinculadas: o código da solicitação delas também leva ao caso de origem
+          ...c.ihqs.map((i) => i.solicitacaoAghuCodigo),
+        ].some((campo) => normalizarTexto(campo).includes(alvo)),
       )
       .sort((a, b) => {
-        const exatoA = normalizarTexto(a.numeroInterno) === alvo ? 0 : 1;
-        const exatoB = normalizarTexto(b.numeroInterno) === alvo ? 0 : 1;
+        const exato = (c: CasoAp) =>
+          normalizarTexto(c.numeroInterno) === alvo || normalizarTexto(c.solicitacao.codigoSolicitacao) === alvo ? 0 : 1;
+        const exatoA = exato(a);
+        const exatoB = exato(b);
         return exatoA - exatoB || b.dataEntradaSap.localeCompare(a.dataEntradaSap);
       });
     return {
@@ -360,6 +363,7 @@ export const casoServiceMock: CasoService = {
         tipoExame: c.tipoExame,
         nomePaciente: c.solicitacao.nomePaciente,
         prontuario: c.solicitacao.prontuario,
+        codigoSolicitacao: c.solicitacao.codigoSolicitacao,
         status: c.status,
       })),
     };

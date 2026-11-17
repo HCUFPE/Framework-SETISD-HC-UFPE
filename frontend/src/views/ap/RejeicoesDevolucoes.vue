@@ -7,42 +7,25 @@
 
     <Card>
       <div class="flex flex-wrap items-end gap-3">
-        <div>
+        <div class="w-44">
           <label for="dev-periodo" class="form-label">Período</label>
-          <select id="dev-periodo" v-model.number="filtros.periodoDias" class="form-control">
-            <option :value="0">Qualquer data</option>
-            <option :value="7">Últimos 7 dias</option>
-            <option :value="30">Últimos 30 dias</option>
-          </select>
+          <SelectBusca id="dev-periodo" v-model="filtros.periodoDias" :opcoes="opcoesPeriodo" rotulo="Período" />
         </div>
-        <div>
+        <div class="w-52">
           <label for="dev-natureza" class="form-label">Natureza</label>
-          <select id="dev-natureza" v-model="filtros.natureza" class="form-control">
-            <option value="">Todas</option>
-            <option value="REJEICAO">Rejeição na recepção</option>
-            <option value="DEVOLUCAO">Devolução de caso</option>
-          </select>
+          <SelectBusca id="dev-natureza" v-model="filtros.natureza" :opcoes="opcoesNatureza" rotulo="Natureza" />
         </div>
-        <div>
+        <div class="w-72">
           <label for="dev-tipo" class="form-label">Tipo de não conformidade</label>
-          <select id="dev-tipo" v-model="filtros.tipo" class="form-control">
-            <option value="">Todos</option>
-            <option v-for="(rotulo, codigo) in TIPOS_NAO_CONFORMIDADE" :key="codigo" :value="codigo">{{ rotulo }}</option>
-          </select>
+          <SelectBusca id="dev-tipo" v-model="filtros.tipo" :opcoes="opcoesTipo" rotulo="Tipo de não conformidade" />
         </div>
-        <div>
+        <div class="w-56">
           <label for="dev-origem" class="form-label">Origem</label>
-          <select id="dev-origem" v-model="filtros.origem" class="form-control">
-            <option value="">Todas</option>
-            <option v-for="origem in origens" :key="origem" :value="origem">{{ origem }}</option>
-          </select>
+          <SelectBusca id="dev-origem" v-model="filtros.origem" :opcoes="opcoesOrigem" rotulo="Origem" />
         </div>
-        <div>
+        <div class="w-48">
           <label for="dev-etapa" class="form-label">Etapa identificada</label>
-          <select id="dev-etapa" v-model="filtros.etapa" class="form-control">
-            <option value="">Todas</option>
-            <option v-for="etapa in etapas" :key="etapa" :value="etapa">{{ ETAPAS[etapa] }}</option>
-          </select>
+          <SelectBusca id="dev-etapa" v-model="filtros.etapa" :opcoes="opcoesEtapa" rotulo="Etapa identificada" />
         </div>
         <p class="ml-auto self-center text-sm text-gray-500" aria-live="polite">{{ filtradas.length }} registro(s)</p>
       </div>
@@ -63,7 +46,7 @@
           </template>
           <template #cell-tipo="{ item }">
             <span class="block font-bold text-gray-800">{{ item.tipo }}</span>
-            <span class="block max-w-xs text-xs text-gray-500">{{ item.descricao }}</span>
+            <span v-if="item.observacao" class="block max-w-xs text-xs text-gray-500">Obs.: {{ item.observacao }}</span>
           </template>
           <template #cell-origem="{ item }">
             <span class="block">{{ item.origem }}</span>
@@ -119,8 +102,15 @@ import Badge from '../../components/Badge.vue';
 import Button from '../../components/Button.vue';
 import Card from '../../components/Card.vue';
 import DataTable from '../../components/DataTable.vue';
+import SelectBusca from '../../components/SelectBusca.vue';
 import AlterarSituacaoDevolucaoModal from '../../components/ap/AlterarSituacaoDevolucaoModal.vue';
-import { ETAPAS, SITUACOES_DEVOLUCAO, TIPOS_NAO_CONFORMIDADE } from '../../constants/ap';
+import {
+  ETAPAS,
+  ORDEM_TIPOS_NAO_CONFORMIDADE,
+  SITUACOES_DEVOLUCAO,
+  TIPOS_NAO_CONFORMIDADE,
+  rotuloNaoConformidade,
+} from '../../constants/ap';
 import { formatarDataHora } from '../../helpers/formato';
 import { rotaDoCaso } from '../../helpers/rotas';
 import { useDevolucoesStore } from '../../stores/devolucoes';
@@ -150,6 +140,24 @@ const colunas = [
 const origens = computed(() => [...new Set(store.devolucoes.map((d) => d.unidadeOrigem))].sort());
 const etapas = computed(() => [...new Set(store.devolucoes.map((d) => d.naoConformidade.etapaCodigo))]);
 
+/** Opções dos filtros (campos de seleção com busca). */
+const opcoesPeriodo = [
+  { valor: 0, rotulo: 'Qualquer data' },
+  { valor: 7, rotulo: 'Últimos 7 dias' },
+  { valor: 30, rotulo: 'Últimos 30 dias' },
+];
+const opcoesNatureza = [
+  { valor: '', rotulo: 'Todas' },
+  { valor: 'REJEICAO', rotulo: 'Rejeição na recepção' },
+  { valor: 'DEVOLUCAO', rotulo: 'Devolução de caso' },
+];
+const opcoesTipo = [
+  { valor: '', rotulo: 'Todos' },
+  ...ORDEM_TIPOS_NAO_CONFORMIDADE.map((codigo) => ({ valor: codigo, rotulo: TIPOS_NAO_CONFORMIDADE[codigo] })),
+];
+const opcoesOrigem = computed(() => [{ valor: '', rotulo: 'Todas' }, ...origens.value.map((o) => ({ valor: o, rotulo: o }))]);
+const opcoesEtapa = computed(() => [{ valor: '', rotulo: 'Todas' }, ...etapas.value.map((e) => ({ valor: e, rotulo: ETAPAS[e] }))]);
+
 /** Devoluções que atendem aos filtros (a lista já vem da mais recente para a mais antiga). */
 const filtradas = computed(() => {
   const limite = filtros.periodoDias > 0 ? Date.now() - filtros.periodoDias * 86_400_000 : null;
@@ -169,8 +177,8 @@ const linhas = computed(() =>
     id: d.id,
     data: formatarDataHora(d.devolvidaEm),
     rejeicao: d.rejeicaoNaRecepcao,
-    tipo: TIPOS_NAO_CONFORMIDADE[d.naoConformidade.tipo],
-    descricao: d.naoConformidade.descricao,
+    tipo: rotuloNaoConformidade(d.naoConformidade),
+    observacao: d.naoConformidade.observacao,
     origem: d.unidadeOrigem,
     etapa: d.naoConformidade.etapa,
     casoNumero: d.casoNumero,

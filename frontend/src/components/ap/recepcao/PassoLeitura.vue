@@ -37,51 +37,50 @@
           <Alert v-if="recepcao.mensagemLeitura" :variant="recepcao.mensagemLeitura.variante ?? 'danger'" class="mt-3">
             <p class="font-semibold">{{ recepcao.mensagemLeitura.texto }}</p>
             <p v-if="recepcao.mensagemLeitura.dica" class="mt-1">{{ recepcao.mensagemLeitura.dica }}</p>
-            <router-link
-              v-if="recepcao.mensagemLeitura.casoNumero"
-              :to="rotaDoCaso(recepcao.mensagemLeitura.casoNumero)"
-              class="focus-ring mt-2 inline-block rounded font-bold underline hover:no-underline active:opacity-70"
-            >
-              Abrir o caso {{ recepcao.mensagemLeitura.casoNumero }}
-            </router-link>
+            <ul v-if="recepcao.mensagemLeitura.recebimentos?.length" class="mt-2 space-y-1">
+              <li v-for="r in recepcao.mensagemLeitura.recebimentos" :key="`${r.siglaExame}-${r.casoNumero}`">
+                {{ r.nomeExame }} ({{ r.siglaExame }}) →
+                <template v-if="r.ihqCodigo">{{ r.ihqCodigo }} no caso</template>
+                <router-link
+                  :to="rotaDoCaso(r.casoNumero, { aba: r.ihqCodigo ? 'ihq' : undefined })"
+                  class="focus-ring rounded font-bold underline hover:no-underline active:opacity-70"
+                >
+                  {{ r.casoNumero }}
+                </router-link>
+              </li>
+            </ul>
           </Alert>
         </div>
 
         <div class="mt-6 border-t border-gray-100 pt-5">
-          <Button variant="danger" @click="emit('sem-etiqueta')">
+          <Button variant="danger" aria-haspopup="dialog" @click="ncSemEtiquetaAberta = true">
             <ExclamationTriangleIcon class="h-5 w-5 mr-2" aria-hidden="true" />
             Registrar não conformidade de material sem etiqueta do AGHU
           </Button>
+          <NaoConformidadeModal
+            :show="ncSemEtiquetaAberta"
+            :contexto="{ tipo: 'SEM_ETIQUETA' }"
+            @close="ncSemEtiquetaAberta = false"
+            @registrado="aposRegistroSemEtiqueta"
+          />
         </div>
       </div>
     </Card>
 
     <Card>
       <template #header>
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 class="text-lg font-bold text-gray-800">Para receber</h2>
-            <p class="text-sm text-gray-500">Solicitações do AGHU aguardando recebimento. Congelações primeiro, depois as mais antigas.</p>
-            <p v-if="recepcao.filtroCodigoAghu" class="mt-2 flex flex-wrap items-center gap-2 text-sm">
-              <span class="rounded-full bg-paper-info-soft px-3 py-1 font-bold text-paper-info-strong">
-                Amostras da solicitação {{ recepcao.filtroCodigoAghu }}
-              </span>
-              <button
-                type="button"
-                class="focus-ring rounded font-bold text-paper-info-strong underline hover:no-underline"
-                @click="recepcao.filtroCodigoAghu = null"
-              >
-                Mostrar todas
-              </button>
-            </p>
-          </div>
+        <h2 class="text-lg font-bold text-gray-800">
           <span
-            v-if="!recepcao.carregandoPendentes && !recepcao.aghuIndisponivel && fila.length > 0"
-            class="rounded-full bg-paper-warning-soft px-3 py-1 text-sm font-bold text-paper-warning-strong"
+            v-if="fila.length > 0"
+            class="inline-flex items-center rounded-full bg-paper-warning-soft px-3 py-1 text-base font-bold text-paper-warning-strong"
           >
-            {{ fila.length }} {{ fila.length === 1 ? 'pendente' : 'pendentes' }}
+            {{ rotuloQuantidadeSolicitacoes(fila.length) }} para receber
           </span>
-        </div>
+          <template v-else>Para receber</template>
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+          Solicitações de exames do AGHU aguardando recebimento. Congelações primeiro, depois as mais antigas.
+        </p>
       </template>
 
       <p v-if="recepcao.carregandoPendentes" class="py-6 text-center text-sm text-gray-500" role="status">
@@ -97,7 +96,7 @@
       </div>
       <ul v-else class="divide-y divide-gray-100" aria-label="Solicitações aguardando recebimento">
         <li
-          v-for="item in fila"
+          v-for="item in filaDaPagina"
           :key="item.codigoSolicitacao"
           class="flex flex-col gap-3 py-3 sm:flex-row sm:items-center"
         >
@@ -108,12 +107,17 @@
           ></span>
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
-              <Badge :variant="item.congelacao ? 'danger' : 'primary'" size="sm">{{ item.tipo }}</Badge>
-              <span class="font-bold text-gray-900">{{ item.exame }}</span>
-              <span v-if="item.codigoAghu" class="text-sm tabular-nums text-gray-500">
-                · Nº AGHU {{ item.codigoAghu }}<template v-if="item.numeroAmostra"> · amostra {{ item.numeroAmostra }}</template>
-              </span>
-              <span v-else class="text-sm tabular-nums text-gray-500">· Nº AGHU {{ item.codigoSolicitacao }}</span>
+              <span class="font-bold tabular-nums text-gray-900">Solicitação {{ item.codigoSolicitacao }}</span>
+              <Badge
+                v-for="tipo in item.tipos"
+                :key="tipo"
+                :variant="tipo === 'CO' ? 'danger' : 'primary'"
+                size="sm"
+                :title="TIPOS_EXAME[tipo].nome"
+              >
+                {{ tipo }}
+              </Badge>
+              <span class="text-sm text-gray-500">· {{ item.amostras }} · {{ item.paciente }}</span>
             </div>
             <p class="mt-1 truncate text-sm text-gray-600">{{ item.material }} · {{ item.origem }}</p>
           </div>
@@ -124,14 +128,14 @@
               :title="`Solicitada em ${item.data}`"
             >
               <ClockIcon class="h-4 w-4" aria-hidden="true" />
-              há {{ item.espera }}
+              {{ item.data }} · {{ item.espera }}
               <span v-if="item.atrasada" class="sr-only">(atrasada)</span>
             </span>
             <Button
               size="sm"
               :disabled="recepcao.aghuIndisponivel"
               :aria-label="`Iniciar recebimento da solicitação ${item.codigoSolicitacao}`"
-              @click="lerDaLista(item.codigoSolicitacao)"
+              @click="iniciarDaLista(item.codigoSolicitacao)"
             >
               Iniciar recebimento
               <ArrowRightIcon class="ml-1 h-4 w-4" aria-hidden="true" />
@@ -139,58 +143,109 @@
           </div>
         </li>
       </ul>
+
+      <!-- Paginação da fila (mesmo padrão da tabela da Consulta de casos) -->
+      <div
+        v-if="!recepcao.carregandoPendentes && !recepcao.aghuIndisponivel && fila.length > ITENS_POR_PAGINA"
+        class="mt-2 flex flex-col items-center justify-between gap-2 border-t border-gray-100 pt-3 text-sm text-gray-600 sm:flex-row"
+      >
+        <span aria-live="polite">Exibindo {{ inicioPagina }}–{{ fimPagina }} de {{ fila.length }}</span>
+        <div class="flex items-center gap-2">
+          <Button variant="secondary" size="sm" :disabled="pagina <= 1" aria-label="Página anterior" @click="irParaPagina(pagina - 1)">
+            <ChevronLeftIcon class="h-4 w-4 mr-1" aria-hidden="true" /> Anterior
+          </Button>
+          <span class="px-1 text-xs text-gray-500">Página {{ pagina }} de {{ totalPaginas }}</span>
+          <Button variant="secondary" size="sm" :disabled="pagina >= totalPaginas" aria-label="Próxima página" @click="irParaPagina(pagina + 1)">
+            Próxima <ChevronRightIcon class="h-4 w-4 ml-1" aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
     </Card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useToast } from 'vue-toastification';
-import { ArrowRightIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+import {
+  ArrowRightIcon,
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/vue/24/outline';
 import { Scan } from 'lucide-vue-next';
 import Alert from '../../Alert.vue';
 import Badge from '../../Badge.vue';
 import Button from '../../Button.vue';
 import Card from '../../Card.vue';
-import { HORAS_ALERTA_PENDENTE, rotuloOrigem } from '../../../constants/ap';
-import { formatarDataHora, horasDesde, tempoDecorrido } from '../../../helpers/formato';
+import NaoConformidadeModal from '../NaoConformidadeModal.vue';
+import { DIAS_ALERTA_PENDENTE, NAO_INFORMADO, TIPOS_EXAME, rotuloOrigem } from '../../../constants/ap';
+import { agruparPorSolicitacao, resumoMaterial, rotuloQuantidadeAmostras, rotuloQuantidadeSolicitacoes } from '../../../helpers/aghu';
+import { diasDesde, formatarData, rotuloEsperaDias } from '../../../helpers/formato';
 import { rotaDoCaso } from '../../../helpers/rotas';
 import { mensagemDeErro } from '../../../services/ap';
 import { useRecepcaoStore } from '../../../stores/recepcao';
 
-const emit = defineEmits<{ (e: 'sem-etiqueta'): void }>();
+/** `devolvido`: não conformidade de material sem etiqueta registrada. */
+const emit = defineEmits<{ (e: 'devolvido'): void }>();
 
 const toast = useToast();
 const recepcao = useRecepcaoStore();
 const campo = ref<HTMLInputElement | null>(null);
 const codigo = ref('');
+const ncSemEtiquetaAberta = ref(false);
 
 /** Referência de "agora", atualizada a cada minuto para o tempo de espera. */
 const agora = ref(new Date());
 let relogio: ReturnType<typeof setInterval> | undefined;
 
-/** Fila de tarefas: congelações primeiro, depois da mais antiga para a mais nova. */
+/**
+ * Fila de tarefas, um item por solicitação do AGHU com tipos de exame pendentes:
+ * com Congelação primeiro, depois da mais antiga para a mais nova.
+ */
 const fila = computed(() =>
-  recepcao.pendentes
-    .filter((s) => !recepcao.filtroCodigoAghu || s.codigoSolicitacaoAghu === recepcao.filtroCodigoAghu)
-    .sort((a, b) => {
-      const prioridade = (s: typeof a) => (s.tipoExameSugerido === 'CO' ? 0 : 1);
-      return prioridade(a) - prioridade(b) || a.dataSolicitacao.localeCompare(b.dataSolicitacao);
+  agruparPorSolicitacao(recepcao.pendentes)
+    .map(({ codigoSolicitacao, exames }) => {
+      const s = exames[0];
+      const amostras = exames.reduce((total, e) => total + e.amostras.length, 0);
+      return {
+        codigoSolicitacao,
+        tipos: exames.map((e) => e.tipoExameSugerido),
+        amostras: rotuloQuantidadeAmostras(amostras),
+        paciente: s.nomePaciente || NAO_INFORMADO,
+        congelacao: exames.some((e) => e.tipoExameSugerido === 'CO'),
+        dataIso: s.dataSolicitacao,
+        material: exames.map(resumoMaterial).join(' · '),
+        origem: `${s.unidade || NAO_INFORMADO} · ${rotuloOrigem(s.origem)}`,
+        data: formatarData(s.dataSolicitacao),
+        espera: rotuloEsperaDias(s.dataSolicitacao, agora.value),
+        atrasada: diasDesde(s.dataSolicitacao, agora.value) >= DIAS_ALERTA_PENDENTE,
+      };
     })
-    .map((s) => ({
-      codigoSolicitacao: s.codigoSolicitacao,
-      codigoAghu: s.codigoSolicitacaoAghu,
-      numeroAmostra: s.numeroAmostra,
-      tipo: s.tipoExameSugerido,
-      congelacao: s.tipoExameSugerido === 'CO',
-      exame: s.nomeExame,
-      material: s.descricaoMaterial,
-      origem: `${s.unidade} · ${rotuloOrigem(s.origem)}`,
-      data: formatarDataHora(s.dataSolicitacao),
-      espera: tempoDecorrido(s.dataSolicitacao, agora.value),
-      atrasada: horasDesde(s.dataSolicitacao, agora.value) >= HORAS_ALERTA_PENDENTE,
-    })),
+    .sort((a, b) => Number(b.congelacao) - Number(a.congelacao) || a.dataIso.localeCompare(b.dataIso)),
 );
+
+/** Paginação da fila: 10 solicitações por página, como nas demais listas do sistema. */
+const ITENS_POR_PAGINA = 10;
+const pagina = ref(1);
+const totalPaginas = computed(() => Math.max(1, Math.ceil(fila.value.length / ITENS_POR_PAGINA)));
+const filaDaPagina = computed(() => fila.value.slice((pagina.value - 1) * ITENS_POR_PAGINA, pagina.value * ITENS_POR_PAGINA));
+const inicioPagina = computed(() => (fila.value.length === 0 ? 0 : (pagina.value - 1) * ITENS_POR_PAGINA + 1));
+const fimPagina = computed(() => Math.min(pagina.value * ITENS_POR_PAGINA, fila.value.length));
+
+/** Muda de página e leva a lista de volta ao topo. */
+const irParaPagina = async (nova: number) => {
+  pagina.value = Math.min(Math.max(1, nova), totalPaginas.value);
+  await nextTick();
+  document.querySelector('[aria-label="Solicitações aguardando recebimento"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+/** Se a fila diminuir (recebimento ou devolução), mantém a página dentro do total. */
+watch(totalPaginas, (total) => {
+  if (pagina.value > total) pagina.value = total;
+});
 
 /** Lê o número digitado/lido. */
 const ler = async () => {
@@ -202,10 +257,20 @@ const ler = async () => {
   }
 };
 
-/** "Iniciar recebimento" na fila equivale a ler o número. */
-const lerDaLista = async (numero: string) => {
-  codigo.value = numero;
-  await ler();
+/** "Iniciar recebimento" na fila abre a conferência da solicitação. */
+const iniciarDaLista = async (codigoSolicitacao: string) => {
+  codigo.value = '';
+  try {
+    await recepcao.lerCodigo(codigoSolicitacao);
+  } catch (erro) {
+    toast.error(mensagemDeErro(erro));
+  }
+};
+
+/** Após registrar a devolução de material sem etiqueta, fecha o formulário e volta ao início. */
+const aposRegistroSemEtiqueta = () => {
+  ncSemEtiquetaAberta.value = false;
+  emit('devolvido');
 };
 
 onMounted(async () => {

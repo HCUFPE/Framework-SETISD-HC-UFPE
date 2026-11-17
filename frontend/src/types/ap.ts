@@ -45,7 +45,10 @@ export type StatusCaso =
   | 'CANCELADO';
 
 /** Origem do atendimento/material (`solicitacao_aghu.origem`). */
-export type OrigemAtendimento = 'AMBULATORIO' | 'INTERNACAO' | 'BLOCO_CIRURGICO' | 'EXTERNO';
+export type OrigemAtendimento = 'AMBULATORIO' | 'INTERNACAO' | 'CIRURGIA' | 'EXTERNO';
+
+/** Códigos de status do item no AGHU (`cod_status_item`, ver `data/dicionario_dados.md`). */
+export type CodStatusItemAghu = 'LI' | 'AC' | 'EX' | 'AE' | 'CA' | 'CO' | 'EC' | 'PE';
 
 /** Situação local da solicitação AGHU diante da recepção do SAP. */
 export type SituacaoRecepcaoSolicitacao = 'AGUARDANDO_RECEBIMENTO' | 'RECEBIDA' | 'DEVOLVIDA';
@@ -73,14 +76,20 @@ export type StatusItemMaterial =
 
 /** Catálogo de tipos de não conformidade (`tipo_nao_conformidade.codigo`). */
 export type TipoNaoConformidadeCodigo =
-  | 'SEM_ETIQUETA_AGHU'
-  | 'IDENTIFICACAO_DIVERGENTE'
-  | 'QUANTIDADE_DIVERGENTE'
-  | 'MATERIAL_INADEQUADO'
-  | 'RECIPIENTE_DANIFICADO'
-  | 'FIXACAO_INADEQUADA'
-  | 'REQUISICAO_INCOMPLETA'
-  | 'OUTRO';
+  | 'SEM_SOLICITACAO_OU_ETIQUETA'
+  | 'EXAME_NAO_CORRESPONDE_MATERIAL'
+  | 'FALTA_DESCRICAO_FRASCO'
+  | 'IDENTIFICACAO_ILEGIVEL'
+  | 'NUMERACAO_FRASCOS_DIVERGENTE'
+  | 'QUANTIDADE_FRASCOS_DIVERGENTE'
+  | 'LATERALIDADE_DIVERGENTE'
+  | 'FALTA_CARIMBO_ASSINATURA'
+  | 'ACONDICIONAMENTO_INADEQUADO'
+  | 'SOLICITACOES_DUPLICADAS'
+  | 'PECAS_NAO_DESCRITAS'
+  | 'SISCAN_INCORRETO'
+  | 'SEM_AGENDAMENTO_CMCE'
+  | 'OUTROS';
 
 /** Status da não conformidade (`nao_conformidade.status`). */
 export type StatusNaoConformidade = 'ABERTA' | 'EM_TRATAMENTO' | 'RESOLVIDA' | 'CANCELADA';
@@ -113,60 +122,77 @@ export interface Responsavel {
   nome: string;
 }
 
-/** Solicitação AGHU com os dados do paciente e do item/material (somente leitura no SAP). */
+/** Amostra de uma solicitação AGHU (uma linha da view do AGHU). */
+export interface AmostraAghu {
+  /** `numero_amostra`: sequencial da amostra dentro da solicitação. */
+  numeroAmostra: string;
+  /** `sigla_exame` solicitado para a amostra. */
+  siglaExame: string;
+  /** `nome_exame` solicitado para a amostra. */
+  nomeExame: string;
+  /** `descricao_material`: pode vir vazia (exame CITO). */
+  descricaoMaterial: string;
+  /** `cod_status_item` (ver `STATUS_ITEM_AGHU`). */
+  codStatusItem: string;
+  /** `status_item_exame` como veio do AGHU. */
+  statusItemDescricao: string;
+}
+
+/**
+ * Grupo de amostras de um mesmo tipo de exame dentro de uma solicitação AGHU.
+ *
+ * A conferência é feita por solicitação, mas cada tipo de exame (HP, CG, CCV, CO, IHQ) é recebido,
+ * devolvido e cancelado como uma unidade: todas as amostras do tipo juntas, gerando um caso (ou
+ * um vínculo de IHQ). Tipos diferentes da mesma solicitação podem ser recebidos em momentos
+ * diferentes. Somente leitura no SAP.
+ */
 export interface SolicitacaoAghu {
-  /**
-   * Chave da solicitação no SAP. Para dados vindos do backend é o id composto
-   * `<codigoSolicitacaoAghu>-<numeroAmostra>` (ex.: "1479377-2").
-   */
+  /** Chave do grupo: `<codigoSolicitacao>:<tipoExame>` (ex.: "1479377:HP"). */
+  id: string;
+  /** Código da solicitação no AGHU (repete-se entre os exames da mesma solicitação). */
   codigoSolicitacao: string;
-  /** Código original da solicitação no AGHU (repete-se entre amostras). */
-  codigoSolicitacaoAghu?: string;
-  /** Número da amostra dentro da solicitação do AGHU. */
-  numeroAmostra?: string;
+  /** Vazio para Paciente Externo. */
   prontuario: string;
+  /** Nome completo do paciente, como veio do AGHU. */
   nomePaciente: string;
-  /** Data de nascimento (AAAA-MM-DD). Pode vir vazia do AGHU. */
+  /** Data de nascimento (AAAA-MM-DD). Pode vir vazia. */
   dataNascimento: string;
-  /** Ausente no CSV do AGHU. */
-  sexo?: 'Feminino' | 'Masculino' | null;
   /** Nulo quando a origem do AGHU não é reconhecida. */
   origem: OrigemAtendimento | null;
   unidade: string;
+  /** Vazia para Paciente Externo. */
   especialidade: string;
-  /** Ausente no CSV do AGHU. */
-  nomeSolicitante?: string | null;
+  /** Data da solicitação (AAAA-MM-DD, sem hora). */
   dataSolicitacao: string;
+  /** Siglas distintas dos exames das amostras do grupo (ex.: "MBIOP, MPCIR"). */
   siglaExame: string;
+  /** Nomes distintos dos exames das amostras do grupo. */
   nomeExame: string;
-  /** Tipo de exame identificado a partir do exame do AGHU. */
+  /** Tipo de exame do SAP identificado a partir das siglas do AGHU (define o grupo). */
   tipoExameSugerido: TipoExame;
-  descricaoMaterial: string;
   informacoesClinicas: string;
-  statusAghuDescricao: string;
+  /** Amostras do exame, em ordem de número. */
+  amostras: AmostraAghu[];
   situacaoRecepcao: SituacaoRecepcaoSolicitacao;
-  /** Caso criado a partir da solicitação (casos principais). */
+  /** Caso criado a partir do exame (casos principais). */
   casoNumero?: string;
-  /** IHQ registrada a partir da solicitação e o caso de origem. */
+  /** IHQ registrada a partir do exame e o caso de origem. */
   ihqCodigo?: string;
   ihqCasoNumero?: string;
-  /** Devolução que encerrou a solicitação na recepção. */
+  /** Devolução que encerrou o exame na recepção. */
   devolucaoId?: number;
 }
 
-/** Itens da conferência física da amostra. */
-export interface ItensConferencia {
-  identificacaoConfere: boolean;
-  materialConfere: boolean;
-  quantidadeConfere: boolean;
-  recipienteAdequado: boolean;
-}
-
 /** Conferência de recebimento (`conferencia_recebimento`). */
-export interface ConferenciaRecebimento extends ItensConferencia {
+export interface ConferenciaRecebimento {
   id: number;
+  /** Chave do exame conferido (`SolicitacaoAghu.id`). */
+  solicitacaoId: string;
+  /** Código da solicitação no AGHU. */
   solicitacaoCodigo: string;
   casoNumero?: string;
+  /** Números das amostras conferidas. */
+  amostras: string[];
   resultado: ResultadoConferencia;
   observacao?: string;
   conferidoPor: Responsavel;
@@ -180,6 +206,8 @@ export interface ItemMaterial {
   tipoItem: TipoItemMaterial;
   rotulo: string;
   descricao?: string;
+  /** Número da amostra no AGHU (apenas amostras-raiz recebidas). */
+  numeroAmostraAghu?: string;
   origem: OrigemItemMaterial;
   status: StatusItemMaterial;
   criadoPor: Responsavel;
@@ -245,7 +273,10 @@ export interface NaoConformidade {
   casoNumero?: string;
   solicitacaoCodigo?: string;
   tipo: TipoNaoConformidadeCodigo;
+  /** Texto informado quando o tipo é "Outros" (vazio nos demais). */
   descricao: string;
+  /** Observação opcional. */
+  observacao?: string;
   setor: string;
   /** Etapa em que foi identificada, como exibida ao usuário (ex.: "Recepção (conferência)"). */
   etapa: string;
@@ -289,7 +320,6 @@ export interface CasoAp {
   dataEntradaSap: string;
   responsavelEntrada: Responsavel;
   urgente: boolean;
-  motivoUrgencia?: string;
   procedimento: string;
   quantidade: number;
   observacoes?: string;
@@ -330,20 +360,18 @@ export interface DevolucaoDetalhada extends Devolucao {
 
 /** Confirmação da entrada de um caso principal. */
 export interface ConfirmarEntradaInput {
-  solicitacaoCodigo: string;
-  conferencia: ItensConferencia;
+  /** Chave do exame recebido (`SolicitacaoAghu.id`). */
+  solicitacaoId: string;
   tipoExame: TipoCasoPrincipal;
-  quantidade: number;
   urgente: boolean;
-  motivoUrgencia?: string;
   procedimento: string;
   observacoes?: string;
 }
 
 /** Confirmação de uma IHQ vinculada a um caso existente. */
 export interface VincularIhqInput {
-  solicitacaoCodigo: string;
-  conferencia: ItensConferencia;
+  /** Chave do exame recebido (`SolicitacaoAghu.id`). */
+  solicitacaoId: string;
   casoOrigemNumero: string;
   /** Confirmação explícita quando o prontuário do caso difere do da solicitação. */
   divergenciaConfirmada: boolean;
@@ -353,14 +381,17 @@ export interface VincularIhqInput {
 /** Onde a não conformidade foi identificada. */
 export type ContextoNaoConformidade =
   | { tipo: 'SEM_ETIQUETA' }
-  | { tipo: 'SOLICITACAO'; solicitacaoCodigo: string; conferencia: ItensConferencia }
+  /** Conferência: devolve os grupos (tipos de exame) pendentes indicados. */
+  | { tipo: 'SOLICITACAO'; solicitacaoIds: string[] }
   | { tipo: 'CASO'; casoNumero: string };
 
 /** Registro de não conformidade com a devolução obrigatória. */
 export interface RegistrarNaoConformidadeInput {
   contexto: ContextoNaoConformidade;
   tipo: TipoNaoConformidadeCodigo;
-  descricao: string;
+  /** Obrigatória quando o tipo é "Outros". */
+  descricao?: string;
+  observacao?: string;
   /** Exigida quando não há solicitação nem caso. */
   unidadeOrigem?: string;
   novaAmostraSolicitada: boolean;
@@ -372,12 +403,21 @@ export interface RegistrarNaoConformidadeInput {
 
 /** Resultado da leitura de uma solicitação na recepção. */
 export type LeituraSolicitacao =
-  | { tipo: 'PENDENTE'; solicitacao: SolicitacaoAghu }
-  | { tipo: 'RECEBIDA'; solicitacao: SolicitacaoAghu; casoNumero: string }
+  /** A solicitação tem tipos de exame aguardando recebimento: abre a conferência da solicitação. */
+  | { tipo: 'PENDENTE'; codigoSolicitacao: string; exames: SolicitacaoAghu[] }
+  /** Todos os exames da solicitação já foram recebidos. */
+  | { tipo: 'RECEBIDA'; solicitacao: SolicitacaoAghu; recebimentos: RecebimentoExame[] }
   | { tipo: 'DEVOLVIDA'; solicitacao: SolicitacaoAghu; devolvidaEm: string; tipoNaoConformidade: TipoNaoConformidadeCodigo }
-  | { tipo: 'NAO_ENCONTRADA' }
-  /** O código do AGHU (sem amostra) corresponde a mais de uma amostra pendente. */
-  | { tipo: 'MULTIPLAS_AMOSTRAS'; codigoSolicitacaoAghu: string; solicitacoes: SolicitacaoAghu[] };
+  | { tipo: 'NAO_ENCONTRADA' };
+
+/** Exame já recebido e o caso (ou IHQ) que gerou. */
+export interface RecebimentoExame {
+  siglaExame: string;
+  nomeExame: string;
+  /** Caso criado, ou caso de origem da IHQ. */
+  casoNumero: string;
+  ihqCodigo?: string;
+}
 
 /** Caso resumido para a lista de resultados da busca global (F2). */
 export interface CasoResumoBusca {
@@ -385,6 +425,8 @@ export interface CasoResumoBusca {
   tipoExame: TipoCasoPrincipal;
   nomePaciente: string;
   prontuario: string;
+  /** Código da solicitação AGHU que originou o caso. */
+  codigoSolicitacao: string;
   status: StatusCaso;
 }
 

@@ -4,6 +4,7 @@
  */
 import type { BadgeVariant } from '../components/Badge.vue';
 import type {
+  CodStatusItemAghu,
   EtapaCodigo,
   OrigemAtendimento,
   ResultadoConferencia,
@@ -105,13 +106,133 @@ export function casoEstaAtivo(status: StatusCaso): boolean {
 /** Status que impedem o vínculo de uma IHQ ao caso. */
 export const STATUS_INELEGIVEIS_IHQ: StatusCaso[] = ['DEVOLVIDO', 'CANCELADO'];
 
-/** Rótulos da origem do atendimento (A = assistencial interno, E = externo). */
+// ---------------------------------------------------------------------------
+// Domínios do AGHU — fonte: data/dicionario_dados.md (não inventar valores)
+// ---------------------------------------------------------------------------
+
+/** Origens do AGHU (`origem`), com o texto exibido pelo AGHU. */
 export const ORIGENS: Record<OrigemAtendimento, string> = {
-  AMBULATORIO: 'Ambulatório (A)',
-  INTERNACAO: 'Internação (A)',
-  BLOCO_CIRURGICO: 'Bloco cirúrgico (A)',
-  EXTERNO: 'Externo (E)',
+  AMBULATORIO: 'Ambulatório',
+  INTERNACAO: 'Internação',
+  CIRURGIA: 'Cirurgia',
+  EXTERNO: 'Paciente Externo',
 };
+
+/** Status do item no AGHU (`cod_status_item` ↔ `status_item_exame`). */
+export const STATUS_ITEM_AGHU: Record<CodStatusItemAghu, { rotulo: string; variante: BadgeVariant }> = {
+  LI: { rotulo: 'LIBERADO', variante: 'success' },
+  AC: { rotulo: 'A COLETAR', variante: 'warning' },
+  EX: { rotulo: 'EXECUTANDO', variante: 'info' },
+  AE: { rotulo: 'AREA EXECUTORA', variante: 'info' },
+  CA: { rotulo: 'CANCELADO', variante: 'danger' },
+  CO: { rotulo: 'COLETADO', variante: 'info' },
+  EC: { rotulo: 'EM COLETA', variante: 'warning' },
+  PE: { rotulo: 'PENDENTE', variante: 'warning' },
+};
+
+/** Rótulo e variante do status do item no AGHU, com fallback para código fora do catálogo. */
+export function statusItemAghu(codigo: string, descricao?: string): { rotulo: string; variante: BadgeVariant; catalogado: boolean } {
+  const conhecido = STATUS_ITEM_AGHU[codigo as CodStatusItemAghu];
+  if (conhecido) return { ...conhecido, catalogado: true };
+  const texto = (descricao || codigo || '').trim();
+  return { rotulo: texto ? `${texto} (status não catalogado)` : 'Não informado', variante: 'default', catalogado: false };
+}
+
+/** Exames de AP no AGHU (`sigla_exame` → `nome_exame`, tipo do SAP e `codigo_lab`). */
+export const EXAMES_AGHU: Record<string, { nome: string; tipo: TipoExame; codigoLab: string }> = {
+  APECR: { nome: 'ANATOMOPATOLÓGICO - PEÇA CIRÚRGICA', tipo: 'HP', codigoLab: '207' },
+  CCVM: { nome: 'EXAME CITOPATOLÓGICO CÉRVICO-VAGINAL/MICROFLORA', tipo: 'CCV', codigoLab: '139' },
+  HPDER: { nome: 'HISTOPATOLOGICO DERMATOLOGIA', tipo: 'HP', codigoLab: '207' },
+  IMUHI: { nome: 'IMUNO-HISTOQUÍMICA', tipo: 'IHQ', codigoLab: '209' },
+  MBIOP: { nome: 'ANATOMOPATOLÓGICO - MAMA', tipo: 'HP', codigoLab: '207' },
+  MPCIR: { nome: 'ANATOMOPATOLÓGICO - MAMA', tipo: 'HP', codigoLab: '207' },
+  CITOP: { nome: 'CITOPATOLÓGICO', tipo: 'CG', codigoLab: '203' },
+  CONGE: { nome: 'AP- EXAME TRANSOPERATÓRIO DE CONGELAÇÃO (PATOLOGIA)', tipo: 'CO', codigoLab: '205' },
+  CITO: { nome: 'CITOLOGIA ONCÓTICA', tipo: 'CCV', codigoLab: '207' },
+  COUT2: { nome: 'ANATOMOPATOLÓGICO - COLO UTERINO', tipo: 'HP', codigoLab: '207' },
+  COLUT: { nome: 'ANATOMOPATOLÓGICO - COLO UTERINO', tipo: 'HP', codigoLab: '207' },
+  CPMAM: { nome: 'CITOPATOLOGICO DE MAMA', tipo: 'CG', codigoLab: '203' },
+};
+
+/** Unidades do AGHU (`unidade`), já sem caracteres invisíveis. Grafias mantidas como no AGHU. */
+export const UNIDADES_AGHU: string[] = [
+  '10º NORTE',
+  '10º SUL',
+  '11º NORTE',
+  '11º SUL',
+  '4º NORTE',
+  '5º NORTE',
+  '6º SUL',
+  '7 º SUL',
+  '7º NORTE',
+  '8º NORTE',
+  '8º SUL',
+  '9º  SUL',
+  '9º NORTE',
+  'ACUPUNTURA (AMBULATÓRIO)',
+  'ALERGIA E IMUNOLOGIA (AMBULATÓRIO)',
+  'ANESTESIOLOGIA (AMBULATÓRIO)',
+  'BLOCO CIRURGICO',
+  'BLOCO DERMATO',
+  'BRONCOSCOPIA',
+  'CARDIOLOGIA (AMBULATÓRIO)',
+  'CENTRO OBSTETRICO',
+  'CIRURGIA BARIATRICA',
+  'CIRURGIA DE CABECA E PESCOCO',
+  'CIRURGIA GERAL (AMBULATÓRIO)',
+  'CIRURGIA PEDIÁTRICA (AMBULATÓRIO)',
+  'CIRURGIA PLÁSTICA (AMBULATÓRIO)',
+  'CIRURGIA TORÁCICA (AMBULATÓRIO)',
+  'CIRURGIA VASCULAR (AMBULATÓRIO)',
+  'CLINICA DA DOR (AMBULATÓRIO)',
+  'CLÍNICA MÉDICA (AMBULATÓRIO)',
+  'DERMATOLOGIA (AMBULATÓRIO)',
+  'ENDOCRINOLOGIA (AMBULATÓRIO)',
+  'ENDOSCOPIA',
+  'ENFERMAGEM',
+  'ESPAÇO TRANS (AMBULATÓRIO)',
+  'GASTROENTEROLOGIA (AMBULATÓRIO)',
+  'GERIATRIA (AMBULATORIO)',
+  'GINECOLOGIA (AMBULATÓRIO)',
+  'HEMATOLOGIA (AMBULATÓRIO)',
+  'HEMODIALISE',
+  'HEMODINAMICA - PDT',
+  'HOSPITAL - DIA',
+  'INFECTOLOGIA (AMBULATÓRIO)',
+  'NEFROLOGIA (AMBULATÓRIO)',
+  'NEUROLOGIA (AMBULATÓRIO)',
+  'NUCLEO DE TELESSAUDE',
+  'NUTRIÇÃO',
+  'NÚCLEO DO SERVIDOR (AMBULATÓRIO)',
+  'OBSTETRÍCIA (AMBULATÓRIO)',
+  'OFTALMO GERAL',
+  'OFTALMOLOGIA (AMBULATÓRIO)',
+  'ONCOLOGIA (AMBULATÓRIO)',
+  'ORTOPEDIA (AMBULATÓRIO)',
+  'OTORRINOLARINGOLOGIA (AMBULATÓRIO)',
+  'PEDIATRIA (AMBULATÓRIO)',
+  'PNEUMOLOGIA (AMBULATÓRIO)',
+  'PROCTOLOGIA (AMBULATORIO)',
+  'PSIQUIATRIA (AMBULATÓRIO)',
+  'PUERICULTURA (AMBULATÓRIO)',
+  'REUMATOLOGIA (AMBULATÓRIO)',
+  'SAUDE OCUPACIONAL E SEGURANCA DO TRABALHO',
+  'TRANSPLANTE (AMBULATÓRIO)',
+  'UAC: EXAMES EXTERNOS',
+  'UAC: SOROLOGIA',
+  'UAP: CITOLOGIA CÉRVICO-VAGINAL',
+  'UAP: CITOLOGIA GERAL',
+  'UAP: CONGELAÇÃO',
+  'UAP: HISTOPATOLÓGICO',
+  'UAP: IMUNOHISTOQUÍMICA',
+  'UCI CANGURU',
+  'UCI NEONATAL',
+  'UDI: ULTRASSONOGRAFIA',
+  'URGENCIA E EMERGENCIA',
+  'UROLOGIA (AMBULATÓRIO)',
+  'UTI ADULTO',
+  'UTI NEONATAL',
+];
 
 /** Texto exibido quando um dado não veio do AGHU. */
 export const NAO_INFORMADO = 'Não informado';
@@ -121,17 +242,37 @@ export function rotuloOrigem(origem: OrigemAtendimento | null | undefined): stri
   return (origem && ORIGENS[origem]) || 'Não informada';
 }
 
-/** Catálogo padronizado de tipos de não conformidade. */
+/** Catálogo de tipos de não conformidade, na ordem do formulário em papel do setor. */
 export const TIPOS_NAO_CONFORMIDADE: Record<TipoNaoConformidadeCodigo, string> = {
-  SEM_ETIQUETA_AGHU: 'Sem etiqueta do AGHU',
-  IDENTIFICACAO_DIVERGENTE: 'Identificação divergente',
-  QUANTIDADE_DIVERGENTE: 'Quantidade divergente',
-  MATERIAL_INADEQUADO: 'Material inadequado/insuficiente',
-  RECIPIENTE_DANIFICADO: 'Recipiente danificado/vazamento',
-  FIXACAO_INADEQUADA: 'Ausência de fixador/fixação inadequada',
-  REQUISICAO_INCOMPLETA: 'Requisição incompleta',
-  OUTRO: 'Outro',
+  SEM_SOLICITACAO_OU_ETIQUETA: 'Amostra sem solicitação ou sem etiqueta do AGHU',
+  EXAME_NAO_CORRESPONDE_MATERIAL: 'Solicitação do exame não corresponde ao tipo de material enviado',
+  FALTA_DESCRICAO_FRASCO: 'Falta descrição do material no frasco',
+  IDENTIFICACAO_ILEGIVEL: 'Etiqueta, identificação do paciente na peça ou requisição ilegível',
+  NUMERACAO_FRASCOS_DIVERGENTE: 'Numeração dos frascos não corresponde à numeração do AGHU',
+  QUANTIDADE_FRASCOS_DIVERGENTE: 'Quantidade de frascos não confere com o descrito no AGHU',
+  LATERALIDADE_DIVERGENTE: 'Lateralidade divergente ou não informada',
+  FALTA_CARIMBO_ASSINATURA: 'Falta carimbo e/ou assinatura do médico responsável',
+  ACONDICIONAMENTO_INADEQUADO: 'Acondicionamento inadequado ou sem fixador',
+  SOLICITACOES_DUPLICADAS: 'Várias solicitações do mesmo exame em códigos diferentes',
+  PECAS_NAO_DESCRITAS: 'Não descreveu as peças no campo informações clínicas',
+  SISCAN_INCORRETO: 'Formulário do Siscan não preenchido corretamente',
+  SEM_AGENDAMENTO_CMCE: 'Sem agendamento no sistema CMCE (SES-PE)',
+  OUTROS: 'Outros',
 };
+
+/** Ordem de exibição do catálogo de não conformidades. */
+export const ORDEM_TIPOS_NAO_CONFORMIDADE = Object.keys(TIPOS_NAO_CONFORMIDADE) as TipoNaoConformidadeCodigo[];
+
+/** Solução sugerida para tipos de não conformidade que a têm no formulário do setor. */
+export const SOLUCOES_NAO_CONFORMIDADE: Partial<Record<TipoNaoConformidadeCodigo, string>> = {
+  SOLICITACOES_DUPLICADAS: 'Unir os diversos materiais em única solicitação.',
+};
+
+/** Texto do tipo de uma não conformidade, com o texto informado quando é "Outros". */
+export function rotuloNaoConformidade(nc: { tipo: TipoNaoConformidadeCodigo; descricao?: string }): string {
+  if (nc.tipo === 'OUTROS' && nc.descricao?.trim()) return `Outros: ${nc.descricao.trim()}`;
+  return TIPOS_NAO_CONFORMIDADE[nc.tipo] ?? nc.tipo;
+}
 
 /** Rótulos do status da não conformidade. */
 export const STATUS_NAO_CONFORMIDADE: Record<StatusNaoConformidade, string> = {
@@ -157,14 +298,6 @@ export const RESULTADOS_CONFERENCIA: Record<ResultadoConferencia, string> = {
   REJEITADA: 'Rejeitada',
   PENDENTE: 'Pendente',
 };
-
-/** Itens da conferência física, na ordem de exibição. */
-export const ITENS_CONFERENCIA = [
-  { chave: 'identificacaoConfere', rotulo: 'Identificação confere com a requisição' },
-  { chave: 'materialConfere', rotulo: 'Material corresponde à descrição' },
-  { chave: 'quantidadeConfere', rotulo: 'Quantidade de frascos confere' },
-  { chave: 'recipienteAdequado', rotulo: 'Recipiente íntegro e adequado' },
-] as const;
 
 /** Rótulos do status da IHQ. */
 export const STATUS_EXAME_IHQ: Record<StatusExameIhq, { rotulo: string; variante: BadgeVariant }> = {
@@ -202,21 +335,6 @@ export const PROCEDIMENTOS: string[] = [
   'Outro procedimento',
 ];
 
-/** Unidades de origem para material sem etiqueta do AGHU. */
-export const UNIDADES_ORIGEM: string[] = [
-  'Ambulatório de Cabeça e Pescoço',
-  'Ambulatório de Cirurgia Geral',
-  'Ambulatório de Dermatologia',
-  'Ambulatório de Gastroenterologia',
-  'Ambulatório de Ginecologia',
-  'Ambulatório de Urologia',
-  'Bloco Cirúrgico Central',
-  'Enfermaria de Clínica Médica',
-  'Enfermaria de Cirurgia',
-  'Enfermaria de Pneumologia',
-  'UTI Adulto',
-  'Paciente externo (rede municipal)',
-];
 
 /** Prazo padrão por etapa, em horas (`prazo_padrao`, escopo ETAPA). */
 export const PRAZO_ETAPA_HORAS: Record<EtapaCodigo, number> = {
@@ -235,8 +353,9 @@ export const PRAZO_ETAPA_HORAS: Record<EtapaCodigo, number> = {
 /** Setor registrado nas ações feitas pela recepção. */
 export const SETOR_RECEPCAO = 'Recepção';
 
-/** Tempo de espera (horas) a partir do qual uma solicitação pendente é destacada como atrasada. */
-export const HORAS_ALERTA_PENDENTE = 2;
+/**
+ * Espera (dias) a partir da qual um exame pendente é destacado como atrasado.
+ * Em dias porque o AGHU não fornece a hora da solicitação.
+ */
+export const DIAS_ALERTA_PENDENTE = 1;
 
-/** Motivo de urgência sugerido para exames de congelação (editável pelo usuário). */
-export const MOTIVO_URGENCIA_CONGELACAO = 'Exame de congelação (intraoperatório)';

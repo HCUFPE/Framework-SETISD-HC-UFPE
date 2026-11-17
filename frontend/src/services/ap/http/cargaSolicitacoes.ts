@@ -1,13 +1,14 @@
 /**
  * Carga híbrida das solicitações AGHU: com `VITE_AP_FONTE_SOLICITACOES=api`, as solicitações
- * aguardando recebimento vêm do backend e substituem as do seed no "banco" do mock. Casos,
- * devoluções e não conformidades continuam no mock.
+ * aguardando recebimento vêm do backend (CSV) e são os únicos dados do "banco" do mock: casos,
+ * devoluções e não conformidades são só os criados na sessão. Se o backend falhar, o seed é
+ * usado como dados de demonstração, com um único aviso.
  *
  * A Promise da carga fica guardada aqui: o `aghuServiceMock` a aguarda antes de ler o banco,
  * para que nenhuma listagem use o seed enquanto a carga não terminou.
  */
 import { useToast } from 'vue-toastification';
-import { aplicarSolicitacoesExternas } from '../../../mocks/ap/db';
+import { aplicarSolicitacoesExternas, usarDadosDeDemonstracao } from '../../../mocks/ap/db';
 import { useAuthStore } from '../../../stores/auth';
 import { useRecepcaoStore } from '../../../stores/recepcao';
 import { buscarSolicitacoesPendentes, fonteSolicitacoes } from './solicitacaoApi';
@@ -16,15 +17,26 @@ import { buscarSolicitacoesPendentes, fonteSolicitacoes } from './solicitacaoApi
 let cargaAtual: Promise<void> | null = null;
 /** Indica se há uma carga em andamento (para reaproveitá-la em vez de duplicar). */
 let emAndamento = false;
+/**
+ * Evita repetir o aviso de falha: a carga pode ser disparada mais de uma vez quase ao mesmo
+ * tempo (ex.: F5 na recepção dispara a da tela e a da inicialização do login).
+ * Volta a permitir o aviso depois de uma carga bem-sucedida.
+ */
+let avisoDeFalhaExibido = false;
 
 /** Executa a carga: aplica os dados da API ou mantém o seed e avisa. */
 async function executarCarga(): Promise<void> {
   try {
     const solicitacoes = await buscarSolicitacoesPendentes();
     aplicarSolicitacoesExternas(solicitacoes);
+    avisoDeFalhaExibido = false;
   } catch (erro) {
-    console.error('Falha ao carregar solicitações do backend; mantendo o seed.', erro);
-    useToast().warning('Não foi possível carregar as solicitações do AGHU. Exibindo dados de demonstração.');
+    console.error('Falha ao carregar solicitações do backend; exibindo dados de demonstração.', erro);
+    usarDadosDeDemonstracao();
+    if (!avisoDeFalhaExibido) {
+      avisoDeFalhaExibido = true;
+      useToast().warning('Não foi possível carregar as solicitações do AGHU. Exibindo dados de demonstração.');
+    }
   } finally {
     emAndamento = false;
   }

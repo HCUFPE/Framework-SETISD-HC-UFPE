@@ -1,6 +1,6 @@
 <template>
   <div class="relative w-full sm:w-96 lg:w-[26.5rem]">
-    <label for="busca-caso-global" class="sr-only">Buscar caso por número, prontuário ou paciente</label>
+    <label for="busca-caso-global" class="sr-only">Buscar caso por número, solicitação AGHU, prontuário ou paciente</label>
     <div class="relative">
       <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden="true" />
       <input
@@ -11,7 +11,7 @@
         role="combobox"
         autocomplete="off"
         spellcheck="false"
-        placeholder="Buscar por nº do caso, prontuário ou paciente (F2)"
+        placeholder="Caso, solicitação AGHU, prontuário ou paciente (F2)"
         aria-autocomplete="list"
         aria-controls="busca-caso-lista"
         :aria-expanded="aberto ? 'true' : 'false'"
@@ -35,7 +35,8 @@
       </span>
     </div>
     <p id="busca-caso-dica" class="sr-only">
-      Digite ao menos {{ MINIMO_CARACTERES }} caracteres do número do caso, do prontuário ou do nome do paciente.
+      Digite ao menos {{ MINIMO_CARACTERES }} caracteres do número do caso, do código da solicitação AGHU, do prontuário ou do
+      nome do paciente.
     </p>
 
     <div
@@ -59,17 +60,23 @@
             <StatusCasoBadge :status="caso.status" />
           </div>
           <p class="mt-0.5 truncate text-xs text-gray-600">
-            <strong>{{ caso.tipoExame }}</strong> · {{ caso.nomePaciente }} · Pront. {{ caso.prontuario }}
+            <strong>{{ caso.tipoExame }}</strong> · {{ caso.nomePaciente }} · Pront. {{ caso.prontuario || '—' }} · Solic.
+            {{ caso.codigoSolicitacao }}
           </p>
         </li>
       </ul>
-      <p
-        v-if="resultado.total === 0"
-        class="px-3 py-3 text-sm text-gray-600"
-        role="status"
-      >
-        Nenhum caso encontrado para <strong>{{ termoBuscado }}</strong>.
-      </p>
+      <div v-if="resultado.total === 0" class="px-3 py-3 text-sm text-gray-600" role="status">
+        <p>Nenhum caso encontrado para <strong>{{ termoBuscado }}</strong>.</p>
+        <button
+          v-if="solicitacaoPendente"
+          type="button"
+          class="focus-ring mt-2 inline-flex items-center gap-1 rounded font-bold text-paper-primary-strong underline-offset-2 hover:underline active:opacity-70"
+          @mousedown.prevent="receberSolicitacao"
+        >
+          A solicitação {{ solicitacaoPendente }} aguarda recebimento: abrir na recepção
+          <ArrowRightIcon class="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
       <p
         v-else-if="resultado.total > resultado.itens.length"
         class="border-t border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600"
@@ -85,11 +92,12 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
-import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
+import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import StatusCasoBadge from './StatusCasoBadge.vue';
 import { rotaDoCaso } from '../../helpers/rotas';
-import { mensagemDeErro } from '../../services/ap';
+import { aghuService, mensagemDeErro } from '../../services/ap';
 import { useCasosStore } from '../../stores/casos';
+import { useRecepcaoStore } from '../../stores/recepcao';
 import type { ResultadoBuscaCasos } from '../../types/ap';
 
 const MINIMO_CARACTERES = 2;
@@ -99,6 +107,9 @@ const ESPERA_DIGITACAO_MS = 250;
 const router = useRouter();
 const toast = useToast();
 const casosStore = useCasosStore();
+const recepcaoStore = useRecepcaoStore();
+/** Código de solicitação AGHU sem caso, mas com exame aguardando recebimento (atalho para a recepção). */
+const solicitacaoPendente = ref<string | null>(null);
 
 const campo = ref<HTMLInputElement | null>(null);
 const termo = ref('');
@@ -131,7 +142,13 @@ const buscar = async (): Promise<void> => {
   buscando.value = true;
   try {
     const encontrado = await casosStore.buscar(texto, LIMITE_RESULTADOS);
+    let pendente: string | null = null;
+    if (encontrado.total === 0 && /^\d+$/.test(texto)) {
+      const exames = await aghuService.listarExamesDaSolicitacao(texto).catch(() => []);
+      if (exames.some((e) => e.situacaoRecepcao === 'AGUARDANDO_RECEBIMENTO')) pendente = texto;
+    }
     if (id !== ultimaBusca) return;
+    solicitacaoPendente.value = pendente;
     resultado.value = encontrado;
     termoBuscado.value = texto;
     ativo.value = -1;
@@ -180,6 +197,18 @@ const abrir = async (numeroInterno: string) => {
   await router.push(rotaDoCaso(numeroInterno));
 };
 
+/** Leva a solicitação pendente para a conferência na recepção. */
+const receberSolicitacao = async () => {
+  const codigo = solicitacaoPendente.value;
+  if (!codigo) return;
+  fechar();
+  termo.value = '';
+  solicitacaoPendente.value = null;
+  campo.value?.blur();
+  await router.push('/recepcao');
+  await recepcaoStore.lerCodigo(codigo);
+};
+
 /** Enter: abre o caso destacado ou, sem destaque, o caso cujo número é exatamente o texto. */
 const confirmar = async () => {
   if (aberto.value && ativo.value >= 0) {
@@ -189,7 +218,9 @@ const confirmar = async () => {
   }
   await buscar();
   const texto = termo.value.trim().toUpperCase();
-  const exato = resultado.value.itens.find((c) => c.numeroInterno.toUpperCase() === texto);
+  const exato =
+    resultado.value.itens.find((c) => c.numeroInterno.toUpperCase() === texto) ??
+    (resultado.value.itens.length === 1 && resultado.value.itens[0].codigoSolicitacao === texto ? resultado.value.itens[0] : undefined);
   if (exato) await abrir(exato.numeroInterno);
 };
 

@@ -17,7 +17,7 @@
         <div>
           <p class="text-[24pt] font-extrabold leading-none tracking-tight">{{ caso.numeroInterno }}</p>
           <p v-if="caso.urgente" class="mt-[1.5mm] inline-block border-2 border-black px-[1.5mm] text-[9pt] font-extrabold">
-            URGENTE — {{ caso.motivoUrgencia }}
+            URGENTE
           </p>
           <p class="mt-[1.5mm] text-[9pt]"><span class="rotulo">Recebimento no SAP:</span> {{ formatarDataHora(caso.dataEntradaSap) }}</p>
         </div>
@@ -33,9 +33,9 @@
           <dt>Nº da solicitação AGHU</dt>
           <dd>{{ caso.solicitacao.codigoSolicitacao }}</dd>
           <dt>Data da solicitação</dt>
-          <dd>{{ formatarDataHora(caso.solicitacao.dataSolicitacao) }}</dd>
+          <dd>{{ formatarData(caso.solicitacao.dataSolicitacao) }}</dd>
           <dt>Exame</dt>
-          <dd>{{ caso.solicitacao.nomeExame }}</dd>
+          <dd>{{ caso.solicitacao.nomeExame }} ({{ caso.solicitacao.siglaExame }})</dd>
         </dl>
       </section>
 
@@ -43,12 +43,14 @@
       <section class="bloco">
         <h2>3. Paciente e origem</h2>
         <dl>
+          <dt>Nome do paciente</dt>
+          <dd class="text-[11pt] font-bold">{{ caso.solicitacao.nomePaciente || NAO_INFORMADO }}</dd>
           <dt>Prontuário</dt>
-          <dd>{{ caso.solicitacao.prontuario }}</dd>
+          <dd>{{ caso.solicitacao.prontuario || NAO_INFORMADO }}</dd>
           <dt>Origem</dt>
           <dd>{{ rotuloOrigem(caso.solicitacao.origem) }}</dd>
           <dt>Unidade solicitante</dt>
-          <dd>{{ caso.solicitacao.unidade }}</dd>
+          <dd>{{ caso.solicitacao.unidade || NAO_INFORMADO }}</dd>
         </dl>
       </section>
     </div>
@@ -56,15 +58,9 @@
     <!-- 4. Solicitante -->
     <section class="bloco">
       <h2>4. Solicitante</h2>
-      <dl class="grid grid-cols-2 gap-x-[6mm]">
-        <div>
-          <dt>Especialidade</dt>
-          <dd>{{ caso.solicitacao.especialidade }}</dd>
-        </div>
-        <div>
-          <dt>Médico solicitante</dt>
-          <dd>{{ caso.solicitacao.nomeSolicitante || NAO_INFORMADO }}</dd>
-        </div>
+      <dl>
+        <dt>Especialidade</dt>
+        <dd>{{ caso.solicitacao.especialidade || NAO_INFORMADO }}</dd>
       </dl>
     </section>
 
@@ -72,10 +68,18 @@
     <section class="bloco">
       <h2>5. Material</h2>
       <dl>
-        <dt>Descrição do material</dt>
-        <dd class="text-[11pt] font-bold">{{ caso.solicitacao.descricaoMaterial }}</dd>
+        <dt>Amostras ({{ amostras.length }})</dt>
+        <dd>
+          <ol class="amostras">
+            <li v-for="amostra in amostras" :key="amostra.codigo">
+              <span class="font-extrabold">Amostra {{ amostra.numeroAmostraAghu ?? amostra.rotulo }}</span>
+              — <span class="font-bold">{{ amostra.descricao || NAO_INFORMADO }}</span>
+              <span class="codigo">({{ amostra.codigo }})</span>
+            </li>
+          </ol>
+        </dd>
         <dt>Informações clínicas</dt>
-        <dd>{{ caso.solicitacao.informacoesClinicas || '—' }}</dd>
+        <dd class="whitespace-pre-line">{{ caso.solicitacao.informacoesClinicas || NAO_INFORMADO }}</dd>
       </dl>
     </section>
 
@@ -113,13 +117,16 @@
 import { computed } from 'vue';
 import Barcode from './Barcode.vue';
 import { ETAPAS, NAO_INFORMADO, TIPOS_EXAME, fluxoDoCaso, rotuloOrigem } from '../../constants/ap';
-import { formatarDataHora } from '../../helpers/formato';
+import { formatarData, formatarDataHora } from '../../helpers/formato';
 import type { CasoAp } from '../../types/ap';
 
 const props = defineProps<{ caso: CasoAp; emitidaEm: string }>();
 
 /** Uma linha por etapa do fluxo do tipo do caso (IHQ entra antes da microscopia, se houver). */
 const etapas = computed(() => fluxoDoCaso(props.caso.tipoExame, props.caso.ihqs.length > 0));
+
+/** Amostras-raiz do caso (uma por amostra do AGHU). */
+const amostras = computed(() => props.caso.materiais.filter((m) => m.tipoItem === 'AMOSTRA'));
 </script>
 
 <style scoped>
@@ -155,6 +162,17 @@ const etapas = computed(() => fluxoDoCaso(props.caso.tipoExame, props.caso.ihqs.
 }
 .bloco dd {
   margin-bottom: 1.5mm;
+}
+.amostras li {
+  padding: 0.6mm 0;
+  border-bottom: 1px dotted #999;
+}
+.amostras li:last-child {
+  border-bottom: 0;
+}
+.amostras .codigo {
+  font-size: 7.5pt;
+  color: #333;
 }
 .bloco th,
 .bloco td {

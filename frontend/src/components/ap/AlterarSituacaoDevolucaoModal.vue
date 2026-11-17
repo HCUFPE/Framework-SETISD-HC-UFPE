@@ -16,7 +16,7 @@
         </div>
         <div>
           <dt class="text-xs font-bold uppercase text-gray-500">Tipo</dt>
-          <dd>{{ TIPOS_NAO_CONFORMIDADE[devolucao.naoConformidade.tipo] }}</dd>
+          <dd>{{ rotuloNaoConformidade(devolucao.naoConformidade) }}</dd>
         </div>
         <div>
           <dt class="text-xs font-bold uppercase text-gray-500">Situação atual</dt>
@@ -58,7 +58,7 @@ import { useToast } from 'vue-toastification';
 import Badge from '../Badge.vue';
 import Button from '../Button.vue';
 import Modal from '../Modal.vue';
-import { SITUACOES_DEVOLUCAO, TIPOS_NAO_CONFORMIDADE } from '../../constants/ap';
+import { SITUACOES_DEVOLUCAO, rotuloNaoConformidade } from '../../constants/ap';
 import { mensagemDeErro } from '../../services/ap';
 import { useDevolucoesStore } from '../../stores/devolucoes';
 import type { DevolucaoDetalhada, SituacaoDevolucao } from '../../types/ap';

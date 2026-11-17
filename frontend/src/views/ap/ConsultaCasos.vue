@@ -19,25 +19,17 @@
             />
           </div>
         </div>
-        <div>
+        <div class="w-56">
           <label for="consulta-status" class="form-label">Status</label>
-          <select id="consulta-status" v-model="filtros.status" class="form-control">
-            <option value="">Todos</option>
-            <option v-for="s in ORDEM_STATUS_CASO" :key="s" :value="s">{{ STATUS_CASO[s].rotulo }}</option>
-          </select>
+          <SelectBusca id="consulta-status" v-model="filtros.status" :opcoes="opcoesStatus" rotulo="Status" />
         </div>
-        <div>
+        <div class="w-56">
           <label for="consulta-tipo" class="form-label">Tipo</label>
-          <select id="consulta-tipo" v-model="filtros.tipo" class="form-control">
-            <option value="">Todos</option>
-            <option v-for="t in TIPOS_CASO_PRINCIPAL" :key="t" :value="t">{{ t }} · {{ TIPOS_EXAME[t].nome }}</option>
-          </select>
+          <SelectBusca id="consulta-tipo" v-model="filtros.tipo" :opcoes="opcoesTipo" rotulo="Tipo" />
         </div>
-        <div>
+        <div class="w-48">
           <label for="consulta-periodo" class="form-label">Período de entrada</label>
-          <select id="consulta-periodo" v-model.number="filtros.periodoDias" class="form-control">
-            <option v-for="p in PERIODOS" :key="p.dias" :value="p.dias">{{ p.rotulo }}</option>
-          </select>
+          <SelectBusca id="consulta-periodo" v-model="filtros.periodoDias" :opcoes="opcoesPeriodo" rotulo="Período de entrada" />
         </div>
         <button
           type="button"
@@ -97,9 +89,11 @@ import { ExclamationTriangleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/
 import Badge from '../../components/Badge.vue';
 import Card from '../../components/Card.vue';
 import DataTable from '../../components/DataTable.vue';
+import SelectBusca from '../../components/SelectBusca.vue';
 import FilterChips, { type FilterChip } from '../../components/FilterChips.vue';
 import StatusCasoBadge from '../../components/ap/StatusCasoBadge.vue';
 import { ORDEM_STATUS_CASO, STATUS_CASO, TIPOS_CASO_PRINCIPAL, TIPOS_EXAME } from '../../constants/ap';
+import { resumoMaterial } from '../../helpers/aghu';
 import { formatarDataHora } from '../../helpers/formato';
 import { rotaDoCaso } from '../../helpers/rotas';
 import { filtrosConsultaVazios, useCasosStore, type FiltrosConsulta } from '../../stores/casos';
@@ -110,6 +104,11 @@ const PERIODOS = [
   { dias: 30, rotulo: 'Últimos 30 dias' },
   { dias: 90, rotulo: 'Últimos 90 dias' },
 ];
+
+/** Opções dos filtros (campos de seleção com busca). */
+const opcoesStatus = [{ valor: '', rotulo: 'Todos' }, ...ORDEM_STATUS_CASO.map((s) => ({ valor: s, rotulo: STATUS_CASO[s].rotulo }))];
+const opcoesTipo = [{ valor: '', rotulo: 'Todos' }, ...TIPOS_CASO_PRINCIPAL.map((t) => ({ valor: t, rotulo: `${t} · ${TIPOS_EXAME[t].nome}` }))];
+const opcoesPeriodo = PERIODOS.map((p) => ({ valor: p.dias, rotulo: p.rotulo }));
 
 const router = useRouter();
 const casosStore = useCasosStore();
@@ -154,7 +153,7 @@ const linhas = computed(() =>
     paciente: c.solicitacao.nomePaciente,
     prontuario: c.solicitacao.prontuario,
     aghu: c.solicitacao.codigoSolicitacao,
-    material: c.solicitacao.descricaoMaterial,
+    material: resumoMaterial(c.solicitacao),
     status: c.status,
     entrada: formatarDataHora(c.dataEntradaSap),
   })),

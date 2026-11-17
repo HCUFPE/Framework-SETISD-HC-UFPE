@@ -63,3 +63,22 @@ export function horasDesde(iso: string, referencia = new Date()): number {
   if (!valor) return 0;
   return (referencia.getTime() - valor.getTime()) / 3_600_000;
 }
+
+/**
+ * Dias de calendário decorridos desde uma data (AAAA-MM-DD ou ISO), comparando só o dia.
+ * 0 para hoje, data futura, vazia ou inválida.
+ */
+export function diasDesde(iso: string, referencia = new Date()): number {
+  const valor = paraData(iso);
+  if (!valor) return 0;
+  const inicio = Date.UTC(valor.getFullYear(), valor.getMonth(), valor.getDate());
+  const fim = Date.UTC(referencia.getFullYear(), referencia.getMonth(), referencia.getDate());
+  return Math.max(0, Math.round((fim - inicio) / 86_400_000));
+}
+
+/** Espera legível em dias: "hoje", "há 1 dia", "há N dias". */
+export function rotuloEsperaDias(iso: string, referencia = new Date()): string {
+  const dias = diasDesde(iso, referencia);
+  if (dias === 0) return 'hoje';
+  return `há ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
+}

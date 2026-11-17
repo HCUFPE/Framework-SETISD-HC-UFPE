@@ -68,8 +68,9 @@ export const useCasosStore = defineStore('casos', () => {
     return caso;
   }
 
-  async function registrarImpressao(numeroInterno: string, tipo: TipoImpressao): Promise<void> {
-    await casoService.registrarImpressao(numeroInterno, tipo, responsavel.value);
+  /** Registra a impressão; para etiquetas, `amostras` são os números das amostras impressas. */
+  async function registrarImpressao(numeroInterno: string, tipo: TipoImpressao, amostras?: string[]): Promise<void> {
+    await casoService.registrarImpressao(numeroInterno, tipo, responsavel.value, amostras);
     if (casoAtual.value?.numeroInterno === numeroInterno) await recarregarCasoAtual();
   }
 
