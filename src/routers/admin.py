@@ -3,17 +3,16 @@ from pydantic import BaseModel
 from typing import List
 
 from ..auth.auth import auth_handler
+from ..auth.authorization import Permissao, exigir_permissao
 
-router = APIRouter(prefix="/api", tags=["Admin"])
+router = APIRouter(prefix="/api", tags=["Admin"], dependencies=[Depends(auth_handler.decode_token)])
 
 class AdminData(BaseModel):
     message: str
     user_groups: List[str]
 
-async def verify_admin_group(current_user: dict = Depends(auth_handler.decode_token)):
-    ADMIN_GROUP = "GLO-SEC-HCPE-SETISD"
-    if ADMIN_GROUP not in current_user.get("groups", []):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough privileges")
+async def verify_admin_group(current_user: dict = Depends(exigir_permissao(Permissao.SEGURANCA_GERENCIAR))):
+    """Mantém nome legado da dependência, agora baseado em permissão local."""
     return current_user
 
 @router.get("/admin-only-data", response_model=AdminData)

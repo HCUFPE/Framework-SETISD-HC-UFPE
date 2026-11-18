@@ -10,6 +10,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .resources.database import DatabaseManager, Base
+from .config import settings
+from .providers.fixtures.reception_requests import carregar_estado_demo, solicitacoes_ficticias
+from .providers.implementations.reception_sqlite_provider import ReceptionSqliteProvider
+from .auth.auth import identidade_mock_disponivel
+from .auth.user_registry import seed_mock_authorization
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,10 +35,23 @@ async def lifespan(app: FastAPI):
     app.state.app_db = DatabaseManager(app_dsn)
     print(f"App SQLite connection pool initialized ({app_dsn}).")
 
-    # Create tables for App DB (if they don't exist) - for development only, Alembic handles this in production
-    async with app.state.app_db.engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    print("App SQLite tables checked/created.")
+    # A criação automática é restrita a desenvolvimento/testes; produção usa Alembic.
+    if settings.ENVIRONMENT in ("development", "test", "testing"):
+        async with app.state.app_db.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("App SQLite tables checked/created.")
+
+    if identidade_mock_disponivel():
+        async with app.state.app_db.async_session_maker() as session:
+            await seed_mock_authorization(session)
+
+    if settings.AP_REQUEST_PROVIDER == "mock":
+        async with app.state.app_db.async_session_maker() as session:
+            provider = ReceptionSqliteProvider(session)
+            if settings.AP_REQUEST_FIXTURE == "demo":
+                await provider.seed_demo_state(carregar_estado_demo())
+            else:
+                await provider.seed_solicitacoes(solicitacoes_ficticias())
 
     yield
 
@@ -109,12 +127,13 @@ if os.path.exists(assets_dir):
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 # Roteadores da API
-from .routers import paciente, auth, admin, health, solicitacao
+from .routers import paciente, auth, admin, health, reception, solicitacao
 app.include_router(health.router)
 app.include_router(paciente.router)
-app.include_router(solicitacao.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(reception.router)
+app.include_router(solicitacao.router)
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):

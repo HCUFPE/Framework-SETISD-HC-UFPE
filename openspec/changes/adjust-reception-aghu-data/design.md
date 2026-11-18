@@ -82,7 +82,7 @@ O catálogo `TipoNaoConformidadeCodigo` passa a ter 14 códigos, na ordem do for
 No contexto `SOLICITACAO`, o mock marca como `DEVOLVIDA` todos os exames **pendentes** com o mesmo `codigoSolicitacao`, ligados a uma única não conformidade e a uma única devolução. Exames já recebidos não mudam.
 
 ### D9. Impressão com seleção
-`PrintPreview` ganha, só para etiquetas e quando o caso tem 2 ou mais amostras, uma lista de checkboxes com número e descrição, todas marcadas por padrão, mais as ações "Todas" e "Nenhuma". Sem seleção, "Imprimir" fica desabilitado. `casoService.registrarImpressao` recebe `amostras?: string[]` e as escreve na descrição do evento do histórico.
+`PrintPreview` ganha, só para etiquetas e quando o caso tem 2 ou mais amostras, uma lista de checkboxes com número e descrição, todas marcadas por padrão, mais as ações "Todas" e "Nenhuma". Sem seleção, "Imprimir" fica desabilitado. A impressão e a reimpressão são locais no navegador, usando `window.print()`, sem chamada de API, histórico ou auditoria.
 
 A etiqueta é reorganizada para caber o nome completo em 50 × 25 mm:
 - linha 1: nº interno, "Am. <n>" e URG;
@@ -93,7 +93,7 @@ A etiqueta é reorganizada para caber o nome completo em 50 × 25 mm:
 O exame aparece pela sigla para economizar espaço.
 
 ### D10. Sugestão do caso de origem da IHQ
-Quando outro exame da mesma solicitação já virou caso principal elegível, `PassoComplemento` pré-seleciona esse caso no campo de caso de origem, e o usuário pode trocá-lo.
+Quando outro exame da mesma solicitação já virou caso principal elegível, `PassoConferencia` pré-seleciona esse caso no campo de caso de origem, e o usuário pode trocá-lo.
 
 ### D11. Seed do mock
 O seed é reescrito com valores apenas do dicionário e nomes completos fictícios. Ele cobre:

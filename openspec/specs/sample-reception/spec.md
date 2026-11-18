@@ -7,7 +7,7 @@ Permite que a recepção do Serviço de Anatomia Patológica receba uma amostra 
 ## Requirements
 
 ### Requirement: Passos da recepção
-A tela "Recepção de amostras" SHALL conduzir o recebimento em quatro passos: "Ler etiqueta AGHU", "Conferir", "Completar e confirmar" e "Etiquetas e ficha". O indicador de passos SHALL aparecer apenas a partir do passo "Conferir", mostrando os passos concluídos, o atual e os futuros. A tela inicial (passo "Ler etiqueta AGHU") não SHALL exibir o indicador.
+A tela "Recepção de amostras" SHALL conduzir o recebimento em três passos: "Ler etiqueta AGHU", "Conferir" e "Etiquetas e ficha". O indicador de passos SHALL aparecer apenas a partir do passo "Conferir", mostrando os passos concluídos, o atual e o futuro. A tela inicial (passo "Ler etiqueta AGHU") não SHALL exibir o indicador.
 
 #### Scenario: Início da recepção
 - **WHEN** o usuário abre a tela "Recepção de amostras"
@@ -66,69 +66,62 @@ Quando o serviço de solicitações do AGHU estiver indisponível, a recepção 
 - **THEN** o sistema exibe "AGHU indisponível no momento. A recepção de novas amostras está bloqueada." e desabilita a leitura
 
 ### Requirement: Dados da solicitação somente leitura
-O passo "Conferir" SHALL exibir, sem permitir edição e identificados como vindos do AGHU, os seguintes dados: nº da solicitação, prontuário, nome do paciente, data de nascimento com idade, sexo, origem, unidade solicitante, especialidade, médico solicitante, data da solicitação, exame, descrição do material e informações clínicas.
+O passo "Conferir" SHALL exibir, sem permitir edição e identificados como vindos do AGHU, os dados da solicitação e uma linha por amostra: número, tipo e exame do AGHU, descrição do material e status. Informações ausentes SHALL aparecer como "Não informado". O tipo do grupo SHALL ser determinado pelas amostras e não poderá ser alterado.
 
 #### Scenario: Conferência de solicitação carregada
 - **WHEN** o passo "Conferir" é exibido
-- **THEN** os dados do AGHU aparecem bloqueados para edição, com destaque para a descrição do material e as informações clínicas
+- **THEN** os dados do AGHU aparecem bloqueados para edição, com uma linha por amostra e destaque para o material e as informações clínicas
 
-### Requirement: Itens de conferência
-O passo "Conferir" SHALL exigir que os quatro itens sejam marcados antes de avançar: "Identificação confere com a requisição", "Material corresponde à descrição", "Quantidade de frascos confere" e "Recipiente íntegro e adequado".
+### Requirement: Grupos de exame e recebimento parcial
+As amostras SHALL ser agrupadas pela chave `<codigoSolicitacao>:<tipoExame>`. O passo "Conferir" SHALL permitir selecionar grupos inteiros para recebimento, todos selecionados por padrão. Grupos desmarcados permanecem pendentes; amostras de um mesmo grupo não podem ser recebidas parcialmente.
 
-#### Scenario: Conferência completa
-- **WHEN** os quatro itens estão marcados e o usuário clica em "Confirmar conferência"
-- **THEN** o sistema avança para o passo "Completar e confirmar"
+#### Scenario: Recebimento parcial por tipo
+- **WHEN** uma solicitação possui grupos HP e CO e o usuário seleciona apenas CO
+- **THEN** o grupo CO é recebido e HP permanece pendente na mesma solicitação
 
-#### Scenario: Conferência incompleta
-- **WHEN** algum item está desmarcado e o usuário clica em "Confirmar conferência"
-- **THEN** o sistema permanece no passo e informa que todos os itens devem ser marcados ou que deve ser registrada uma não conformidade
+#### Scenario: Nenhum grupo selecionado
+- **WHEN** o usuário desmarca todos os grupos e confirma
+- **THEN** a confirmação é recusada e nenhum registro é persistido
 
 ### Requirement: Registro da conferência
-O sistema SHALL registrar cada conferência com os quatro itens, o resultado, a observação, o usuário e a data e hora. O resultado SHALL ser "aceita" na confirmação da entrada e "rejeitada" quando terminar em não conformidade.
+O sistema SHALL registrar cada conferência com a chave do grupo, o código da solicitação, as amostras, o resultado, a observação, o usuário e a data e hora. O resultado SHALL ser "aceita" na confirmação da entrada e "rejeitada" quando terminar em não conformidade.
 
 #### Scenario: Conferência aceita
 - **WHEN** a entrada é confirmada
-- **THEN** a conferência fica registrada como aceita, com os quatro itens marcados, e aparece na aba "Recepção" do caso
+- **THEN** a conferência fica registrada como aceita, com as amostras do grupo, e aparece na aba "Recepção" do caso
 
 #### Scenario: Conferência rejeitada
-- **WHEN** o usuário marca apenas três itens e registra uma não conformidade
-- **THEN** a conferência fica registrada como rejeitada, com os itens no estado em que estavam
+- **WHEN** o usuário registra uma não conformidade para um ou mais grupos selecionados
+- **THEN** a conferência fica registrada como rejeitada para os grupos devolvidos
 
-### Requirement: Saídas do passo de conferência
-O passo "Conferir" SHALL oferecer "Registrar não conformidade", que abre o registro com os dados da solicitação, e "Ler outra etiqueta", que descarta a conferência em andamento e volta ao passo 1.
+### Requirement: Ações do passo de conferência
+O passo "Conferir" SHALL oferecer "Confirmar conferência", "Registrar não conformidade" e "Ler outra etiqueta". A confirmação SHALL avançar diretamente para "Etiquetas e ficha" sem uma etapa de complementação separada.
 
 #### Scenario: Ler outra etiqueta
 - **WHEN** o usuário clica em "Ler outra etiqueta"
 - **THEN** o sistema volta ao passo 1 com o campo limpo e em foco, sem registrar conferência
 
-### Requirement: Tipo de exame
-O passo "Completar e confirmar" SHALL exigir o tipo de exame entre Histopatológico (HP), Citologia geral (CG), Citologia cérvico-vaginal (CCV), Congelação (CO) e Imuno-histoquímica (IHQ), já selecionado conforme o exame do AGHU e com a opção de alterar.
+### Requirement: Dados para confirmação
+Para cada grupo principal selecionado, o passo "Conferir" SHALL exigir um procedimento padronizado. A urgência SHALL ser uma única escolha da solicitação, sem valor padrão e sem campo de motivo. A quantidade de amostras SHALL vir do grupo no AGHU; observações são opcionais.
 
-#### Scenario: Tipo sugerido
-- **WHEN** a solicitação do AGHU é de exame anatomopatológico
-- **THEN** o tipo HP aparece selecionado, com a indicação de que veio do exame do AGHU
-
-### Requirement: Campos de complementação do caso principal
-Para os tipos HP, CG, CCV e CO, o sistema SHALL exigir quantidade de peças ou frascos (inteiro a partir de 1), "Urgente?" (Sim ou Não, sem valor padrão) e procedimento (lista padronizada). O motivo da urgência SHALL ser exigido quando "Urgente?" for Sim. Observações são opcionais. Para Congelação (CO), "Urgente?" SHALL ficar em Sim e não ser editável.
-
-#### Scenario: Urgência sem motivo
-- **WHEN** o usuário marca "Urgente?" como Sim e deixa o motivo vazio
-- **THEN** a confirmação é recusada e o campo de motivo é indicado como obrigatório
+#### Scenario: Quantidade obtida do AGHU
+- **WHEN** um grupo contém três amostras
+- **THEN** a conferência mostra as três amostras sem campo editável de quantidade
 
 #### Scenario: Urgência não informada
 - **WHEN** o usuário tenta confirmar sem escolher Sim ou Não em "Urgente?"
 - **THEN** a confirmação é recusada e o campo é indicado como obrigatório
 
 #### Scenario: Congelação selecionada
-- **WHEN** o usuário seleciona o tipo de exame Congelação (CO)
-- **THEN** "Urgente?" passa a Sim, sem opção de alterar, e o motivo da urgência vem preenchido com "Exame de congelação (intraoperatório)", editável e ainda obrigatório
+- **WHEN** o usuário seleciona um grupo CO
+- **THEN** "Urgente?" passa a Sim e não é editável
 
-#### Scenario: Troca de Congelação para outro tipo
-- **WHEN** o usuário troca o tipo de Congelação (CO) para Histopatológico (HP)
-- **THEN** "Urgente?" volta a ser editável e sem valor escolhido, e o motivo sugerido é limpo se não tiver sido editado
+#### Scenario: Urgência sem justificativa
+- **WHEN** o usuário escolhe "Sim" para urgência e preenche os procedimentos
+- **THEN** a confirmação não exige justificativa de urgência
 
 ### Requirement: Vínculo da IHQ ao caso de origem
-Para o tipo IHQ, o sistema SHALL exigir a escolha de um caso já existente e não SHALL gerar um novo caso. Só são aceitos casos principais (HP, CG, CCV ou CO) que não estejam devolvidos nem cancelados. A busca é feita por número interno, prontuário ou nome.
+Para o tipo IHQ, o fluxo ideal é o pedido já chegar vinculado ao caso de origem pelo AGHU. Como contingência, a recepção SHALL poder vincular manualmente o grupo a um caso já existente e o sistema não SHALL gerar um novo caso. Só são aceitos casos principais (HP, CG, CCV ou CO) que não estejam devolvidos nem cancelados. A busca é feita por número interno, prontuário ou nome.
 
 #### Scenario: Busca do caso de origem
 - **WHEN** o usuário seleciona IHQ e digita "HP-0003" no campo de caso de origem
@@ -167,7 +160,7 @@ Ao confirmar a entrada de um caso principal, o sistema SHALL, em uma única oper
 - **THEN** o encaminhamento é Macroscopia para HP, Processamento técnico para CG e CCV, e Congelação para CO
 
 #### Scenario: Atalho de teclado
-- **WHEN** o usuário pressiona Ctrl+Enter no passo "Completar e confirmar"
+- **WHEN** o usuário pressiona Ctrl+Enter no passo "Conferir"
 - **THEN** o sistema executa a confirmação como se o botão fosse clicado
 
 ### Requirement: Número interno do caso
@@ -189,12 +182,7 @@ Ao confirmar uma IHQ, o sistema SHALL:
 - **THEN** a IHQ aparece na aba "IHQ" do HP-0003/26 com o código gerado, e a Consulta de casos não ganha nenhum caso novo
 
 ### Requirement: Tela de resultado
-O passo "Etiquetas e ficha" SHALL exibir:
-- o número gerado, com botão de copiar;
-- a etapa para a qual o caso foi encaminhado;
-- o selo URGENTE, quando for o caso;
-- o lembrete "Registrar o recebimento no AGHU (solicitação <nº>)";
-- as ações "Imprimir etiqueta(s)", "Imprimir ficha de trabalho", "Abrir detalhe do caso" e "Receber próxima amostra".
+O passo "Etiquetas e ficha" SHALL exibir um bloco por caso ou IHQ gerado, com número, ação de copiar e ações pertinentes de impressão e abertura de detalhe. SHALL exibir uma vez o lembrete de registrar a solicitação no AGHU e avisar quais grupos continuam pendentes.
 
 #### Scenario: Receber próxima
 - **WHEN** o usuário clica em "Receber próxima amostra"
@@ -210,3 +198,41 @@ Após a entrada de um caso de congelação (CO), o resultado SHALL exibir um ale
 #### Scenario: Acionamento registrado
 - **WHEN** o usuário clica em "Registrar acionamento do plantão"
 - **THEN** o evento é gravado no histórico do caso e a ação passa a indicar que o plantão foi acionado, sem permitir novo registro
+
+### Requirement: Autorização das operações existentes da Recepção
+
+Operações protegidas da Recepção SHALL exigir a permissão explícita correspondente no backend. A interface SHALL refletir as permissões efetivas, mas sua ocultação de ações SHALL NOT substituir a autorização da API. O catálogo poderá evoluir junto com cada módulo; uma matriz global completa SHALL NOT ser requisito para concluir esta mudança.
+
+#### Scenario: Operação autorizada
+
+- **WHEN** identidade autenticada possui a permissão explícita para uma operação existente
+- **THEN** o backend executa a operação e usa a identidade autenticada como autora
+
+#### Scenario: Operação não autorizada por chamada direta
+
+- **WHEN** identidade autenticada sem a permissão correspondente chama diretamente a operação da Recepção
+- **THEN** o backend responde 403 sem executar a mutação
+
+#### Scenario: Operação fora do catálogo vigente
+
+- **WHEN** um perfil tenta executar uma operação sem concessão explícita no catálogo
+- **THEN** o backend nega a operação por padrão
+- **AND** o catálogo pode ser ampliado junto com o módulo que implementar essa operação
+
+### Requirement: Impressão física no navegador
+
+A pré-visualização e impressão SHALL ocorrer apenas no navegador. A seleção de etiquetas SHALL permitir imprimir apenas parte das amostras do caso. A impressão SHALL NOT chamar API, adicionar histórico ou gerar `AuditLog`.
+
+#### Scenario: Impressão parcial de etiquetas
+
+- **WHEN** o usuário seleciona algumas amostras e imprime etiquetas de um caso consultável
+- **THEN** o navegador imprime apenas as etiquetas selecionadas sem criar registro no backend
+
+### Requirement: Associação da IHQ ao caso de origem
+
+Para receber um grupo IHQ cujo vínculo não veio do AGHU, a interface SHALL permitir que a recepção escolha manualmente um caso principal elegível como contingência. O fluxo ideal é usar o vínculo já fornecido pelo AGHU. O sistema SHALL validar a divergência de prontuário, exigir confirmação explícita quando houver divergência e persistir o vínculo e a conferência. A ação SHALL exigir a permissão `recepcao:receber`.
+
+#### Scenario: Caso de origem com prontuário divergente
+
+- **WHEN** o prontuário do caso escolhido diverge do prontuário da solicitação IHQ
+- **THEN** a interface exige confirmação explícita antes de persistir o vínculo

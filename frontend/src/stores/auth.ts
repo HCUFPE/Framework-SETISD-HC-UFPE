@@ -6,6 +6,9 @@ import { carregarSolicitacoesDoBackend } from '../services/ap/http/cargaSolicita
 interface User {
   username: string;
   groups: string[];
+  profiles: string[];
+  permissions: string[];
+  auth_provider?: string;
   displayName?: string[];
   email?: string[];
   givenName?: string[];
@@ -20,10 +23,22 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
 
   const isAuthenticated = computed(() => !!accessToken.value);
-  const isAdmin = computed(() => {
-    const ADMIN_GROUP = "GLO-SEC-HCPE-SETISD"; 
-    return user.value?.groups?.includes(ADMIN_GROUP) || false;
-  });
+  // O administrador mock não representa autoridade para administrar contas institucionais.
+  const isAdmin = computed(() => user.value?.auth_provider !== 'mock' &&
+    (user.value?.profiles?.includes('COORDENACAO_ADMINISTRADOR') || false));
+  const mockUsers = ref<{ username: string; displayName: string; profiles: string[] }[]>([]);
+  const mockEnabled = ref(false);
+  let initialization: Promise<void> | null = null;
+
+  function hasPermission(permission: string): boolean {
+    return user.value?.permissions?.includes(permission) || false;
+  }
+
+  async function loadAuthOptions() {
+    const { data } = await api.get('/api/auth/options');
+    mockEnabled.value = data.mock_enabled;
+    mockUsers.value = data.users;
+  }
 
   function setToken(token: string) {
     accessToken.value = token;
@@ -85,31 +100,37 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initializeAuth() {
-    if (accessToken.value) {
-      // If a token exists in localStorage, validate it by fetching user info
-      await fetchUser();
-    } else {
-      // If no token, try to get a new one using the refresh token cookie
-      try {
-        const { data } = await api.post('/api/token/refresh');
-        if (data.access_token) {
-          setToken(data.access_token);
-          await fetchUser(); // Fetch user info with the new token
+    if (!initialization) {
+      initialization = (async () => {
+        if (accessToken.value) {
+          await fetchUser();
+        } else {
+          try {
+            const { data } = await api.post('/api/token/refresh');
+            if (data.access_token) {
+              setToken(data.access_token);
+              await fetchUser();
+            }
+          } catch {
+            // Sessão ausente: o usuário seguirá para a tela de login.
+          }
         }
-      } catch (error) {
-        // It's okay if this fails - it just means the user doesn't have a valid refresh token
-        console.log("No valid refresh token found.");
-      }
+      })();
     }
+    await initialization;
     // Página recarregada já autenticada: (re)carrega as solicitações AGHU do backend
     if (accessToken.value) await carregarSolicitacoesDoBackend();
   }
 
-  return { 
+  return {
     accessToken, 
     user, 
     isAuthenticated, 
     isAdmin, 
+    mockUsers,
+    mockEnabled,
+    hasPermission,
+    loadAuthOptions,
     login, 
     logout,
     setToken,

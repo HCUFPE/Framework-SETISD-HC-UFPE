@@ -6,7 +6,7 @@ from ..controllers import paciente_controller
 from ..dependencies import get_paciente_provider
 from ..providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 
-from ..auth.auth import auth_handler
+from ..auth.authorization import Permissao, exigir_permissao
 
 # --- PONTO ÚNICO DE CONFIGURAÇÃO PARA ESTE ROTEADOR ---
 # Para usar o banco de dados em produção, altere esta linha para "postgres"
@@ -16,7 +16,7 @@ STRATEGY = "csv"
 router = APIRouter(
     prefix="/api/pacientes",
     tags=["Pacientes"],
-    dependencies=[Depends(auth_handler.decode_token)]
+    dependencies=[Depends(exigir_permissao(Permissao.CASOS_CONSULTAR))]
 )
 
 @router.get("", response_model=List[dict])

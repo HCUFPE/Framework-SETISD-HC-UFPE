@@ -9,7 +9,7 @@ Ao imprimir as etiquetas de um caso com mais de uma amostra, a pré-visualizaç�
 
 #### Scenario: Imprimir uma amostra específica
 - **WHEN** o usuário desmarca as amostras 1 e 3 e clica em "Imprimir"
-- **THEN** só a etiqueta da amostra 2 é pré-visualizada e impressa, e o histórico registra a impressão da amostra 2
+- **THEN** só a etiqueta da amostra 2 é pré-visualizada e impressa localmente pelo navegador, sem criar registro no backend
 
 #### Scenario: Nenhuma marcada
 - **WHEN** o usuário desmarca todas as amostras
@@ -21,16 +21,16 @@ Ao imprimir as etiquetas de um caso com mais de uma amostra, a pré-visualizaç�
 
 ## MODIFIED Requirements
 
-### Requirement: Registro da impressão
-Cada impressão SHALL registrar um evento no histórico do caso ("Etiquetas impressas" ou "Ficha de trabalho impressa"), com o usuário e a data e hora. Para etiquetas, o evento SHALL informar quais amostras foram impressas.
+### Requirement: Impressão local
+A pré-visualização, impressão e reimpressão SHALL ocorrer apenas no navegador usando `window.print()`, sem chamada de API, registro no histórico do caso ou `AuditLog`.
 
-#### Scenario: Reimpressão
+#### Scenario: Reimpressão local
 - **WHEN** o usuário imprime a ficha de trabalho pela segunda vez
-- **THEN** o histórico passa a ter dois eventos "Ficha de trabalho impressa"
+- **THEN** o navegador imprime a ficha novamente sem criar registro no backend
 
-#### Scenario: Impressão parcial de etiquetas
+#### Scenario: Impressão parcial local de etiquetas
 - **WHEN** o usuário imprime só as etiquetas das amostras 2 e 4
-- **THEN** o evento "Etiquetas impressas" informa as amostras 2 e 4
+- **THEN** o navegador imprime apenas essas etiquetas sem criar registro no backend
 
 ### Requirement: Etiqueta do frasco
 A etiqueta do frasco SHALL ter 50 × 25 mm, uma por amostra do caso, e exibir nesta ordem:

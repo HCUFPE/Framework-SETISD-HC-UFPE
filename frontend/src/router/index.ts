@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, NavigationGuardNext } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
@@ -19,6 +19,7 @@ declare module 'vue-router' {
   interface RouteMeta {
     layout?: string;
     requiresAuth?: boolean;
+    requiresPermission?: string;
     /** Item do menu lateral destacado nesta rota. */
     menu?: string;
   }
@@ -50,25 +51,25 @@ const routes = [
     path: '/exemplo',
     name: 'Exemplo',
     component: Pacientes,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresPermission: 'casos:consultar' },
   },
   {
     path: '/configuracoes',
     name: 'Configuracoes',
     component: Configuracoes,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresPermission: 'usuarios:gerenciar' },
   },
   {
     path: '/recepcao',
     name: 'Recepção de amostras',
     component: RecepcaoAmostras,
-    meta: { requiresAuth: true, menu: 'recepcao' },
+    meta: { requiresAuth: true, requiresPermission: 'recepcao:receber', menu: 'recepcao' },
   },
   {
     path: '/casos',
     name: 'Consulta de casos',
     component: ConsultaCasos,
-    meta: { requiresAuth: true, menu: 'consulta' },
+    meta: { requiresAuth: true, requiresPermission: 'casos:consultar', menu: 'consulta' },
   },
   {
     // O número interno contém barra (ex.: /casos/HP-0003/26).
@@ -76,13 +77,13 @@ const routes = [
     name: 'Detalhe do caso',
     component: DetalheCaso,
     props: true,
-    meta: { requiresAuth: true, menu: 'consulta' },
+    meta: { requiresAuth: true, requiresPermission: 'casos:consultar', menu: 'consulta' },
   },
   {
     path: '/rejeicoes-devolucoes',
     name: 'Rejeições e devoluções',
     component: RejeicoesDevolucoes,
-    meta: { requiresAuth: true, menu: 'devolucoes' },
+    meta: { requiresAuth: true, requiresPermission: 'devolucoes:consultar', menu: 'devolucoes' },
   },
 ];
 
@@ -93,15 +94,16 @@ const router = createRouter({
   linkExactActiveClass: 'bg-paper-active-link',
 });
 
-router.beforeEach((to, _from, next: NavigationGuardNext) => {
-  // Pinia store must be used inside a function to ensure it's initialized
+router.beforeEach(async (to) => {
   const authStore = useAuthStore();
+  await authStore.initializeAuth();
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'Login' });
-  } else {
-    next();
+    return { name: 'Login' };
+  } else if (to.meta.requiresPermission && !authStore.hasPermission(to.meta.requiresPermission)) {
+    return { name: 'Início' };
   }
+  return true;
 });
 
 export default router;

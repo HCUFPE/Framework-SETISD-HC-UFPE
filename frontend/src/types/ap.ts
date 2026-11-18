@@ -109,7 +109,7 @@ export type StatusExameIhq =
 /** Categorias da trilha de auditoria (`audit_logs`). */
 export type CategoriaAuditoria = 'SEGURANCA' | 'NEGOCIO_CLINICO' | 'CONFIGURACAO';
 
-/** Tipos de impressão registrados no histórico. */
+/** Formatos de impressão física disponíveis no navegador. */
 export type TipoImpressao = 'ETIQUETAS' | 'FICHA_TRABALHO';
 
 // ---------------------------------------------------------------------------
@@ -272,6 +272,8 @@ export interface NaoConformidade {
   id: number;
   casoNumero?: string;
   solicitacaoCodigo?: string;
+  /** Grupos de exame associados à ocorrência na conferência. */
+  solicitacaoIds?: string[];
   tipo: TipoNaoConformidadeCodigo;
   /** Texto informado quando o tipo é "Outros" (vazio nos demais). */
   descricao: string;
@@ -293,6 +295,8 @@ export interface Devolucao {
   naoConformidadeId: number;
   casoNumero?: string;
   solicitacaoCodigo?: string;
+  /** Grupos de exame associados à devolução quando ela ocorre na conferência. */
+  solicitacaoIds?: string[];
   unidadeOrigem: string;
   devolvidoPor: Responsavel;
   novaAmostraSolicitada: boolean;

@@ -35,6 +35,13 @@
       <div class="border-t border-gray-100 bg-gray-50/50">
         <div class="p-5 space-y-4 text-sm">
           <div class="flex items-start">
+            <IdentificationIcon class="h-5 w-5 mr-3 text-gray-400 shrink-0 mt-0.5" />
+            <div class="flex-1">
+              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Perfis de acesso</p>
+              <p class="text-gray-800 font-medium leading-snug">{{ authStore.user?.profiles?.join(', ') || 'Sem perfil' }}</p>
+            </div>
+          </div>
+          <div class="flex items-start">
             <BriefcaseIcon class="h-5 w-5 mr-3 text-gray-400 shrink-0 mt-0.5" />
             <div class="flex-1">
               <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cargo</p>

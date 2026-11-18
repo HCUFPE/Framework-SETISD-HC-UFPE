@@ -1,6 +1,6 @@
 <template>
   <Card v-if="recepcao.resultados.length">
-    <div class="mx-auto max-w-2xl text-center">
+    <div class="mx-auto max-w-3xl text-center">
       <CheckCircleIcon class="mx-auto h-14 w-14 text-paper-success" aria-hidden="true" />
       <h2 class="mt-2 text-lg font-bold text-gray-800">Conferência confirmada · solicitação {{ solicitacaoCodigo }}</h2>
       <p class="text-sm text-gray-600">
@@ -45,7 +45,6 @@ import { rotuloNumerosAmostras } from '../../../helpers/aghu';
 import { useRecepcaoStore } from '../../../stores/recepcao';
 
 const emit = defineEmits<{ (e: 'proxima'): void }>();
-
 const recepcao = useRecepcaoStore();
 const solicitacaoCodigo = computed(() => recepcao.solicitacao?.codigoSolicitacao ?? '');
 </script>

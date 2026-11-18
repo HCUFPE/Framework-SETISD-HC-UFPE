@@ -4,11 +4,22 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.concurrency import run_in_threadpool
 
-from ..auth.auth import auth_handler, JWT_EXP_HOURS, REFRESH_TOKEN_EXP_DAYS
+from ..auth.auth import auth_handler, JWT_EXP_HOURS, REFRESH_TOKEN_EXP_DAYS, identidade_mock_disponivel
+from ..auth.authorization import USUARIOS_MOCK, identidade_com_permissoes_locais
 from ..resources.database import get_app_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api", tags=["Authentication"])
+
+@router.get("/auth/options")
+async def auth_options():
+    """Lista identidades fictícias apenas quando o Adapter mock está ativo."""
+    if not identidade_mock_disponivel():
+        return {"mock_enabled": False, "users": []}
+    return {"mock_enabled": True, "users": [
+        {"username": user.username, "displayName": user.nome, "profiles": list(user.perfis)}
+        for user in USUARIOS_MOCK.values()
+    ]}
 
 @router.post("/login")
 async def login(
@@ -22,6 +33,7 @@ async def login(
     """
     try:
         user = await run_in_threadpool(auth_handler.authenticate_user, form_data.username, form_data.password)
+        user = await identidade_com_permissoes_locais(user, db)
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -59,6 +71,7 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
     # Re-fetch full user data to ensure the new token has all AD attributes
     try:
        user_full_info = await run_in_threadpool(auth_handler.authenticate_user, token_obj.user_id, None) # Pass None for password as we are re-authenticating
+       user_full_info = await identidade_com_permissoes_locais(user_full_info, db)
     except HTTPException as e:
         # Handle cases where the user might not exist in AD anymore
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Failed to re-authenticate user: {e.detail}")
@@ -104,8 +117,11 @@ async def logout(response: Response, request: Request, db: AsyncSession = Depend
     return {"message": "Logged out successfully"}
 
 @router.get("/users/me")
-async def read_users_me(current_user: dict = Depends(auth_handler.decode_token)):
+async def read_users_me(
+    current_user: dict = Depends(auth_handler.decode_token),
+    db: AsyncSession = Depends(get_app_db_session),
+):
     """
     Returns the current user's information.
     """
-    return current_user
+    return await identidade_com_permissoes_locais(current_user, db)

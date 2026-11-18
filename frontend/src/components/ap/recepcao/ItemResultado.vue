@@ -39,6 +39,7 @@
     >
       <p>A cirurgia está em andamento. Avise o patologista de plantão agora e registre o acionamento.</p>
       <Button
+        v-if="authStore.hasPermission('recepcao:acionar_plantao')"
         class="mt-3"
         variant="danger"
         size="sm"
@@ -93,12 +94,14 @@ import { ETAPAS } from '../../../constants/ap';
 import { rotuloQuantidadeAmostras } from '../../../helpers/aghu';
 import { rotaDoCaso } from '../../../helpers/rotas';
 import { mensagemDeErro } from '../../../services/ap';
+import { useAuthStore } from '../../../stores/auth';
 import { useRecepcaoStore } from '../../../stores/recepcao';
 import type { ResultadoRecepcao, TipoExame, TipoImpressao } from '../../../types/ap';
 
 const props = defineProps<{ resultado: ResultadoRecepcao }>();
 
 const toast = useToast();
+const authStore = useAuthStore();
 const recepcao = useRecepcaoStore();
 const registrandoPlantao = ref(false);
 const impressao = ref<TipoImpressao | null>(null);

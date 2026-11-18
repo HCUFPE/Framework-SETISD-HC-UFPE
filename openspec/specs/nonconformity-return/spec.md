@@ -28,7 +28,7 @@ O registro SHALL exibir e gravar sem digitação o setor (Recepção), a etapa e
 - **THEN** a etapa aparece como "Recepção (conferência)" e os dados da solicitação são exibidos sem edição
 
 ### Requirement: Dados da não conformidade
-O primeiro passo do registro SHALL exigir o tipo, escolhido no catálogo padronizado, e o detalhamento. A unidade de origem SHALL ser exigida quando não houver solicitação nem caso. O registro não SHALL pedir nº CMCE. O catálogo é: Sem etiqueta do AGHU; Identificação divergente; Quantidade divergente; Material inadequado/insuficiente; Recipiente danificado/vazamento; Ausência de fixador/fixação inadequada; Requisição incompleta; Outro.
+O formulário único SHALL exigir um código do catálogo `TipoNaoConformidadeCodigo`, a resposta se foi solicitada nova amostra e, somente para `OUTROS`, uma descrição. A observação é opcional. A unidade de origem SHALL ser exigida quando não houver solicitação nem caso. O registro não SHALL pedir nº CMCE. O catálogo é: `SEM_SOLICITACAO_OU_ETIQUETA`, `EXAME_NAO_CORRESPONDE_MATERIAL`, `FALTA_DESCRICAO_FRASCO`, `IDENTIFICACAO_ILEGIVEL`, `NUMERACAO_FRASCOS_DIVERGENTE`, `QUANTIDADE_FRASCOS_DIVERGENTE`, `LATERALIDADE_DIVERGENTE`, `FALTA_CARIMBO_ASSINATURA`, `ACONDICIONAMENTO_INADEQUADO`, `SOLICITACOES_DUPLICADAS`, `PECAS_NAO_DESCRITAS`, `SISCAN_INCORRETO`, `SEM_AGENDAMENTO_CMCE` e `OUTROS`.
 
 #### Scenario: Detalhamento ausente
 - **WHEN** o usuário tenta avançar sem preencher o detalhamento
@@ -39,11 +39,11 @@ O primeiro passo do registro SHALL exigir o tipo, escolhido no catálogo padroni
 - **THEN** não há campo de nº CMCE no formulário
 
 ### Requirement: Efeito da devolução na recepção
-Uma não conformidade registrada na recepção antes da criação do caso SHALL marcar a solicitação do AGHU (quando houver) como devolvida, retirá-la da lista de pendentes, não SHALL criar caso e SHALL fazer a recepção voltar ao passo 1.
+Uma não conformidade registrada na recepção antes da criação do caso SHALL receber uma lista de grupos `<codigoSolicitacao>:<tipoExame>`. Apenas os grupos selecionados SHALL ser marcados como devolvidos; grupos não selecionados permanecem pendentes. A operação SHALL criar uma não conformidade e uma devolução unificadas, não SHALL criar caso e SHALL fazer a recepção voltar ao passo 1.
 
 #### Scenario: Devolução na conferência
-- **WHEN** o usuário registra a devolução de uma solicitação a partir do passo "Conferir"
-- **THEN** a solicitação sai da lista de pendentes, nenhum caso é criado e a tela volta ao passo 1
+- **WHEN** o usuário registra a devolução de um grupo a partir do passo "Conferir"
+- **THEN** o grupo sai da lista de pendentes, outros grupos não selecionados continuam pendentes, nenhum caso é criado e a tela volta ao passo 1
 
 ### Requirement: Efeito da devolução no caso
 Uma não conformidade registrada em um caso SHALL mudar o status do caso para "Devolvido", registrar no histórico a não conformidade e a devolução e tornar o caso somente leitura, preservando todo o histórico e os materiais.
@@ -119,3 +119,18 @@ Toda não conformidade SHALL gerar uma devolução. O segundo passo do registro 
 #### Scenario: Sem campo de quem recebeu
 - **WHEN** o usuário chega ao segundo passo do registro
 - **THEN** não há campo para informar quem recebeu o material na unidade de origem
+
+### Requirement: Autorização de registro e atualização existentes
+
+O registro de não conformidade/devolução e a atualização de situação SHALL exigir permissões explícitas do catálogo vigente. O backend SHALL aplicar as verificações tanto na criação quanto na atualização.
+
+#### Scenario: Atualização direta sem permissão
+
+- **WHEN** usuário sem permissão chama diretamente a operação de atualização da situação
+- **THEN** o backend responde 403 e não altera a situação nem registra mutação
+
+#### Scenario: Atualização por Recepção ou Administração
+
+- **WHEN** Recepcionista SAP ou Coordenação/Administrador atualiza diretamente a situação de uma devolução
+- **THEN** o backend autoriza a operação, persiste a situação e registra autoria autenticada e auditoria
+- **AND** outros perfis continuam sujeitos à negação por padrão

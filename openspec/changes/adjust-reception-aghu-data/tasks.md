@@ -47,7 +47,7 @@
   - uma `AMOSTRA` por amostra do AGHU (`numeroAmostraAghu`, descrição, rótulo `Amostra <n>`);
   - conferência registrada com as amostras;
   - apenas o exame marcado como recebido;
-  - `registrarImpressao` aceitando `amostras?` e registrando-as no histórico.
+  - impressão e reimpressão locais com `window.print()`, sem endpoint, histórico ou auditoria.
   
   Verificar que, recebendo o CONGE da solicitação mista, o APECR continua pendente.
 - [x] 3.5 Em `naoConformidadeServiceMock.registrar`, gravar `observacao` e o texto de "Outros". No contexto `SOLICITACAO`, devolver todos os exames pendentes do mesmo código, com uma NC e uma devolução, sem afetar exames já recebidos. Verificar os dois cenários do spec "Devolução de todas as amostras pendentes" na tela.
@@ -64,7 +64,7 @@
   Verificar os cenários de fila e leitura do spec `sample-reception` na tela.
 - [x] 4.3 Em `DadosSolicitacao.vue`, remover sexo e médico solicitante e exibir nome completo, data só com dia, exame com sigla e a lista de amostras separadas (número, descrição ou "Não informado", badge do status AGHU), com o total. Verificar no passo "Conferir" e na aba Solicitação AGHU do detalhe.
 - [x] 4.4 Em `PassoConferencia.vue`, remover os checkboxes e o alerta de conferência incompleta, colocar "Confirmar conferência" e "Registrar não conformidade" no topo do painel e renderizar `NaoConformidadeInline` logo abaixo deste último. Verificar que confirmar avança direto e que a NC abre inline sem modal.
-- [x] 4.5 Em `PassoComplemento.vue`, remover o campo de quantidade, exibir "N amostras" somente leitura e pré-selecionar o caso de origem da IHQ quando outro exame da mesma solicitação já virou caso elegível. Verificar o cenário "Sugestão do caso da mesma solicitação" e a confirmação com Ctrl+Enter.
+- [x] 4.5 Em `PassoConferencia.vue`, exibir a quantidade de amostras somente leitura e pré-selecionar o caso de origem da IHQ quando outro exame da mesma solicitação já virou caso elegível. Verificar o cenário "Sugestão do caso da mesma solicitação" e a confirmação com Ctrl+Enter.
 - [x] 4.6 Em `PassoResultado.vue`, exibir o aviso de outros exames pendentes da mesma solicitação. Verificar recebendo o CONGE da solicitação mista.
 
 ## 5. Não conformidade inline
@@ -85,7 +85,7 @@
 
 - [x] 6.1 Reorganizar `EtiquetaFrasco.vue` conforme o design D9: nº interno, "Am. <n>", URG, código de barras, nome completo em até 2 linhas com redução de fonte, e as linhas Receb./Solic. e Pront./Exame (sigla). Verificar na pré-visualização com um nome de 60 caracteres: nome inteiro, sem reticências, dentro de 50 × 25 mm.
 - [x] 6.2 Em `FichaTrabalho.vue`, colocar o nome completo no bloco Paciente e origem, tirar o médico solicitante do bloco Solicitante, exibir o exame com sigla e listar as amostras (número e descrição) no bloco Material. Verificar a ficha de um caso com 3 amostras.
-- [x] 6.3 Em `PrintPreview.vue`, criar a seleção de amostras para etiquetas quando houver 2 ou mais amostras (todas marcadas, "Todas", "Nenhuma", "Imprimir" desabilitado sem seleção), pré-visualizar só as marcadas e passar `amostras` ao registro da impressão. Verificar os cenários do spec `sample-labels` na tela de resultado e no detalhe do caso, inclusive o evento do histórico com as amostras impressas.
+- [x] 6.3 Em `PrintPreview.vue`, criar a seleção de amostras para etiquetas quando houver 2 ou mais amostras (todas marcadas, "Todas", "Nenhuma", "Imprimir" desabilitado sem seleção) e pré-visualizar só as marcadas. Imprimir localmente pelo navegador, sem chamada de API, histórico ou auditoria. Verificar os cenários do spec `sample-labels` na tela de resultado e no detalhe do caso.
 - [x] 6.4 Na aba Recepção de `DetalheCaso.vue`, trocar a lista de itens de conferência pelas amostras conferidas. Verificar o cenário "Conferência na aba Recepção".
 
 ## 7. Verificação integrada

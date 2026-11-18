@@ -5,7 +5,11 @@
       acompanhamento da resolução.
     </p>
 
-    <Card>
+    <p v-if="acessoPendente" class="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+      Seu perfil não possui permissão para consultar as devoluções. Nenhum dado foi carregado.
+    </p>
+
+    <Card v-else>
       <div class="flex flex-wrap items-end gap-3">
         <div class="w-44">
           <label for="dev-periodo" class="form-label">Período</label>
@@ -70,6 +74,7 @@
           </template>
           <template #actions="{ item }">
             <Button
+              v-if="authStore.hasPermission('devolucoes:alterar_situacao')"
               variant="outline"
               size="sm"
               :aria-label="`Alterar situação da devolução de ${item.data} (${item.casoNumero ?? (item.solicitacaoCodigo ? `AGHU ${item.solicitacaoCodigo}` : 'sem etiqueta')})`"
@@ -87,6 +92,7 @@
     </Card>
 
     <AlterarSituacaoDevolucaoModal
+      v-if="!acessoPendente"
       :show="emEdicao !== null"
       :devolucao="emEdicao"
       @close="emEdicaoId = null"
@@ -97,6 +103,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useToast } from 'vue-toastification';
 import { Pen } from 'lucide-vue-next';
 import Badge from '../../components/Badge.vue';
 import Button from '../../components/Button.vue';
@@ -113,10 +120,15 @@ import {
 } from '../../constants/ap';
 import { formatarDataHora } from '../../helpers/formato';
 import { rotaDoCaso } from '../../helpers/rotas';
+import { mensagemDeErro, ServiceError } from '../../services/ap';
 import { useDevolucoesStore } from '../../stores/devolucoes';
+import { useAuthStore } from '../../stores/auth';
 import type { EtapaCodigo, TipoNaoConformidadeCodigo } from '../../types/ap';
 
 const store = useDevolucoesStore();
+const authStore = useAuthStore();
+const toast = useToast();
+const acessoPendente = ref(false);
 
 const filtros = reactive({
   periodoDias: 0,
@@ -200,7 +212,15 @@ const abrirEdicao = (id: number) => {
   emEdicaoId.value = id;
 };
 
-onMounted(() => {
-  store.carregar();
+onMounted(async () => {
+  try {
+    await store.carregar();
+  } catch (erro) {
+    if (erro instanceof ServiceError && erro.status === 403) {
+      acessoPendente.value = true;
+    } else {
+      toast.error(mensagemDeErro(erro));
+    }
+  }
 });
 </script>

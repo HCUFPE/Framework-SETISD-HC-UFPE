@@ -26,7 +26,14 @@ class SolicitacaoCsvProvider(SolicitacaoProviderInterface):
         df = pd.read_csv(csv_path, dtype=str, keep_default_na=False, encoding="utf-8")
         df.columns = [str(c).strip() for c in df.columns]
         self._registros: List[Dict[str, Any]] = [
-            {chave: (valor.strip() if isinstance(valor, str) else valor) for chave, valor in linha.items()}
+            {
+                chave: (
+                    valor.replace("\r\n", "\n").replace("\r", "\n").strip()
+                    if isinstance(valor, str)
+                    else valor
+                )
+                for chave, valor in linha.items()
+            }
             for linha in df.to_dict(orient="records")
         ]
 

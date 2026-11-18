@@ -8,7 +8,6 @@ import {
   SETOR_RECEPCAO,
   STATUS_CASO,
   STATUS_INELEGIVEIS_IHQ,
-  TIPOS_EXAME,
   casoEstaAtivo,
   etapaAposRecepcao,
 } from '../../../constants/ap';
@@ -23,7 +22,6 @@ import type {
   ResultadoBuscaCasos,
   Responsavel,
   SolicitacaoAghu,
-  TipoImpressao,
   VincularIhqInput,
 } from '../../../types/ap';
 import { ServiceError, type CasoService } from '../types';
@@ -291,29 +289,6 @@ export const casoServiceMock: CasoService = {
       { status: 'CANCELADO', motivo: motivoLimpo },
     );
     return montarCaso(caso);
-  },
-
-  async registrarImpressao(numeroInterno: string, tipo: TipoImpressao, usuario: Responsavel, amostras?: string[]): Promise<void> {
-    await latencia(100);
-    const caso = exigirCaso(numeroInterno);
-    const titulo = tipo === 'ETIQUETAS' ? 'Etiquetas impressas' : 'Ficha de trabalho impressa';
-    const numeros =
-      amostras && amostras.length > 0
-        ? amostras
-        : caso.materiais.filter((m) => m.tipoItem === 'AMOSTRA').map((m) => m.numeroAmostraAghu ?? m.rotulo);
-    if (tipo === 'ETIQUETAS' && numeros.length === 0) throw new ServiceError(400, 'Selecione ao menos uma amostra para imprimir.');
-    const descricao =
-      tipo === 'ETIQUETAS'
-        ? `${numeros.length} etiqueta(s) de frasco · amostra(s) ${numeros.join(', ')}.`
-        : `Ficha de trabalho ${TIPOS_EXAME[caso.tipoExame].nome}.`;
-    registrarHistorico(caso, usuario, SETOR_RECEPCAO, tipo === 'ETIQUETAS' ? 'ETIQUETAS_IMPRESSAS' : 'FICHA_IMPRESSA', titulo, descricao);
-    registrarAuditoria(
-      usuario,
-      tipo === 'ETIQUETAS' ? 'ETIQUETAS_IMPRESSAS' : 'FICHA_IMPRESSA',
-      `caso_ap:${caso.numeroInterno}`,
-      null,
-      tipo === 'ETIQUETAS' ? { tipo, amostras: numeros } : { tipo },
-    );
   },
 
   async registrarAcionamentoPlantao(numeroInterno: string, usuario: Responsavel): Promise<CasoAp> {
