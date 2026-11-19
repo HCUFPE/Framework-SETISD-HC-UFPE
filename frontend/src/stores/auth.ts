@@ -19,9 +19,22 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
 
   const isAuthenticated = computed(() => !!accessToken.value);
+
   const isAdmin = computed(() => {
     const ADMIN_GROUP = "GLO-SEC-HCPE-SETISD"; 
     return user.value?.groups?.includes(ADMIN_GROUP) || false;
+  });
+
+  // Regra para validar se o utilizador tem permissão de Recepção e Triagem
+  const isRecepcao = computed(() => {
+    const RECEPCAO_GROUP = "GLO-SEC-HCPE-RECEPCAO";
+    return user.value?.groups?.includes(RECEPCAO_GROUP) || user.value?.groups?.includes("RECEPCAO") || false;
+  });
+
+  // Regra para validar se o utilizador tem permissão de Patologista
+  const isPatologista = computed(() => {
+    const PATOLOGISTA_GROUP = "GLO-SEC-HCPE-PATOLOGISTA";
+    return user.value?.groups?.includes(PATOLOGISTA_GROUP) || user.value?.groups?.includes("PATOLOGISTA") || false;
   });
 
   function setToken(token: string) {
@@ -49,7 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
       setUser(data);
     } catch (error) {
       console.error("Failed to fetch user info:", error);
-      clearToken(); // Clear token if user info fetch fails
+      clearToken();
     }
   }
 
@@ -65,7 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     setToken(data.access_token);
-    await fetchUser(); // Fetch user info immediately after login
+    await fetchUser();
   }
 
   async function logout(router?: any) {
@@ -83,18 +96,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function initializeAuth() {
     if (accessToken.value) {
-      // If a token exists in localStorage, validate it by fetching user info
       await fetchUser();
     } else {
-      // If no token, try to get a new one using the refresh token cookie
       try {
         const { data } = await api.post('/api/token/refresh');
         if (data.access_token) {
           setToken(data.access_token);
-          await fetchUser(); // Fetch user info with the new token
+          await fetchUser();
         }
       } catch (error) {
-        // It's okay if this fails - it just means the user doesn't have a valid refresh token
         console.log("No valid refresh token found.");
       }
     }
@@ -105,6 +115,8 @@ export const useAuthStore = defineStore('auth', () => {
     user, 
     isAuthenticated, 
     isAdmin, 
+    isRecepcao,
+    isPatologista,
     login, 
     logout,
     setToken,
