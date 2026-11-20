@@ -1,6 +1,6 @@
 ## Context
 
-A recepção é só frontend, com serviços mock em memória (`services/ap/mock`, `mocks/ap/seed.ts`). Há um modo híbrido (`VITE_AP_FONTE_SOLICITACOES=api`) em que as solicitações pendentes vêm de `GET /api/solicitacoes`, lidas do CSV do AGHU. Esse endpoint devolve **uma linha por amostra**, com id composto `<código>-<amostra>`. O frontend trata cada linha como uma `SolicitacaoAghu` independente e resolve a leitura do código puro com o resultado `MULTIPLAS_AMOSTRAS`, que manda escolher uma amostra.
+Originalmente concebida apenas no frontend com serviços mock em memória (`services/ap/mock`, `mocks/ap/seed.ts`) e um modo híbrido (`VITE_AP_FONTE_SOLICITACOES=api`) lendo de `GET /api/solicitacoes`, a recepção passou a contar com persistência real no backend (`APP_DB` em SQLite com migrações Alembic) após a conciliação das branches. No contrato legado do CSV do AGHU, `GET /api/solicitacoes` devolve **uma linha por amostra** com id composto `<código>-<amostra>`, que antes era tratado como `SolicitacaoAghu` independente (resolvendo códigos puros com `MULTIPLAS_AMOSTRAS`).
 
 Fatos do CSV que moldam a solução (ver `data/dicionario_dados.md`):
 - dentro de uma solicitação, só variam `numero_amostra`, `descricao_material`, `cod_status_item`/`status_item_exame`, `sigla_exame`/`nome_exame` e `codigo_lab`;
@@ -17,7 +17,7 @@ Fatos do CSV que moldam a solução (ver `data/dicionario_dados.md`):
 - Formulário de não conformidade único, inline e reutilizável nos três pontos de registro.
 
 **Non-Goals:**
-- Persistência real no backend de casos, devoluções e conferências (continuam no mock).
+- Leitura direta em tempo real do banco PostgreSQL de produção do AGHU (segue via CSV/seed no provedor local enquanto a integração direta não é habilitada).
 - Filtrar a fila "Para receber" pelo status do AGHU (todos os itens do CSV seguem listados, como hoje).
 - Atualizar `docs/especificacao/` (a divergência fica registrada na proposta).
 - Normalizar grafias inconsistentes de unidades (`9º  SUL`, `7 º SUL`). Só se removem o U+200B e os espaços nas pontas.
@@ -157,4 +157,4 @@ O `SelectBusca` limita a altura da lista ao espaço visível do contêiner com r
 
 ## Migration Plan
 
-Não há dados persistidos a migrar, porque o mock reinicia ao recarregar. A única mudança de contrato do backend é aditiva ou semântica (limite por solicitação e origem `CIRURGIA`), coberta por `tests/test_solicitacoes.py`. Para reverter, basta reverter a branch.
+A persistência local no backend (`APP_DB`) é versionada via migrações do Alembic (`alembic/versions/`), executadas automaticamente na inicialização (`alembic upgrade head`). As mudanças de contrato da recepção e das solicitações estão cobertas por `tests/test_solicitacoes.py` e `tests/test_reception_api.py`. Para reverter, basta reverter a branch e aplicar downgrade das revisões do Alembic se necessário.

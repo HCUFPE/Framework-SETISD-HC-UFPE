@@ -66,7 +66,7 @@ O CSV extraído do AGHU (`data/privado/solicitacoes.csv`), descrito em `data/dic
 - `ui-interaction-feedback`: campos de seleção com busca por digitação, cursor de mão e destaque de hover nas opções.
 - `code-scan`: a busca do topo aceita o código da solicitação AGHU e tem atalho para solicitações pendentes.
 
-## Impact
+##  
 
 - **Frontend:**
   - `types/ap.ts` (solicitação com amostras e exames, novos códigos de NC, origem, status AGHU) e `constants/ap.ts` (catálogos do dicionário).
@@ -75,6 +75,7 @@ O CSV extraído do AGHU (`data/privado/solicitacoes.csv`), descrito em `data/dic
   - Remoção de `NaoConformidadeModal.vue`, substituído por um componente inline.
   - `views/ap/DetalheCaso.vue` e `RejeicoesDevolucoes.vue` (filtro pelo novo catálogo).
   - Serviços mock e seed (`mocks/ap/seed.ts`), além de `services/ap/http/solicitacaoApi.ts` (agrupamento das linhas do AGHU).
-- **Backend:** `src/controllers/solicitacao_controller.py` (origem `CIRURGIA`, código de status exposto) e `tests/test_solicitacoes.py`.
-- **Dados:** o seed do mock passa a usar só valores existentes no dicionário. O formato de `GET /api/solicitacoes` (uma linha por amostra) continua o mesmo.
-- **Documentação:** `docs/especificacao/` cita o antigo catálogo de NC e a origem "bloco cirúrgico". Essa divergência fica registrada e não é corrigida neste change.
+- **Backend:** 
+  - `src/controllers/solicitacao_controller.py` (origem `CIRURGIA`, código de status exposto), endpoints e persistência da recepção (`src/routers/reception.py`, `src/controllers/reception_controller.py`, `src/providers/implementations/reception_sqlite_provider.py`, modelos `ap_*` e migrações Alembic) e suítes `tests/test_solicitacoes.py` e `tests/test_reception_api.py`.
+  - **Dados:** o seed e o banco local (`APP_DB`) passam a usar só valores existentes no dicionário, mantendo o vínculo manual de IHQ como contingência e a impressão puramente local no navegador. O formato de `GET /api/solicitacoes` (uma linha por amostra) continua o mesmo.
+  - **Documentação:** `docs/especificacao/` cita o antigo catálogo de NC e a origem "bloco cirúrgico". Essa divergência fica registrada e não é corrigida neste change.
