@@ -118,7 +118,7 @@ O sistema SHALL registrar cada conferência com o exame e as amostras conferidas
 - **WHEN** o usuário registra uma não conformidade na conferência
 - **THEN** a conferência fica registrada como rejeitada, vinculada à não conformidade
 
-### Requirement: Saídas do passo de conferência
+### Requirement: Ações do passo de conferência
 O passo "Conferir" SHALL exibir, sem checkboxes de conferência, os campos de entrada e as ações "Confirmar conferência" e "Registrar não conformidade". "Confirmar conferência" valida os campos e confirma a entrada (gera o caso ou vincula a IHQ), indo direto para "Etiquetas e ficha". "Registrar não conformidade" abre o modal "Não conformidade e devolução". SHALL oferecer também "Ler outra etiqueta", que descarta a conferência e volta ao passo 1.
 
 #### Scenario: Confirmar conferência
@@ -133,10 +133,10 @@ O passo "Conferir" SHALL exibir, sem checkboxes de conferência, os campos de en
 - **WHEN** o usuário clica em "Ler outra etiqueta"
 - **THEN** o sistema volta ao passo 1 com o campo limpo e em foco, sem registrar conferência
 
-### Requirement: Campos de complementação do caso principal
+### Requirement: Dados para confirmação
 A urgência SHALL ser da solicitação, não de cada tipo de exame: quando houver tipo principal (HP, CG, CCV, CO) marcado para receber, o painel de conferência SHALL exibir um único "Urgente?" (Sim ou Não, sem valor padrão), aplicado a todos os casos gerados na conferência, sem campo de motivo. Para cada tipo principal marcado, SHALL exigir o procedimento (lista padronizada com busca). A quantidade de amostras SHALL ser a do tipo no AGHU, sem campo editável. Observações são opcionais e valem para todos os registros da conferência. Quando um tipo Congelação (CO) estiver marcado, "Urgente?" SHALL ficar em Sim e não ser editável.
 
-#### Scenario: Quantidade vinda do AGHU
+#### Scenario: Quantidade obtida do AGHU
 - **WHEN** o grupo HP tem 3 amostras
 - **THEN** o bloco HP indica "amostras 1, 2, 3", sem campo editável de quantidade
 
@@ -144,7 +144,7 @@ A urgência SHALL ser da solicitação, não de cada tipo de exame: quando houve
 - **WHEN** a solicitação tem os grupos HP e IHQ e o usuário marca "Urgente?" como Sim
 - **THEN** há um só campo "Urgente?" no painel, sem campo de motivo, e o caso HP gerado fica urgente
 
-#### Scenario: Urgência sem motivo
+#### Scenario: Urgência sem justificativa
 - **WHEN** o usuário marca "Urgente?" como Sim e preenche os procedimentos
 - **THEN** a confirmação é aceita sem pedir motivo, pois não há campo de motivo da urgência
 
@@ -243,12 +243,16 @@ A tela "Recepção de amostras" SHALL conduzir o recebimento em três passos: "L
 - **WHEN** o usuário inicia o recebimento de uma solicitação
 - **THEN** o indicador de passos é exibido com "Ler etiqueta AGHU" concluído e "Conferir" como atual, seguido apenas de "Etiquetas e ficha"
 
+## ADDED Requirements
+
 ### Requirement: Tipo de exame
 O tipo de exame de cada grupo (Histopatológico HP, Citologia geral CG, Citologia cérvico-vaginal CCV, Congelação CO ou Imuno-histoquímica IHQ) SHALL ser definido pelas siglas dos exames do AGHU e exibido no passo "Conferir" sem opção de alterar.
 
 #### Scenario: Tipo sugerido
 - **WHEN** as amostras da solicitação são do exame APECR
 - **THEN** o passo "Conferir" exibe o bloco "HP · Histopatológico", sem campo para trocar o tipo
+
+## MODIFIED Requirements
 
 ### Requirement: Validação antes da confirmação
 Ao tentar confirmar a conferência com campos obrigatórios faltando, o sistema SHALL recusar a confirmação, mostrar um resumo com a quantidade e a lista dos campos faltantes, com link para cada um, e destacar cada campo com a sua mensagem.

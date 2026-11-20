@@ -19,8 +19,6 @@ Ao imprimir as etiquetas de um caso com mais de uma amostra, a pré-visualizaç�
 - **WHEN** o usuário imprime as etiquetas de um caso com uma amostra
 - **THEN** a pré-visualização mostra a etiqueta sem a lista de seleção
 
-## MODIFIED Requirements
-
 ### Requirement: Impressão local
 A pré-visualização, impressão e reimpressão SHALL ocorrer apenas no navegador usando `window.print()`, sem chamada de API, registro no histórico do caso ou `AuditLog`.
 
@@ -31,6 +29,8 @@ A pré-visualização, impressão e reimpressão SHALL ocorrer apenas no navegad
 #### Scenario: Impressão parcial local de etiquetas
 - **WHEN** o usuário imprime só as etiquetas das amostras 2 e 4
 - **THEN** o navegador imprime apenas essas etiquetas sem criar registro no backend
+
+## MODIFIED Requirements
 
 ### Requirement: Etiqueta do frasco
 A etiqueta do frasco SHALL ter 50 × 25 mm, uma por amostra do caso, e exibir nesta ordem:
@@ -44,6 +44,10 @@ A etiqueta do frasco SHALL ter 50 × 25 mm, uma por amostra do caso, e exibir ne
 #### Scenario: Caso com duas amostras
 - **WHEN** o usuário imprime as etiquetas de um caso com as amostras 2 e 3
 - **THEN** são geradas duas etiquetas, cada uma com o código do respectivo item e a indicação "Amostra 2" ou "Amostra 3", e as demais informações iguais
+
+#### Scenario: Seleção parcial
+- **WHEN** o usuário seleciona somente uma amostra de um caso com várias amostras
+- **THEN** somente a etiqueta dessa amostra é impressa localmente pelo navegador, sem chamada de API, histórico ou auditoria
 
 #### Scenario: Nome completo
 - **WHEN** o paciente se chama "MARIA DAS GRAÇAS DE ALBUQUERQUE CAVALCANTI DOS SANTOS"
