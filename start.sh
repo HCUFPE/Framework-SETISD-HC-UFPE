@@ -68,19 +68,14 @@ else
 fi
 cd ..
 
-# 6. Execução da aplicação em foreground
+# 6. Migrações do banco de dados
+echo -e "\n${YELLOW}[6/6] Aplicando migrações do banco (Alembic)...${NC}"
+if uv run alembic upgrade head; then
+    echo -e "  ✅ Banco de dados atualizado."
+else
+    echo -e "${RED}❌ Erro ao executar migrações do Alembic.${NC}"
+    exit 1
+fi
+
+# Execução da aplicação em foreground
 IP="0.0.0.0"
-PORT="8000"
-LOCAL_IP=$(hostname -I | awk '{print $1}')
-
-echo -e "\n${BLUE}==================================================${NC}"
-echo -e "${GREEN}✨ Aplicação pronta para iniciar!${NC}"
-echo -e "${BLUE}--------------------------------------------------${NC}"
-echo -e "📍 ${BLUE}IP Bind:${NC}    $IP"
-echo -e "🔌 ${BLUE}Porta:${NC}      $PORT"
-echo -e "🔗 ${BLUE}Local:${NC}      http://localhost:$PORT"
-echo -e "🌐 ${BLUE}Rede:${NC}       http://$LOCAL_IP:$PORT"
-echo -e "${BLUE}==================================================${NC}\n"
-
-# Executa em foreground
-uv run uvicorn src.main:app --host $IP --port $PORT --reload
