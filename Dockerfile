@@ -15,7 +15,7 @@ RUN cd frontend && npm run build
 # ============================
 # 2. BACKEND & RUNTIME FINAL
 # ============================
-FROM python:3.12-slim
+FROM python:3.13
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
