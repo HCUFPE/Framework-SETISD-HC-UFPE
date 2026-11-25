@@ -16,7 +16,8 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       >
         <div 
-          class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all"
+          class="bg-white rounded-2xl shadow-2xl w-full overflow-hidden transform transition-all"
+          :class="classeLargura"
           @click.stop
         >
           <!-- Header -->
@@ -48,12 +49,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, watch } from 'vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
   show: { type: Boolean, default: false },
+  largura: { type: String, default: 'lg' },
 });
+
+const classeLargura = computed(() => ({
+  lg: 'max-w-lg',
+  xl: 'max-w-4xl',
+  '2xl': 'max-w-6xl',
+}[props.largura] ?? 'max-w-lg'));
 
 const emit = defineEmits(['close']);
 const close = () => emit('close');

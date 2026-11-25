@@ -9,7 +9,7 @@
 | `/relatorios` | Relatórios | Catálogo de relatórios, formulário de filtros, prévia tabular e botão "Exportar CSV". |
 | `/criterios` | Critérios de Priorização | Grade com peso/ordem/atividade por critério, campo de justificativa, botão "Salvar nova versão" e histórico de versões. |
 | `/equipe` | Equipe e Perfis | Lista de usuários locais, campo de login com botão "Consultar AD", perfil, lotação, situação ativo/inativo e histórico de alterações. |
-| `/agendamentos` | Calendário de Agendamentos (v0.5.0) | Visão mês/semana do FullCalendar, cores por ocupação (`livre`, `parcial`, `lotado`) e por status (`PROPOSTO`, `ATIVO`, `CANCELADO`, `CONCLUIDO`); filtros de unidade e **exame específico (código/nome)**; nenhuma solicitação é listada na abertura — a busca ocorre sob demanda; clique no dia abre popup com horários e marcação direta; **fila de propostas da simulação dos próximos 30 dias**, ordenada por prioridade, com confirmar/não confirmar/remarcar/cancelar; painel lateral do paciente; aba "Disponibilidade de exames — gestão de vagas" para Chefia/Área Gestora/Admin TI. Aviso de demonstração quando `VITE_USE_MOCKS=true`: a agenda começa em `referenciaEm` e nenhum endereço é usado. |
+| `/agendamentos` | Calendário de Agendamentos (v0.6.0) | Visão mês/semana do FullCalendar, cores por ocupação (`livre`, `parcial`, `lotado`) e por status (`PROPOSTO`, `ATIVO`, `CANCELADO`, `CONCLUIDO`); filtros de unidade e **exame específico (código/nome)**; nenhuma solicitação é listada na abertura — a busca ocorre sob demanda; clique no dia abre popup com horários e marcação direta; **fila de propostas da simulação dos próximos 30 dias**, ordenada por prioridade, com confirmar/não confirmar/remarcar/cancelar; painel lateral do paciente; aba "Disponibilidade de exames — gestão de vagas" para Chefia/Área Gestora/Admin TI, reorganizada na v0.6.0 com linha de exames no topo, calendário para escolher o dia, inclusão/remoção de vagas e cópia entre semanas. Aviso de demonstração quando `VITE_USE_MOCKS=true`: a agenda começa em `referenciaEm` e nenhum endereço é usado. |
 | `/integracoes` | Integrações (Forms → AGHUX) | Lista de eventos com Response ID, formulário, status, tentativas, recebido/processado, último erro e contadores de divergências/alertas; botões "Atualizar eventos" e "Reprocessar" (habilitado para `ERRO`/`DUPLICADA`). |
 | `/acesso-negado` | Acesso negado | Explicação do perfil insuficiente e link para o início. |
 
@@ -138,7 +138,7 @@ As rotas abaixo permanecem documentadas para entregas seguintes; o backend impla
 | `PATCH` | `/api/admin/equipe/{id}` | Área Gestora, Admin TI | Altera perfil ou situação (soft delete). |
 | `GET` | `/api/admin/ad-user-search/{username}` | Área Gestora, Admin TI | Consulta prévia no AD (endpoint do framework). |
 
-### 5.3 Gestão de agendamentos, propostas e distância (implementado em v0.5.0)
+### 5.3 Gestão de agendamentos, propostas e distância (implementado em v0.6.0)
 
 Todos os endpoints abaixo exigem JWT no `APIRouter` e RBAC no backend. Grupos/perfis: `OPERADOR`, `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI`, `COORDENACAO` (somente nos `GET`) e `GLO-SEC-HCPE-SETISD` (equiparado a `ADMIN_TI`, presente no login mock do framework). Erros seguem `{"detail": "..."}`: `401` sem token, `403` perfil insuficiente, `404` recurso inexistente, `409` conflito de paciente ou vaga esgotada e `422` pré-condição não satisfeita.
 
@@ -158,8 +158,10 @@ Todos os endpoints abaixo exigem JWT no `APIRouter` e RBAC no backend. Grupos/pe
 | `POST` | `/api/solicitacoes/{id}/validacao` | Escrita | Corpo `{ justificativas?: Record<string,string> }`; trata divergências ativas e muda o status para `AGUARDANDO_CONTATO`. |
 | `POST` | `/api/solicitacoes/{id}/contatos` | Escrita | Corpo `{ canal, resultado, observacao?, operador }`; `resultado` em `ACEITE`, `RECUSA` ou `SEM_RESPOSTA`; `201`. |
 | `GET` | `/api/admin/agenda/slots?de=&ate=&unidade=&codigoExame=` | `CHEFIA` / `AREA_GESTORA` / `ADMIN_TI` / `GLO-SEC-HCPE-SETISD` | Lista vagas locais para gestão. |
-| `POST` | `/api/admin/agenda/slots` | Idem | Cria vaga local; `201`; auditoria `CONFIGURACAO`. |
+| `POST` | `/api/admin/agenda/slots` | Idem | Cria vaga local; `201`; auditoria `CONFIGURACAO`. Aceita `situacao` ou `status`. |
 | `PATCH` | `/api/admin/agenda/slots/{id}` | Idem | Ajusta capacidade, situação, horário, unidade ou exame; auditoria `CONFIGURACAO`. |
+| `DELETE` | `/api/admin/agenda/slots/{id}` | Idem | Remove vaga por soft delete; `404` se inexistente, `409` se houver agendamento `ATIVO` ou proposta `PROPOSTO`; auditoria `CONFIGURACAO`. |
+| `POST` | `/api/admin/agenda/copiar-semana` | Idem | Corpo `{ origem, destino, codigoExame? }` (datas ou ISO); `200` com `{ origem, destino, codigoExame, criadas, ignoradas, total }`. Preserva dia da semana, unidade, exame, horário, capacidade e situação; ignora vagas já existentes no destino; `422` se origem/destino forem inválidos, iguais ou sem vagas; auditoria `CONFIGURACAO`. |
 
 Pré-condições de agendamento/remarcação: solicitação em `AGUARDANDO_CONTATO`, `AGUARDANDO_CONFIRMACAO` ou `AGUARDANDO_REAGENDAMENTO` (`AGENDADA` apenas para remarcação), pelo menos um contato com `ACEITE`, nenhuma divergência ativa não tratada, vaga `DISPONIVEL` com `livres > 0`, início no futuro, **exame específico da solicitação** e nenhum agendamento `ATIVO` ou proposta `PROPOSTO` do mesmo `pacienteChave` no intervalo. Toda mutação registra `registrar_auditoria()` com estado anterior/posterior, IP de origem e categoria `NEGOCIO_CLINICO`.
 
@@ -207,7 +209,7 @@ interface FormsEvento {
 
 Os tipos vivem em `frontend/src/types/sae.ts`, o estado em `frontend/src/stores/integracoes.ts` e as chamadas em `frontend/src/services/sae.ts`, sempre pelo interceptor de `frontend/src/services/api.ts`.
 
-### [SCHEMA] Contratos TypeScript da agenda (implementados em v0.5.0)
+### [SCHEMA] Contratos TypeScript da agenda (implementados em v0.6.0)
 
 ```typescript
 type Prioridade = 'ALTA' | 'MEDIA' | 'BAIXA';
@@ -257,6 +259,15 @@ interface CalendarioAgendamentos {
 interface PacienteAgendamentos {
   pacienteChave: string; pacienteNome: string; prontuario: string; agendamentosAtivos: number;
 }
+interface DadosNovoSlot {
+  unidade: string; codigoExame: string; nomeExame: string;
+  inicio: string; fim: string; capacidade: number;
+  situacao?: AgendaSlot['status'];
+}
+interface ResultadoCopiaSemana {
+  origem: string; destino: string; codigoExame: string;
+  criadas: AgendaSlot[]; ignoradas: number; total: number;
+}
 ```
 
 O tipo `Agendamento` da fila foi renomeado para `AgendamentoRegistro` para não colidir com o contrato da agenda. O estado da tela vive em `frontend/src/stores/agendamentos.ts` e as chamadas em `frontend/src/services/sae.ts`; quando `VITE_USE_MOCKS=true`, o adaptador gera slots determinísticos a partir de `REFERENCIA_EM`, turnos das `08:00–12:00` e `13:00–17:00`, capacidade `3..5`, distância mock de `12,5 km` e nenhum endereço de paciente.
@@ -294,5 +305,5 @@ interface IExternalFormApi {
 ## 6. Hardware e integrações
 - Impressoras térmicas e leitores de código de barras: **fora de escopo** nesta entrega.
 - Integração Forms → AGHUX: **implementada em v0.2.0** pela abordagem híbrida da Seção 5.1 (Power Automate → webhook assinado), com cruzamento contra a fixture real do AGHUX e geração de divergências/alertas antes da entrada na fila.
-- Calendário, vagas locais, remarcação, sugestão, busca sob demanda, popup do dia, simulação de propostas e distância: **implementados em v0.4.0 e refinados em v0.5.0** pela Seção 5.3 (fila de propostas ordenada, ocupação respeitada na simulação e gestão de vagas pela Chefia). A distância usa Nominatim (geocoding) e OSRM (rota) com cache de sucessos, timeout e `User-Agent` configuráveis; falhas são sinalizadas como `INDISPONIVEL`, sem valores inventados e sem ficar em cache.
-- Consulta real ao AGHU, confirmação efetiva da marcação no AGHUX, notificações ao paciente e pull por `forms.office.com/formapi`: **não implementados**; permanecem para entrega futura. A confirmação da v0.5.0 é operacional, apenas no sistema local. As telas operacionais continuam lendo o adaptador de mocks (`VITE_USE_MOCKS`).
+- Calendário, vagas locais, remarcação, sugestão, busca sob demanda, popup do dia, simulação de propostas e distância: **implementados em v0.4.0, refinados em v0.5.0 e ampliados em v0.6.0** pela Seção 5.3 (fila de propostas ordenada, ocupação respeitada na simulação, gestão de vagas pela Chefia e redesenho com seleção de exame/dia, remoção e cópia semanal). A distância usa Nominatim (geocoding) e OSRM (rota) com cache de sucessos, timeout e `User-Agent` configuráveis; falhas são sinalizadas como `INDISPONIVEL`, sem valores inventados e sem ficar em cache.
+- Consulta real ao AGHU, confirmação efetiva da marcação no AGHUX, notificações ao paciente e pull por `forms.office.com/formapi`: **não implementados**; permanecem para entrega futura. A confirmação da v0.6.0 é operacional, apenas no sistema local. As telas operacionais continuam lendo o adaptador de mocks (`VITE_USE_MOCKS`).

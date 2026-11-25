@@ -34,3 +34,8 @@ class SlotProviderInterface(ABC):
     async def atualizar(self, slot_id: str, dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Atualiza uma vaga (sem commit; o controller audita e confirma)."""
         pass
+
+    @abstractmethod
+    async def remover(self, slot_id: str) -> Optional[Dict[str, Any]]:
+        """Remove uma vaga por soft delete e devolve o estado anterior."""
+        pass

@@ -110,7 +110,7 @@ class Settings:
     )
     OSM_OSRM_URL: str = os.getenv("OSM_OSRM_URL", "https://router.project-osrm.org")
     OSM_USER_AGENT: str = os.getenv(
-        "OSM_USER_AGENT", "SAE-HC/0.5.0 (contato: ti@hc.ebserh.gov.br)"
+        "OSM_USER_AGENT", "SAE-HC/0.6.0 (contato: ti@hc.ebserh.gov.br)"
     )
     HOSPITAL_LATITUDE: str = os.getenv("HOSPITAL_LATITUDE", "-8.0476")
     HOSPITAL_LONGITUDE: str = os.getenv("HOSPITAL_LONGITUDE", "-34.8770")

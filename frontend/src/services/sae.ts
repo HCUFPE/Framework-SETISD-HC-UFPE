@@ -538,7 +538,7 @@ export async function reprocessarEventoIntegracao(responseId: string): Promise<F
 }
 
 /* -------------------------------------------------------------------------- */
-/* Agendamentos, calendário, sugestões e simulação de propostas (v0.5.0)     */
+/* Agendamentos, calendário, propostas e gestão de vagas (v0.6.0)           */
 /* -------------------------------------------------------------------------- */
 
 export interface FiltrosCalendarioAgendamentos {
@@ -556,6 +556,22 @@ export interface DadosNovoSlot {
   inicio: string;
   fim: string;
   capacidade: number;
+  situacao?: AgendaSlot['status'];
+}
+
+export interface CopiaSemanaPayload {
+  origem: string;
+  destino: string;
+  codigoExame?: string;
+}
+
+export interface ResultadoCopiaSemana {
+  origem: string;
+  destino: string;
+  codigoExame: string;
+  criadas: AgendaSlot[];
+  ignoradas: number;
+  total: number;
 }
 
 export interface AjusteSlot {
@@ -1210,6 +1226,10 @@ export async function criarSlotAdmin(dados: DadosNovoSlot, autor: string): Promi
     slot.unidade === unidade && slot.codigoExame === codigoExame && slot.inicio === inicio)) {
     throw new Error('Já existe uma vaga com estes unidade, exame e horário.');
   }
+  const situacao = dados.situacao ?? 'DISPONIVEL';
+  if (!['DISPONIVEL', 'LOTADO', 'ENCERRADO'].includes(situacao)) {
+    throw new Error('Situação de vaga inválida.');
+  }
   const slot: AgendaSlot = {
     id: `slot-${crypto.randomUUID()}`,
     unidade,
@@ -1220,10 +1240,11 @@ export async function criarSlotAdmin(dados: DadosNovoSlot, autor: string): Promi
     capacidade,
     ocupadas: 0,
     livres: capacidade,
-    status: 'DISPONIVEL',
+    status: situacao,
   };
   slotsAgendaMock.push(slot);
-  registrar('Vaga criada', autor, 'CONFIGURACAO', `${unidade} · ${nomeExame} · ${inicio} (${capacidade} vagas).`);
+  if (situacao === 'LOTADO') slotsFechadosManualmenteMock.add(slot.id);
+  registrar('Vaga criada', autor, 'CONFIGURACAO', `${unidade} · ${nomeExame} · ${inicio} (${capacidade} vagas, ${situacao}).`);
   sincronizarOcupacaoMock();
   return clonar(slot);
 }
@@ -1294,4 +1315,118 @@ export async function atualizarSlotAdmin(
     `${slot.unidade} · ${slot.nomeExame} · capacidade ${slot.capacidade}, situação ${slot.status}.`);
   sincronizarOcupacaoMock();
   return clonar(slot);
+}
+
+/** DELETE /api/admin/agenda/slots/{id} — remove uma vaga sem ocupação. */
+export async function removerSlotAdmin(id: string, autor: string): Promise<AgendaSlot> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.delete<AgendaSlot>(`/api/admin/agenda/slots/${encodeURIComponent(id)}`, {
+      data: { autor },
+    });
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const indice = slotsAgendaMock.findIndex((item) => item.id === id);
+  if (indice < 0) throw new Error('Vaga não encontrada.');
+  const slot = slotsAgendaMock[indice];
+  const ocupada = agendamentosMock.some((agendamento) =>
+    agendamento.slotId === id
+    && (agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO'));
+  if (ocupada) {
+    throw new Error('Não é possível remover uma vaga com agendamentos ativos ou propostas.');
+  }
+  slotsAgendaMock.splice(indice, 1);
+  slotsFechadosManualmenteMock.delete(id);
+  registrar('Vaga removida', autor, 'CONFIGURACAO',
+    `${slot.unidade} · ${slot.nomeExame} · ${slot.inicio} (${slot.capacidade} vagas).`);
+  return clonar(slot);
+}
+
+/** POST /api/admin/agenda/copiar-semana — replica uma semana de vagas na outra. */
+export async function copiarSemanaAdmin(
+  dados: CopiaSemanaPayload,
+  autor: string,
+): Promise<ResultadoCopiaSemana> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<ResultadoCopiaSemana>('/api/admin/agenda/copiar-semana', {
+      ...dados, autor,
+    });
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const origem = inicioSemanaIsoMock(dados.origem, 'origem');
+  const destino = inicioSemanaIsoMock(dados.destino, 'destino');
+  if (origem === destino) {
+    throw new Error('A semana de destino deve ser diferente da semana de origem.');
+  }
+  const deslocamento = diasEntreSemanasMock(origem, destino);
+  const filtroExame = dados.codigoExame?.trim() ?? '';
+  const candidatas = slotsAgendaMock.filter((slot) =>
+    inicioSemanaIsoMock(slot.inicio, 'inicio') === origem
+    && (!filtroExame || slot.codigoExame === filtroExame));
+  if (!candidatas.length) {
+    throw new Error('Não há vagas para copiar na semana de origem.');
+  }
+
+  const chaves = new Set(slotsAgendaMock.map((slot) =>
+    `${slot.unidade}|${slot.codigoExame}|${normalizarIsoMock(slot.inicio).slice(0, 19)}`));
+  const criadas: AgendaSlot[] = [];
+  let ignoradas = 0;
+  for (const slot of candidatas) {
+    const inicio = normalizarIsoMock(deslocarIsoMock(slot.inicio, deslocamento));
+    const fim = normalizarIsoMock(deslocarIsoMock(slot.fim, deslocamento));
+    const chave = `${slot.unidade}|${slot.codigoExame}|${inicio.slice(0, 19)}`;
+    if (chaves.has(chave)) {
+      ignoradas += 1;
+      continue;
+    }
+    const copia: AgendaSlot = {
+      id: `slot-${crypto.randomUUID()}`,
+      unidade: slot.unidade,
+      codigoExame: slot.codigoExame,
+      nomeExame: slot.nomeExame,
+      inicio,
+      fim,
+      capacidade: slot.capacidade,
+      ocupadas: 0,
+      livres: slot.capacidade,
+      status: slot.status,
+    };
+    slotsAgendaMock.push(copia);
+    chaves.add(chave);
+    if (copia.status === 'LOTADO') slotsFechadosManualmenteMock.add(copia.id);
+    criadas.push(clonar(copia));
+  }
+  registrar('Semana de vagas copiada', autor, 'CONFIGURACAO',
+    `${origem} → ${destino}: ${criadas.length} vaga(s) criada(s), ${ignoradas} já existiam.`);
+  sincronizarOcupacaoMock();
+  return { origem, destino, codigoExame: filtroExame, criadas, ignoradas, total: candidatas.length };
+}
+
+function inicioSemanaIsoMock(valor: string, campo: string): string {
+  const texto = valor.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+    throw new Error(`Campo ${campo} deve ser uma data ISO.`);
+  }
+  const data = new Date(`${texto}T12:00:00`);
+  if (Number.isNaN(data.getTime())) throw new Error(`Campo ${campo} deve ser uma data válida.`);
+  data.setDate(data.getDate() - ((data.getDay() + 6) % 7));
+  return paraIsoLocal(data.getTime()).slice(0, 10);
+}
+
+function diasEntreSemanasMock(origem: string, destino: string): number {
+  const partesOrigem = origem.split('-').map(Number);
+  const partesDestino = destino.split('-').map(Number);
+  return Math.round((
+    Date.UTC(partesDestino[0], partesDestino[1] - 1, partesDestino[2])
+    - Date.UTC(partesOrigem[0], partesOrigem[1] - 1, partesOrigem[2])
+  ) / 86_400_000);
+}
+
+function deslocarIsoMock(iso: string, dias: number): string {
+  const data = new Date(`${iso.slice(0, 10)}T12:00:00`);
+  data.setDate(data.getDate() + dias);
+  return `${paraIsoLocal(data.getTime()).slice(0, 10)}T${iso.slice(11)}`;
 }

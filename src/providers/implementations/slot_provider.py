@@ -2,8 +2,8 @@
 Provedor local de vagas (agenda_slots)
 ======================================
 Implementação sobre o banco SQLite da aplicação. As ocupações são sempre
-derivadas dos agendamentos ATIVOS — nunca armazenamos um contador que possa
-divergir da realidade após remarcar ou cancelar.
+derivadas dos agendamentos ATIVOS e das propostas PROPOSTO — nunca armazenamos
+um contador que possa divergir da realidade após remarcar ou cancelar.
 """
 
 import uuid
@@ -173,6 +173,20 @@ class SlotProvider(SlotProviderInterface):
         ocupadas = await self._ocupadas_por_slot([slot.id])
         return slot_para_dto(slot, ocupadas.get(slot.id, 0))
 
+    async def remover(self, slot_id: str) -> Optional[Dict[str, Any]]:
+        """Aplica soft delete em uma vaga ativa e devolve seu estado anterior."""
+        slot = await self.db.scalar(
+            select(AgendaSlot).where(AgendaSlot.id == slot_id, AgendaSlot.deleted_at.is_(None))
+        )
+        if not slot:
+            return None
+        anterior = await self.obter(slot_id)
+        agora = datetime.now(timezone.utc)
+        slot.deleted_at = para_utc_naive(agora)
+        slot.atualizado_em = agora
+        await self.db.flush()
+        return anterior
+
 
 class AghuSlotProvider(SlotProviderInterface):
     """Ponto de extensão reservado: vagas reais do AGHU ainda não habilitadas."""
@@ -191,4 +205,8 @@ class AghuSlotProvider(SlotProviderInterface):
 
     async def atualizar(self, slot_id: str, dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Vagas do AGHU não podem ser alteradas pelo sistema local."""
+        raise NotImplementedError("Vagas do AGHU ainda não implementadas: use a agenda local.")
+
+    async def remover(self, slot_id: str) -> Optional[Dict[str, Any]]:
+        """Vagas do AGHU não podem ser removidas pelo sistema local."""
         raise NotImplementedError("Vagas do AGHU ainda não implementadas: use a agenda local.")

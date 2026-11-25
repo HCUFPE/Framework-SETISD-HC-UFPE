@@ -1,5 +1,5 @@
 # tests/test_agendamentos.py
-"""Testes da gestão de agendamentos (v0.5.0)."""
+"""Testes da gestão de agendamentos (v0.6.0)."""
 
 import json
 import sqlite3
@@ -941,3 +941,154 @@ def test_capacidade_da_vaga_nao_pode_cair_abaixo_das_ocupadas(cliente):
     assert resposta.status_code == 422
     assert "ocupadas" in resposta.json()["detail"]
     assert _slot_no_calendario(_calendario(cliente), slot["id"])["capacidade"] == 3
+
+
+def test_chefia_pode_remover_vaga_vazia_com_auditoria(cliente):
+    cliente, caminho = cliente
+    slot = _criar_slot(cliente, situacao="ENCERRADO")
+    assert slot["status"] == "ENCERRADO"
+
+    resposta = cliente.delete(
+        f"/api/admin/agenda/slots/{slot['id']}", headers=_headers(CHEFIA)
+    )
+    assert resposta.status_code == 200, resposta.text
+    assert resposta.json()["id"] == slot["id"]
+    assert cliente.delete(
+        f"/api/admin/agenda/slots/{slot['id']}", headers=_headers(CHEFIA)
+    ).status_code == 404
+    assert all(
+        item["id"] != slot["id"] for item in cliente.get(
+            "/api/admin/agenda/slots", headers=_headers(CHEFIA)
+        ).json()
+    )
+    assert all(item["id"] != slot["id"] for item in _calendario(cliente)["slots"])
+
+    with _conexao(caminho) as conn:
+        linhas = conn.execute(
+            "SELECT acao, dados_anteriores FROM audit_logs WHERE acao='REMOVER_SLOT_AGENDA'"
+        ).fetchall()
+    assert len(linhas) == 1
+    assert "CMDIP" in linhas[0]["dados_anteriores"]
+
+
+def test_remocao_de_vaga_ocupada_e_bloqueada(cliente):
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho)
+    slot = _criar_slot(cliente, capacidade=2)
+    assert _agendar(cliente, sid, slot["id"]).status_code == 201
+
+    resposta = cliente.delete(
+        f"/api/admin/agenda/slots/{slot['id']}", headers=_headers(GESTOR)
+    )
+    assert resposta.status_code == 409
+    assert "agendamentos ativos ou propostas" in resposta.json()["detail"]
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["capacidade"] == 2
+
+    with _conexao(caminho) as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) AS total FROM audit_logs WHERE acao='REMOVER_SLOT_AGENDA'"
+        ).fetchone()["total"]
+    assert total == 0
+
+
+def test_coordenacao_nao_pode_remover_vaga(cliente):
+    cliente, _ = cliente
+    slot = _criar_slot(cliente)
+    assert cliente.delete(
+        f"/api/admin/agenda/slots/{slot['id']}", headers=_headers(COORDENACAO)
+    ).status_code == 403
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["status"] == "DISPONIVEL"
+
+
+def test_copia_de_semana_preserva_configuracao_e_e_idempotente(cliente):
+    cliente, caminho = cliente
+    slot = _criar_slot(cliente, capacidade=4, situacao="ENCERRADO")
+    data_slot = datetime.fromisoformat(slot["inicio"][:10])
+    origem = (data_slot - timedelta(days=data_slot.weekday())).date().isoformat()
+    destino = (datetime.fromisoformat(origem) + timedelta(days=7)).date().isoformat()
+    corpo = {"origem": slot["inicio"][:10], "destino": destino, "codigoExame": "CMDIP"}
+
+    resposta = cliente.post(
+        "/api/admin/agenda/copiar-semana", json=corpo, headers=_headers(CHEFIA)
+    )
+    assert resposta.status_code == 200, resposta.text
+    resultado = resposta.json()
+    assert resultado["origem"] == origem
+    assert resultado["destino"] == destino
+    assert resultado["total"] == 1 and resultado["ignoradas"] == 0
+    assert len(resultado["criadas"]) == 1
+
+    copia = resultado["criadas"][0]
+    assert copia["id"] != slot["id"]
+    assert copia["unidade"] == slot["unidade"]
+    assert copia["codigoExame"] == slot["codigoExame"]
+    assert copia["nomeExame"] == slot["nomeExame"]
+    assert copia["capacidade"] == 4
+    assert copia["status"] == "ENCERRADO"
+    data_copia = (data_slot + timedelta(days=7)).date().isoformat()
+    assert copia["inicio"][:10] == data_copia
+    assert copia["inicio"][11:19] == slot["inicio"][11:19]
+    assert copia["fim"][:10] == data_copia
+    assert copia["fim"][11:19] == slot["fim"][11:19]
+
+    repetida = cliente.post(
+        "/api/admin/agenda/copiar-semana", json=corpo, headers=_headers(GESTOR)
+    )
+    assert repetida.status_code == 200, repetida.text
+    assert repetida.json()["criadas"] == []
+    assert repetida.json()["ignoradas"] == 1
+
+    with _conexao(caminho) as conn:
+        linhas = conn.execute(
+            """SELECT acao, dados_anteriores, dados_novos FROM audit_logs
+               WHERE acao='COPIAR_SEMANA_SLOT_AGENDA'"""
+        ).fetchall()
+    assert len(linhas) == 2
+    assert copia["id"] in linhas[0]["dados_novos"]
+    assert "CMDIP" in linhas[0]["dados_anteriores"]
+
+    slots_admin = cliente.get(
+        "/api/admin/agenda/slots", headers=_headers(CHEFIA)
+    ).json()
+    assert {item["id"] for item in slots_admin} == {slot["id"], copia["id"]}
+
+
+def test_coordenacao_nao_pode_copiar_semana(cliente):
+    cliente, _ = cliente
+    slot = _criar_slot(cliente)
+    data_slot = datetime.fromisoformat(slot["inicio"][:10])
+    destino = (data_slot + timedelta(days=7)).date().isoformat()
+    resposta = cliente.post(
+        "/api/admin/agenda/copiar-semana",
+        json={"origem": slot["inicio"][:10], "destino": destino},
+        headers=_headers(COORDENACAO),
+    )
+    assert resposta.status_code == 403
+    assert len(cliente.get(
+        "/api/admin/agenda/slots", headers=_headers(CHEFIA)
+    ).json()) == 1
+
+
+def test_copia_de_semana_valida_intervalo(cliente):
+    cliente, _ = cliente
+    slot = _criar_slot(cliente)
+    origem = slot["inicio"][:10]
+    assert cliente.post(
+        "/api/admin/agenda/copiar-semana",
+        json={"origem": origem, "destino": origem},
+        headers=_headers(GESTOR),
+    ).status_code == 422
+    assert cliente.post(
+        "/api/admin/agenda/copiar-semana",
+        json={"origem": origem, "destino": "data-invalida"},
+        headers=_headers(GESTOR),
+    ).status_code == 422
+    origem_vazia = (datetime.fromisoformat(origem) + timedelta(days=28)).date().isoformat()
+    destino_vazio = (datetime.fromisoformat(origem_vazia) + timedelta(days=7)).date().isoformat()
+    resposta = cliente.post(
+        "/api/admin/agenda/copiar-semana",
+        json={"origem": origem_vazia, "destino": destino_vazio},
+        headers=_headers(GESTOR),
+    )
+    assert resposta.status_code == 422
+    assert "origem" in resposta.json()["detail"]

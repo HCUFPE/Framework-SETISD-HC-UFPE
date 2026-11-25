@@ -1,5 +1,5 @@
 """
-Routers da Gestão de Agendamentos (v0.5.0)
+Routers da Gestão de Agendamentos (v0.6.0)
 ==========================================
 Todos os roteadores declaram JWT no nível do `APIRouter` (default-private) e
 reforçam RBAC no backend. O grupo `GLO-SEC-HCPE-SETISD` do usuário mock
@@ -116,6 +116,14 @@ class SlotPayload(BaseModel):
     def como_dict(self) -> Dict[str, Any]:
         """Remove campos não informados antes da validação no controller."""
         return {chave: valor for chave, valor in self.model_dump(exclude_none=True).items()}
+
+
+class CopiaSemanaPayload(BaseModel):
+    """Corpo da cópia de vagas entre semanas (datas ou ISO-8601)."""
+
+    origem: str = Field(min_length=10)
+    destino: str = Field(min_length=10)
+    codigoExame: Optional[str] = Field(default=None, validation_alias=AliasChoices("codigoExame", "codigo_exame"))
 
 
 class AgendarPayload(BaseModel):
@@ -452,6 +460,26 @@ async def criar_slot_admin(
     )
 
 
+@admin_router.post("/copiar-semana")
+async def copiar_semana_admin(
+    payload: CopiaSemanaPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_admin_agenda),
+):
+    """Copia as vagas de uma semana para outra com auditoria CONFIGURACAO."""
+    return await controller.copiar_semana(
+        db,
+        provider,
+        origem=payload.origem,
+        destino=payload.destino,
+        codigo_exame=payload.codigoExame,
+        autor=str(current_user.get("username") or "admin"),
+        ip=_ip(request),
+    )
+
+
 @admin_router.patch("/slots/{slot_id}")
 async def atualizar_slot_admin(
     slot_id: str,
@@ -467,6 +495,24 @@ async def atualizar_slot_admin(
         provider,
         slot_id=slot_id,
         dados=payload.como_dict(),
+        autor=str(current_user.get("username") or "admin"),
+        ip=_ip(request),
+    )
+
+
+@admin_router.delete("/slots/{slot_id}")
+async def remover_slot_admin(
+    slot_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_admin_agenda),
+):
+    """Remove uma vaga sem agendamentos e registra auditoria CONFIGURACAO."""
+    return await controller.remover_slot(
+        db,
+        provider,
+        slot_id=slot_id,
         autor=str(current_user.get("username") or "admin"),
         ip=_ip(request),
     )

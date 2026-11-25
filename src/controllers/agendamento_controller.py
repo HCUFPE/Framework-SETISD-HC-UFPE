@@ -1,10 +1,11 @@
 """
-Controller de Gestão de Agendamentos (v0.5.0)
+Controller de Gestão de Agendamentos (v0.6.0)
 ============================================
 Centraliza as regras de negócio: pré-condições (RN-04/RN-07), conflito de
 paciente (RN-05), capacidade local, cancelamento/remarcação com justificativa,
-busca segura de pacientes, sugestão automática de vagas e simulação de propostas
-pendentes de confirmação do operador.
+busca segura de pacientes, sugestão automática de vagas, simulação de propostas
+pendentes de confirmação e administração de vagas (inclusive remoção e cópia
+semanal) com auditoria `CONFIGURACAO`.
 
 A pontuação da sugestão é 0..100 com pesos configuráveis. A distância é apenas
 desempate (10 pontos no máximo) e nunca supera a prioridade clínica (35 pontos).
@@ -396,6 +397,152 @@ async def atualizar_slot(
         ip=ip,
     )
     return atualizado
+
+
+async def remover_slot(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    slot_id: str,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Remove uma vaga vazia por soft delete e registra auditoria CONFIGURACAO."""
+    anterior = await provider.obter(slot_id)
+    if not anterior:
+        raise _erro(status.HTTP_404_NOT_FOUND, "Vaga não encontrada.")
+    if int(anterior.get("ocupadas") or 0) > 0:
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            "Não é possível remover uma vaga com agendamentos ativos ou propostas.",
+        )
+    removido = await provider.remover(slot_id)
+    if not removido:
+        raise _erro(status.HTTP_404_NOT_FOUND, "Vaga não encontrada.")
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="CONFIGURACAO",
+        acao="REMOVER_SLOT_AGENDA",
+        recurso=f"agenda-slot:{slot_id}",
+        anteriores=anterior,
+        novos=None,
+        ip=ip,
+    )
+    return removido
+
+
+def _inicio_semana(valor: Any, campo: str) -> datetime:
+    """Interpreta uma data/ISO e devolve a segunda-feira da semana em UTC."""
+    try:
+        data = datetime.fromisoformat(str(valor).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Campo '{campo}' deve ser uma data ISO.")
+    if data.tzinfo is None:
+        data = data.replace(tzinfo=timezone.utc)
+    inicio = data - timedelta(days=data.weekday())
+    return inicio.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+
+
+def _chave_vaga(slot: Dict[str, Any]) -> tuple[str, str, datetime]:
+    """Chave de identificação de uma vaga para evitar duplicatas na cópia."""
+    return (
+        str(slot.get("unidade") or ""),
+        str(slot.get("codigoExame") or ""),
+        para_utc_aware(parse_datetime(slot.get("inicio"))),
+    )
+
+
+async def copiar_semana(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    origem: str,
+    destino: str,
+    codigo_exame: Optional[str],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Copia vagas de uma semana para outra preservando dia, horário e capacidade.
+
+    A operação é idempotente: vagas já existentes na semana de destino (mesma
+    unidade, exame e horário) são ignoradas. Toda a operação é auditada como
+    `CONFIGURACAO` em um único registro, com as vagas criadas no estado novo.
+    """
+    inicio = _inicio_semana(origem, "origem")
+    alvo = _inicio_semana(destino, "destino")
+    if inicio == alvo:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A semana de destino deve ser diferente da semana de origem.",
+        )
+
+    deslocamento = alvo - inicio
+    fim_consulta = max(inicio, alvo) + timedelta(days=7)
+    existentes = await provider.listar(de=inicio, ate=fim_consulta)
+    filtro_exame = str(codigo_exame or "").strip()
+    candidatas = [
+        slot for slot in existentes
+        if _inicio_semana(slot.get("inicio"), "inicio") == inicio
+        and (not filtro_exame or str(slot.get("codigoExame") or "") == filtro_exame)
+    ]
+    if not candidatas:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Não há vagas para copiar na semana de origem.",
+        )
+
+    chaves = {_chave_vaga(slot) for slot in existentes}
+    criadas: List[Dict[str, Any]] = []
+    ignoradas: List[Dict[str, str]] = []
+    for slot in candidatas:
+        novo_inicio = para_iso(parse_datetime(slot["inicio"]) + deslocamento)
+        novo_fim = para_iso(parse_datetime(slot["fim"]) + deslocamento)
+        copia = {
+            "unidade": slot["unidade"],
+            "codigoExame": slot.get("codigoExame") or "",
+            "nomeExame": slot.get("nomeExame") or "",
+            "inicio": novo_inicio,
+            "fim": novo_fim,
+            "capacidade": slot["capacidade"],
+            "situacao": slot.get("status") or "DISPONIVEL",
+        }
+        chave = _chave_vaga(copia)
+        if chave in chaves:
+            ignoradas.append({"id": str(slot["id"]), "inicio": novo_inicio or ""})
+            continue
+        criada = await provider.criar(copia)
+        chaves.add(chave)
+        criadas.append(criada)
+
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="CONFIGURACAO",
+        acao="COPIAR_SEMANA_SLOT_AGENDA",
+        recurso=f"agenda-slot-semana:{alvo.date().isoformat()}",
+        anteriores={
+            "origem": inicio.date().isoformat(),
+            "destino": alvo.date().isoformat(),
+            "codigoExame": filtro_exame,
+            "candidatas": len(candidatas),
+        },
+        novos={
+            "origem": inicio.date().isoformat(),
+            "destino": alvo.date().isoformat(),
+            "criadas": [str(slot["id"]) for slot in criadas],
+            "ignoradas": ignoradas,
+        },
+        ip=ip,
+    )
+    return {
+        "origem": inicio.date().isoformat(),
+        "destino": alvo.date().isoformat(),
+        "codigoExame": filtro_exame,
+        "criadas": criadas,
+        "ignoradas": len(ignoradas),
+        "total": len(candidatas),
+    }
 
 
 # ---------------------------------------------------------------------------
