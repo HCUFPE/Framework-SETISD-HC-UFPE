@@ -12,6 +12,7 @@ import PainelGestao from '../views/PainelGestao.vue';
 import Relatorios from '../views/Relatorios.vue';
 import CriteriosPriorizacao from '../views/CriteriosPriorizacao.vue';
 import Equipe from '../views/Equipe.vue';
+import Integracoes from '../views/Integracoes.vue';
 import AcessoNegado from '../views/AcessoNegado.vue';
 
 const perfisOperacao: Perfil[] = ['OPERADOR', 'CHEFIA', 'AREA_GESTORA'];
@@ -66,6 +67,12 @@ const routes = [
     name: 'Equipe e Perfis',
     component: Equipe,
     meta: { requiresAuth: true, roles: perfisAdmin },
+  },
+  {
+    path: '/integracoes',
+    name: 'integracoes',
+    component: Integracoes,
+    meta: { requiresAuth: true, roles: ['AREA_GESTORA' as Perfil, 'ADMIN_TI' as Perfil] },
   },
   {
     path: '/componentes',

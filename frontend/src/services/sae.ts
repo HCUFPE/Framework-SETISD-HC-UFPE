@@ -5,7 +5,7 @@
  */
 import api from './api';
 import { USAR_MOCKS } from '../config/mocks';
-import { agoraIso, horasDesdeReferencia } from '../config/tempo';
+import { agoraIso, horasDesdeReferencia, somarHoras } from '../config/tempo';
 import { calcularPontuacao, clonar, consultarAdMock, mockDb } from '../mocks/fixtures';
 import { classificarPrioridade } from '../utils/format';
 import type {
@@ -14,6 +14,7 @@ import type {
   EventoHistorico,
   FiltroFila,
   FiltroIndicadores,
+  FormsEvento,
   Indicadores,
   Relatorio,
   ResultadoContato,
@@ -433,4 +434,80 @@ export async function listarAuditoria(): Promise<EventoHistorico[]> {
   }
   await pausa();
   return clonar(mockDb.auditoria);
+}
+
+/** Eventos determinísticos do adaptador mock da integração Forms → AGHUX. */
+const eventosFormsMock: FormsEvento[] = [
+  {
+    responseId: 'resp-forms-1001',
+    formId: 'form-solicitacao-exames',
+    status: 'PROCESSADA',
+    tentativas: 1,
+    ultimoErro: null,
+    recebidoEm: '2026-09-28T14:05:34.227',
+    processadoEm: '2026-09-28T14:06:12.227',
+    solicitacaoId: 'SOL-2026-000123',
+    divergencias: 1,
+    alertas: 0,
+  },
+  {
+    responseId: 'resp-forms-1002',
+    formId: 'form-solicitacao-exames',
+    status: 'ERRO',
+    tentativas: 2,
+    ultimoErro: 'AGHUX indisponível no cruzamento do prontuário.',
+    recebidoEm: '2026-09-28T14:12:08.227',
+    processadoEm: null,
+    solicitacaoId: null,
+    divergencias: 0,
+    alertas: 1,
+  },
+  {
+    responseId: 'resp-forms-1003',
+    formId: 'form-solicitacao-exames',
+    status: 'DUPLICADA',
+    tentativas: 1,
+    ultimoErro: null,
+    recebidoEm: '2026-09-28T14:18:41.227',
+    processadoEm: '2026-09-28T14:18:55.227',
+    solicitacaoId: 'SOL-2026-000123',
+    divergencias: 0,
+    alertas: 1,
+  },
+];
+
+/** Lista os eventos recentes recebidos do Microsoft Forms (GET /api/integracoes/forms/eventos). */
+export async function listarEventosIntegracao(limit = 50): Promise<FormsEvento[]> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.get<FormsEvento[]>('/api/integracoes/forms/eventos', { params: { limit } });
+    return data;
+  }
+  await pausa();
+  return clonar(eventosFormsMock.slice(0, Math.max(0, limit)));
+}
+
+/** Reprocessa um evento Forms e devolve o registro atualizado (POST .../reprocessar). */
+export async function reprocessarEventoIntegracao(responseId: string): Promise<FormsEvento> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<FormsEvento>(
+      `/api/integracoes/forms/eventos/${encodeURIComponent(responseId)}/reprocessar`,
+    );
+    return data;
+  }
+  await pausa();
+  const evento = eventosFormsMock.find((item) => item.responseId === responseId);
+  if (!evento) throw new Error('Evento de integração não encontrado.');
+  evento.tentativas += 1;
+  evento.ultimoErro = null;
+  // O reprocessamento reagenda a tentativa e, quando bem-sucedido, conclui a importação.
+  if (evento.status === 'ERRO' && evento.tentativas === 3) {
+    evento.status = 'PENDENTE';
+    evento.processadoEm = null;
+  } else {
+    evento.status = 'PROCESSADA';
+    evento.processadoEm = somarHoras(evento.recebidoEm, 1);
+    evento.solicitacaoId = evento.solicitacaoId ?? `SOL-2026-${String(124 + evento.tentativas).padStart(6, '0')}`;
+  }
+  registrar('Reprocessamento de evento Forms', 'Área Gestora', 'NEGOCIO_CLINICO', `${responseId} reprocessado: ${evento.status}.`);
+  return clonar(evento);
 }

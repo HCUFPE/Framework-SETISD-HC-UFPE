@@ -30,3 +30,32 @@ def get_paciente_provider(strategy: str) -> Callable[..., PacienteProviderInterf
         return _get_paciente_csv_provider
     else:
         raise ValueError(f"Estratégia de provedor desconhecida: {strategy}")
+
+
+# 3. Integração Microsoft Forms → AGHUX (v0.2.0)
+from .config import settings
+from .providers.interfaces.forms_provider_interface import FormsProviderInterface
+from .providers.implementations.forms_provider import (
+    FormsApiProvider,
+    MockFormsProvider,
+    PowerAutomateFormsProvider,
+)
+from .providers.interfaces.aghux_provider_interface import AghuxProviderInterface
+from .providers.implementations.aghux_provider import AghuProvider, AghuxJsonProvider
+
+
+def get_forms_provider() -> FormsProviderInterface:
+    """Seleciona o provedor de respostas do Microsoft Forms conforme o ambiente."""
+    tipo = settings.FORMS_PROVIDER_TYPE.upper()
+    if tipo == "POWER_AUTOMATE":
+        return PowerAutomateFormsProvider()
+    if tipo == "FORMS_API":
+        return FormsApiProvider()
+    return MockFormsProvider()
+
+
+def get_aghux_provider() -> AghuxProviderInterface:
+    """Seleciona a fonte de cruzamento com o AGHUX conforme o ambiente."""
+    if settings.AGHUX_PROVIDER_TYPE.upper() == "AGHU":
+        return AghuProvider()
+    return AghuxJsonProvider()

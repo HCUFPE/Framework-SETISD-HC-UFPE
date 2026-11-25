@@ -239,3 +239,20 @@ export interface FiltroIndicadores {
   periodo: string;
   tipoExame: string;
 }
+
+/** Situação do processamento de uma resposta do Microsoft Forms. */
+export type StatusFormsEvento = 'PENDENTE' | 'PROCESSADA' | 'DUPLICADA' | 'ERRO';
+
+/** Evento de integração Forms → AGHUX, conforme contrato da Fase 4. */
+export interface FormsEvento {
+  responseId: string;
+  formId: string;
+  status: StatusFormsEvento;
+  tentativas: number;
+  ultimoErro: string | null;
+  recebidoEm: string;
+  processadoEm: string | null;
+  solicitacaoId: string | null;
+  divergencias: number;
+  alertas: number;
+}

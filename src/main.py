@@ -109,11 +109,14 @@ if os.path.exists(assets_dir):
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 # Roteadores da API
-from .routers import paciente, auth, admin, health
+from .routers import paciente, auth, admin, health, integracoes
 app.include_router(health.router)
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
+# Webhook público (HMAC) primeiro; endpoints administrativos protegidos por JWT.
+app.include_router(integracoes.public_router)
+app.include_router(integracoes.router)
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):

@@ -112,6 +112,7 @@ import {
   TableCellsIcon,
   AdjustmentsHorizontalIcon,
   UsersIcon,
+  ArrowPathIcon,
   CubeTransparentIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
@@ -165,6 +166,7 @@ const grupos: GrupoMenu[] = [
     itens: [
       { rota: '/', nome: 'Início', icone: HomeIcon, perfis: PERFIS },
       { rota: '/configuracoes', nome: 'Configurações', icone: Cog6ToothIcon, perfis: PERFIS },
+      { rota: '/integracoes', nome: 'Integrações', icone: ArrowPathIcon, perfis: ['AREA_GESTORA', 'ADMIN_TI'] },
       { rota: '/componentes', nome: 'Componentes', icone: CubeIcon, perfis: PERFIS },
     ],
   },

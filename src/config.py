@@ -5,14 +5,56 @@ Garante o Padrão de Governança de Variáveis de Ambiente (Env Vars & Secrets) 
 Carrega o arquivo .env e valida se os parâmetros essenciais e chaves de segurança estão corretos.
 """
 
-import os
+import base64
+import json
 import logging
-from typing import List
+import os
+from typing import Dict, List
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 logger = logging.getLogger("config")
+
+# Mapa padrão de apelidos do Microsoft Forms. Pode ser sobrescrito por
+# FORMS_FIELD_MAP (JSON) sem alterar código quando o questionário mudar.
+DEFAULT_FORMS_FIELD_MAP: Dict[str, List[str]] = {
+    "nome": ["nome", "nomeCompleto", "name", "patientName", "paciente"],
+    "prontuario": ["prontuario", "prontuarioPaciente", "registration", "codigoPaciente"],
+    "codigoSolicitacaoAghux": ["codigoSolicitacao", "codigo_solicitacao", "solicitationId"],
+    "cpf": ["cpf", "CPF"],
+    "cns": ["cns", "CNS"],
+    "telefone": ["telefone", "celular", "phone", "contato"],
+    "cidade": ["cidade", "city"],
+    "estado": ["estado", "uf", "state"],
+    "codigoExame": ["codigoExame", "codigo_exame", "examCode", "exame"],
+    "nomeExame": ["nomeExame", "nome_exame", "examName", "exame"],
+    "unidadeSolicitante": ["unidadeSolicitante", "unidade", "unit", "setorSolicitante"],
+    "submittedAt": ["submittedAt", "dataEnvio", "dataSolicitacao", "submissionDate"],
+}
+
+
+def _carregar_mapa_campos() -> Dict[str, List[str]]:
+    """Carrega o mapa de campos do Forms a partir de FORMS_FIELD_MAP (JSON)."""
+    raw = os.getenv("FORMS_FIELD_MAP", "")
+    if not raw:
+        return {chave: list(valores) for chave, valores in DEFAULT_FORMS_FIELD_MAP.items()}
+    try:
+        carregado = json.loads(raw)
+        if not isinstance(carregado, dict):
+            raise ValueError("FORMS_FIELD_MAP deve ser um objeto JSON.")
+        mapa: Dict[str, List[str]] = {}
+        for chave, apelidos in carregado.items():
+            if isinstance(apelidos, str):
+                apelidos = [apelidos]
+            if not isinstance(apelidos, list) or not all(isinstance(item, str) for item in apelidos):
+                raise ValueError(f"Apelidos inválidos para '{chave}' em FORMS_FIELD_MAP.")
+            mapa[str(chave)] = [str(item) for item in apelidos]
+        return mapa
+    except (ValueError, TypeError) as exc:
+        logger.error("FORMS_FIELD_MAP inválido (%s). Usando o mapa padrão.", exc)
+        return {chave: list(valores) for chave, valores in DEFAULT_FORMS_FIELD_MAP.items()}
 
 
 class Settings:
@@ -41,8 +83,48 @@ class Settings:
     JWT_EXP_HOURS: int = int(os.getenv("JWT_EXP_HOURS", "24"))
     REFRESH_TOKEN_EXP_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", "30"))
 
+    # 5. Integração Microsoft Forms → AGHUX (TASK-026 a TASK-032)
+    FORMS_WEBHOOK_SECRET: str = os.getenv("FORMS_WEBHOOK_SECRET", "")
+    FORMS_PROVIDER_TYPE: str = os.getenv("FORMS_PROVIDER_TYPE", "MOCK").upper()
+    FORMS_API_BASE_URL: str = os.getenv(
+        "FORMS_API_BASE_URL", "https://forms.office.com/formapi/api"
+    )
+    FORMS_FORM_ID: str = os.getenv("FORMS_FORM_ID", "")
+    FORMS_FIELD_MAP: Dict[str, List[str]] = _carregar_mapa_campos()
+    WEBHOOK_MAX_SKEW_SECONDS: int = int(os.getenv("WEBHOOK_MAX_SKEW_SECONDS", "300"))
+    AGHUX_PROVIDER_TYPE: str = os.getenv("AGHUX_PROVIDER_TYPE", "JSON").upper()
+    AGHUX_FIXTURE_PATH: str = os.getenv(
+        "AGHUX_FIXTURE_PATH", "frontend/src/mocks/dadosAghux.json"
+    )
+    PHI_ENCRYPTION_KEY: str = os.getenv("PHI_ENCRYPTION_KEY", "")
+
     @classmethod
-    def validate_config(cls):
+    def chave_cripto(cls) -> bytes:
+        """
+        Retorna a chave AES de 32 bytes. Em desenvolvimento, deriva uma chave
+        estável do JWT_SECRET apenas para permitir testes offline; em produção,
+        exige PHI_ENCRYPTION_KEY em base64.
+        """
+        valores_placeholder = ("ALTERAR", "CHAVE_BASE64", "SUA_CHAVE")
+        chave_configurada = cls.PHI_ENCRYPTION_KEY.strip()
+        placeholder = any(marca in chave_configurada.upper() for marca in valores_placeholder)
+        if chave_configurada and not placeholder:
+            try:
+                chave = base64.b64decode(chave_configurada, validate=True)
+            except (ValueError, TypeError) as exc:
+                raise ValueError("PHI_ENCRYPTION_KEY deve estar em base64 válido.") from exc
+            if len(chave) != 32:
+                raise ValueError("PHI_ENCRYPTION_KEY deve decodificar exatamente 32 bytes.")
+            return chave
+        if cls.ENV == "production":
+            raise ValueError("PHI_ENCRYPTION_KEY é obrigatória em produção.")
+        # SHA256 determinístico somente para desenvolvimento/testes.
+        import hashlib
+
+        return hashlib.sha256(cls.JWT_SECRET.encode("utf-8")).digest()
+
+    @classmethod
+    def validate_config(cls) -> None:
         """Valida a integridade das configurações e dispara avisos de segurança."""
         if cls.ENV == "production":
             if "change-in-production" in cls.JWT_SECRET or "SUA_CHAVE_SECRETA" in cls.JWT_SECRET:
@@ -54,6 +136,26 @@ class Settings:
                 logger.warning(
                     "⚠️ AVISO: Variável 'AD_URL' não definida em produção. "
                     "O sistema está operando no modo Mock de desenvolvimento."
+                )
+            if not cls.FORMS_WEBHOOK_SECRET or "ALTERAR" in cls.FORMS_WEBHOOK_SECRET.upper():
+                logger.error(
+                    "❌ ERRO CRÍTICO: 'FORMS_WEBHOOK_SECRET' não configurado em produção; "
+                    "o webhook do Microsoft Forms não pode ser protegido."
+                )
+            chave_phi = cls.PHI_ENCRYPTION_KEY.strip()
+            if (
+                not chave_phi
+                or "ALTERAR" in chave_phi.upper()
+                or "CHAVE_BASE64" in chave_phi.upper()
+            ):
+                logger.error(
+                    "❌ ERRO CRÍTICO: 'PHI_ENCRYPTION_KEY' não configurada em produção; "
+                    "CPF/CNS não podem ser criptografados com segurança."
+                )
+            if cls.FORMS_PROVIDER_TYPE == "MOCK" or cls.AGHUX_PROVIDER_TYPE == "JSON":
+                logger.warning(
+                    "⚠️ AVISO: provedores MOCK/JSON ativos em produção. "
+                    "Configure FORMS_PROVIDER_TYPE e AGHUX_PROVIDER_TYPE com as fontes reais."
                 )
         logger.info(f"Configurações carregadas com sucesso. Ambiente: '{cls.ENV.upper()}'")
 
