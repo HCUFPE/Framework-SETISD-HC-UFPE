@@ -78,7 +78,7 @@ class SlotProvider(SlotProviderInterface):
         self.db = db
 
     async def _ocupadas_por_slot(self, ids: List[str]) -> Dict[str, int]:
-        """Conta agendamentos ATIVOS agrupados por slot em uma única consulta."""
+        """Conta agendamentos ATIVOS e PROPOSTOS agrupados por slot."""
         if not ids:
             return {}
         linhas = (
@@ -86,7 +86,7 @@ class SlotProvider(SlotProviderInterface):
                 select(Agendamento.slot_id, func.count(Agendamento.id))
                 .where(
                     Agendamento.slot_id.in_(ids),
-                    Agendamento.status == "ATIVO",
+                    Agendamento.status.in_(("ATIVO", "PROPOSTO")),
                     Agendamento.deleted_at.is_(None),
                 )
                 .group_by(Agendamento.slot_id)

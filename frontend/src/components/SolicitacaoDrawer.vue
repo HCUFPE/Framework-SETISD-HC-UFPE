@@ -25,7 +25,7 @@
           <section class="flex flex-wrap items-center gap-2">
             <PriorityBadge :prioridade="solicitacao.prioridade" />
             <StatusBadge :status="solicitacao.status" />
-            <DivergenciaBadge :quantidade="solicitacao.divergencias.filter((item) => !item.tratada).length" />
+            <DivergenciaBadge :quantidade="divergenciasPendentes.length" />
             <span class="text-xs text-gray-500">Pontuação {{ solicitacao.pontuacao }} · recebida em {{ formatarDataHora(solicitacao.recebidaEm) }}</span>
           </section>
 
@@ -43,55 +43,40 @@
           </section>
 
           <section class="rounded-lg bg-white p-5 shadow-paper">
-            <h3 class="mb-3 font-semibold text-paper-text">Conferência: formulário × AGHUX</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
-                    <th class="py-2">Campo</th>
-                    <th class="py-2">Formulário</th>
-                    <th class="py-2">AGHUX</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="campo in solicitacao.comparacoes"
-                    :key="campo.campo"
-                    class="border-b border-gray-100"
-                    :class="campo.formulario !== campo.aghux ? 'bg-red-50' : ''"
-                  >
-                    <td class="py-2 font-medium text-gray-700">{{ campo.campo }}</td>
-                    <td class="py-2 text-gray-600">{{ campo.formulario }}</td>
-                    <td class="py-2 text-gray-600">{{ campo.aghux }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <h3 class="mb-3 font-semibold text-paper-text">Dados cadastrados no AGHUX</h3>
+            <dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm md:grid-cols-2">
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Nome</dt><dd class="text-gray-800">{{ solicitacao.pacienteNome }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Prontuário</dt><dd class="text-gray-800">{{ solicitacao.prontuario }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Telefone</dt><dd class="text-gray-800">{{ solicitacao.telefone }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Cidade / UF</dt><dd class="text-gray-800">{{ solicitacao.cidade }}/{{ solicitacao.estado }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Unidade solicitante</dt><dd class="text-gray-800">{{ solicitacao.setorSolicitante }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Solicitante</dt><dd class="text-gray-800">{{ solicitacao.solicitanteNome }} ({{ solicitacao.solicitanteCodigo }})</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Data da solicitação</dt><dd class="text-gray-800">{{ formatarDataHora(solicitacao.recebidaEm) }}</dd></div>
+              <div><dt class="text-xs uppercase tracking-wide text-gray-500">Exames</dt><dd class="text-gray-800">{{ solicitacao.itensExame.map((item) => item.nomeExame).join(', ') }}</dd></div>
+            </dl>
             <p class="mt-3 text-xs text-gray-500">
-              CPF/CNS não constam no export AGHUX e não foram inventados para este protótipo.
-            </p>
-            <p v-if="solicitacao.atributosSimulados.length" class="mt-1 text-xs text-amber-700">
-              Simulação: {{ solicitacao.atributosSimulados.join(', ') }} — sem origem no AGHUX.
+              Somente dados presentes no export AGHUX. CPF/CNS e endereço não constam na fonte e não foram inventados.
             </p>
           </section>
 
-          <section v-if="solicitacao.alertas.length || solicitacao.divergencias.length" class="rounded-lg bg-white p-5 shadow-paper">
-            <h3 class="mb-3 font-semibold text-paper-text">Alertas e divergências</h3>
-            <ul v-if="solicitacao.alertas.length" class="mb-3 space-y-2">
-              <li v-for="alerta in solicitacao.alertas" :key="alerta.id" class="rounded border border-amber-200 bg-amber-50 p-2 text-sm text-amber-800">
-                <strong>{{ alerta.campo }}:</strong> {{ alerta.mensagem }} ({{ alerta.severidade }})
+          <section v-if="divergenciasPendentes.length" class="rounded-lg border border-red-200 bg-red-50 p-5 shadow-paper">
+            <h3 class="mb-3 font-semibold text-red-800">
+              Divergências apontadas ({{ divergenciasPendentes.length }} pendente(s))
+            </h3>
+            <ul class="space-y-2">
+              <li v-for="divergencia in divergenciasPendentes" :key="divergencia.id" class="rounded border border-red-200 bg-white p-2 text-sm">
+                <strong class="text-gray-700">{{ divergencia.campo }}</strong>
+                <p class="mt-1 text-gray-600">Formulário: {{ divergencia.valorFormulario }} · AGHUX: {{ divergencia.valorAghux }}</p>
+                <p class="mt-1 text-xs italic text-gray-500">Trate a divergência ou justifique antes de validar.</p>
               </li>
             </ul>
+          </section>
+
+          <section v-if="solicitacao.alertas.length" class="rounded-lg border border-amber-200 bg-amber-50 p-5 shadow-paper">
+            <h3 class="mb-3 font-semibold text-amber-800">Alertas</h3>
             <ul class="space-y-2">
-              <li v-for="divergencia in solicitacao.divergencias" :key="divergencia.id" class="rounded border border-gray-200 p-2 text-sm">
-                <div class="flex items-center justify-between">
-                  <strong class="text-gray-700">{{ divergencia.campo }}</strong>
-                  <span :class="divergencia.tratada ? 'text-emerald-600' : 'text-red-600'" class="text-xs font-semibold">
-                    {{ divergencia.tratada ? 'Tratada' : 'Pendente' }}
-                  </span>
-                </div>
-                <p class="mt-1 text-gray-600">Formulário: {{ divergencia.valorFormulario }} · AGHUX: {{ divergencia.valorAghux }}</p>
-                <p v-if="divergencia.justificativa" class="mt-1 text-xs italic text-gray-500">{{ divergencia.justificativa }}</p>
+              <li v-for="alerta in solicitacao.alertas" :key="alerta.id" class="rounded border border-amber-200 bg-white p-2 text-sm text-amber-800">
+                <strong>{{ alerta.campo }}:</strong> {{ alerta.mensagem }} ({{ alerta.severidade }})
               </li>
             </ul>
           </section>
@@ -100,7 +85,7 @@
             <h3 class="mb-4 font-semibold text-paper-text">Ações do operador (assinatura eletrônica)</h3>
             <div class="space-y-4">
               <div>
-                <label class="form-label" for="justificativa">Justificativa da conferência</label>
+                <label class="form-label" for="justificativa">Justificativa da validação</label>
                 <textarea id="justificativa" v-model="justificativa" class="form-control" rows="2" placeholder="Obrigatória quando houver divergência pendente"></textarea>
                 <Button variant="primary" class="mt-2" :loading="ocupado" @click="emit('validar', justificativa)">Corrigir e validar</Button>
               </div>
@@ -119,17 +104,12 @@
               </div>
 
               <div class="border-t border-gray-100 pt-4">
-                <label class="form-label" for="data-agendamento">Data e horário confirmados</label>
-                <div class="flex flex-col gap-2 md:flex-row">
-                  <input id="data-agendamento" v-model="dataHora" type="datetime-local" class="form-control" />
-                  <Button
-                    variant="success"
-                    :disabled="!podeAgendar"
-                    :loading="ocupado"
-                    @click="emit('agendar', dataHora)"
-                  >Efetivar no AGHUX</Button>
-                </div>
-                <p v-if="!podeAgendar" class="mt-1 text-xs text-gray-500">Exige validação concluída e aceite registrado.</p>
+                <p class="mb-2 text-sm text-gray-700">
+                  Encaminhe o paciente com os dados já preenchidos para a fila de agendamento.
+                </p>
+                <Button variant="success" :loading="ocupado" @click="emit('efetuar-marcacao', solicitacao)">
+                  Efetuar marcação
+                </Button>
               </div>
             </div>
           </section>
@@ -152,37 +132,29 @@ import DivergenciaBadge from './DivergenciaBadge.vue';
 import HistoryTimeline from './HistoryTimeline.vue';
 import PriorityBadge from './PriorityBadge.vue';
 import StatusBadge from './StatusBadge.vue';
-import { somarHoras } from '../config/tempo';
 import { formatarDataHora } from '../utils/format';
 import type { ResultadoContato, Solicitacao } from '../types/sae';
 
 const props = defineProps<{ solicitacao: Solicitacao | null; podeEditar: boolean; erro?: string; ocupado?: boolean }>();
 
+/** A seção de divergências só aparece enquanto houver pendências a tratar. */
+const divergenciasPendentes = computed(() =>
+  props.solicitacao?.divergencias.filter((divergencia) => !divergencia.tratada) ?? []);
+
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'validar', justificativa: string): void;
   (e: 'contato', resultado: ResultadoContato, observacao: string): void;
-  (e: 'agendar', dataHora: string): void;
+  (e: 'efetuar-marcacao', solicitacao: Solicitacao): void;
 }>();
 
 const justificativa = ref('');
 const observacao = ref('');
 const resultado = ref<ResultadoContato>('ACEITE');
-const dataHora = ref('');
 
 watch(() => props.solicitacao?.id, () => {
   justificativa.value = '';
   observacao.value = '';
   resultado.value = 'ACEITE';
-  dataHora.value = props.solicitacao
-    ? somarHoras(props.solicitacao.recebidaEm, 48).slice(0, 16)
-    : '';
 }, { immediate: true });
-
-const podeAgendar = computed(() => {
-  const atual = props.solicitacao;
-  return !!atual
-    && atual.status === 'AGUARDANDO_CONTATO'
-    && atual.contatos.some((contato) => contato.resultado === 'ACEITE');
-});
 </script>

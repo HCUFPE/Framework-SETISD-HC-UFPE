@@ -1,9 +1,10 @@
 """
-Controller de Gestão de Agendamentos (v0.3.0)
+Controller de Gestão de Agendamentos (v0.4.0)
 ============================================
 Centraliza as regras de negócio: pré-condições (RN-04/RN-07), conflito de
 paciente (RN-05), capacidade local, cancelamento/remarcação com justificativa,
-busca segura de pacientes e sugestão automática de vagas.
+busca segura de pacientes, sugestão automática de vagas e simulação de propostas
+pendentes de confirmação do operador.
 
 A pontuação da sugestão é 0..100 com pesos configuráveis. A distância é apenas
 desempate (10 pontos no máximo) e nunca supera a prioridade clínica (35 pontos).
@@ -34,7 +35,21 @@ from ..providers.implementations.slot_provider import (
 
 STATUS_SLOT = {"DISPONIVEL", "LOTADO", "ENCERRADO"}
 RESULTADOS_CONTATO = {"ACEITE", "RECUSA", "SEM_RESPOSTA"}
+STATUS_RECEBIDA = "RECEBIDA"
+STATUS_PENDENTE_CORRECAO = "PENDENTE_CORRECAO"
 STATUS_AGUARDANDO_CONTATO = "AGUARDANDO_CONTATO"
+STATUS_AGUARDANDO_CONFIRMACAO = "AGUARDANDO_CONFIRMACAO"
+STATUS_AGUARDANDO_REAGENDAMENTO = "AGUARDANDO_REAGENDAMENTO"
+STATUS_AGENDADA = "AGENDADA"
+STATUS_CANCELADA = "CANCELADA"
+# Estados que permitem criar ou remarcar uma proposta/agendamento.
+STATUS_AGENDAVEIS = {
+    STATUS_AGUARDANDO_CONTATO,
+    STATUS_AGUARDANDO_CONFIRMACAO,
+    STATUS_AGUARDANDO_REAGENDAMENTO,
+}
+# Propostas e agendamentos ativos ocupam vaga e bloqueiam choque de paciente.
+STATUS_OCUPANTES = {"ATIVO", "PROPOSTO"}
 
 
 def _agora() -> datetime:
@@ -109,12 +124,18 @@ async def _tem_aceite(db: AsyncSession, solicitacao_id: str) -> bool:
     return contato is not None
 
 
-async def _verificar_precondicoes(db: AsyncSession, solicitacao: Solicitacao) -> None:
+async def _verificar_precondicoes(
+    db: AsyncSession, solicitacao: Solicitacao, *, permitir_agendada: bool = False
+) -> None:
     """Aplica RN-04/RN-07 antes de criar ou remarcar um agendamento."""
-    if solicitacao.status != STATUS_AGUARDANDO_CONTATO:
+    permitidos = set(STATUS_AGENDAVEIS)
+    if permitir_agendada:
+        permitidos.add(STATUS_AGENDADA)
+    if solicitacao.status not in permitidos:
         raise _erro(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "A solicitação precisa estar AGUARDANDO_CONTATO para ser agendada.",
+            "A solicitação precisa estar aguardando contato, confirmação ou "
+            "reagendamento para ser agendada.",
         )
     if await _divergencias_ativas(db, solicitacao.id):
         raise _erro(
@@ -155,7 +176,7 @@ async def _conflito_paciente(
     *,
     ignorar_agendamento_id: Optional[str] = None,
 ) -> bool:
-    """Bloqueia dois agendamentos ATIVOS sobrepostos para o mesmo paciente (RN-05)."""
+    """Bloqueia agendamentos ATIVOS/PROPOSTOS sobrepostos do mesmo paciente (RN-05)."""
     if not paciente_chave:
         return False
     linhas = (
@@ -164,7 +185,7 @@ async def _conflito_paciente(
             .join(AgendaSlot, Agendamento.slot_id == AgendaSlot.id)
             .where(
                 Agendamento.paciente_chave == paciente_chave,
-                Agendamento.status == "ATIVO",
+                Agendamento.status.in_(STATUS_OCUPANTES),
                 Agendamento.deleted_at.is_(None),
             )
         )
@@ -383,18 +404,24 @@ async def registrar_contato(
     operador: str,
     ip: Optional[str],
 ) -> Dict[str, Any]:
-    """Registra aceite/recusa/sem resposta, exigindo status de aguardando contato."""
+    """Registra aceite/recusa/sem resposta e atualiza o estado da solicitação."""
     solicitacao = await _buscar_solicitacao(db, solicitacao_id)
-    if solicitacao.status != STATUS_AGUARDANDO_CONTATO:
+    if solicitacao.status not in {
+        STATUS_AGUARDANDO_CONTATO,
+        STATUS_AGUARDANDO_CONFIRMACAO,
+        STATUS_AGUARDANDO_REAGENDAMENTO,
+    }:
         raise _erro(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Contatos só podem ser registrados com a solicitação em AGUARDANDO_CONTATO.",
+            "Contatos só podem ser registrados enquanto a solicitação aguarda "
+            "contato, confirmação ou reagendamento.",
         )
     if resultado not in RESULTADOS_CONTATO:
         raise _erro(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Resultado deve ser ACEITE, RECUSA ou SEM_RESPOSTA.",
         )
+    status_anterior = solicitacao.status
     contato = ContatoPaciente(
         id=str(uuid.uuid4()),
         solicitacao_id=solicitacao_id,
@@ -404,6 +431,12 @@ async def registrar_contato(
         operador=operador,
         realizado_em=_agora(),
     )
+    solicitacao.status = (
+        STATUS_AGUARDANDO_CONFIRMACAO
+        if resultado == "ACEITE"
+        else STATUS_AGUARDANDO_REAGENDAMENTO
+    )
+    solicitacao.atualizado_em = _agora()
     db.add(contato)
     await db.flush()
     resposta = {
@@ -422,8 +455,9 @@ async def registrar_contato(
         categoria="NEGOCIO_CLINICO",
         acao="REGISTRAR_CONTATO_PACIENTE",
         recurso=f"solicitacao:{solicitacao_id}",
-        anteriores={"status": solicitacao.status},
+        anteriores={"status": status_anterior},
         novos={
+            "status": solicitacao.status,
             "contatoId": contato.id,
             "canal": contato.canal,
             "resultado": contato.resultado,
@@ -455,12 +489,15 @@ async def criar_agendamento(
     ja_agendada = await db.scalar(
         select(Agendamento.id).where(
             Agendamento.solicitacao_id == solicitacao_id,
-            Agendamento.status == "ATIVO",
+            Agendamento.status.in_(STATUS_OCUPANTES),
             Agendamento.deleted_at.is_(None),
         )
     )
     if ja_agendada:
-        raise _erro(status.HTTP_409_CONFLICT, "Esta solicitação já possui agendamento ativo.")
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            "Esta solicitação já possui agendamento ativo ou proposta pendente.",
+        )
 
     chave = solicitacao.paciente_chave or ""
     if await _conflito_paciente(
@@ -480,6 +517,9 @@ async def criar_agendamento(
         autor=autor,
         criado_em=_agora(),
     )
+    status_anterior = solicitacao.status
+    solicitacao.status = STATUS_AGENDADA
+    solicitacao.atualizado_em = _agora()
     db.add(agendamento)
     await db.flush()
     dto = await _agendamento_para_dict(db, agendamento, provider)
@@ -489,8 +529,8 @@ async def criar_agendamento(
         categoria="NEGOCIO_CLINICO",
         acao="CRIAR_AGENDAMENTO",
         recurso=f"agendamento:{agendamento.id}",
-        anteriores=None,
-        novos=dto,
+        anteriores={"statusSolicitacao": status_anterior},
+        novos={**dto, "statusSolicitacao": solicitacao.status},
         ip=ip,
     )
     return dto
@@ -513,15 +553,15 @@ async def remarcar_agendamento(
             "Justificativa é obrigatória para remarcar um agendamento.",
         )
     agendamento = await _buscar_agendamento(db, agendamento_id)
-    if agendamento.status != "ATIVO":
+    if agendamento.status not in STATUS_OCUPANTES:
         raise _erro(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Somente agendamentos ativos podem ser remarcados.",
+            "Somente agendamentos ativos ou propostos podem ser remarcados.",
         )
     if slot_id == agendamento.slot_id:
         raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, "A vaga informada já é a atual.")
     solicitacao = await _buscar_solicitacao(db, agendamento.solicitacao_id)
-    await _verificar_precondicoes(db, solicitacao)
+    await _verificar_precondicoes(db, solicitacao, permitir_agendada=True)
     slot = await _slot_disponivel(provider, slot_id)
     if await _conflito_paciente(
         db,
@@ -569,15 +609,22 @@ async def cancelar_agendamento(
             "Justificativa é obrigatória para cancelar um agendamento.",
         )
     agendamento = await _buscar_agendamento(db, agendamento_id)
-    if agendamento.status != "ATIVO":
+    if agendamento.status not in STATUS_OCUPANTES:
         raise _erro(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Somente agendamentos ativos podem ser cancelados.",
+            "Somente agendamentos ativos ou propostos podem ser cancelados.",
         )
     anterior = await _agendamento_para_dict(db, agendamento, provider)
+    era_proposta = agendamento.status == "PROPOSTO"
     agendamento.status = "CANCELADO"
     agendamento.justificativa = justificativa.strip()
     agendamento.cancelado_em = _agora()
+    solicitacao = await _buscar_solicitacao(db, agendamento.solicitacao_id)
+    status_anterior_solicitacao = solicitacao.status
+    solicitacao.status = (
+        STATUS_AGUARDANDO_REAGENDAMENTO if era_proposta else STATUS_CANCELADA
+    )
+    solicitacao.atualizado_em = _agora()
     await db.flush()
     atualizado = await _agendamento_para_dict(db, agendamento, provider)
     await _auditar(
@@ -587,7 +634,216 @@ async def cancelar_agendamento(
         acao="CANCELAR_AGENDAMENTO",
         recurso=f"agendamento:{agendamento_id}",
         anteriores=anterior,
-        novos={**atualizado, "motivo": justificativa.strip()},
+        novos={
+            **atualizado,
+            "motivo": justificativa.strip(),
+            "statusSolicitacao": solicitacao.status,
+            "statusSolicitacaoAnterior": status_anterior_solicitacao,
+        },
+        ip=ip,
+    )
+    return atualizado
+
+
+# ---------------------------------------------------------------------------
+# Simulação da agenda: propostas pendentes de confirmação
+# ---------------------------------------------------------------------------
+
+async def gerar_propostas(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    dias: int,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Pré-aloca solicitações elegíveis em vagas dos próximos `dias` dias.
+
+    A proposta reserva vaga (status PROPOSTO), mas só se torna agendamento
+    ATIVO após confirmação explícita do operador. Nenhuma confirmação de
+    paciente é presumida além do ACEITE já registrado no contato.
+    """
+    horizonte_dias = max(1, min(int(dias), 90))
+    agora = _agora()
+    limite = agora + timedelta(days=horizonte_dias)
+    slots = await provider.listar(de=agora, ate=limite)
+    elegiveis = (
+        await db.scalars(
+            select(Solicitacao)
+            .where(
+                Solicitacao.deleted_at.is_(None),
+                Solicitacao.status.in_(STATUS_AGENDAVEIS),
+            )
+            .order_by(Solicitacao.pontuacao.desc(), Solicitacao.recebida_em)
+        )
+    ).all()
+
+    ja_reservadas = (
+        await db.scalars(
+            select(Agendamento.solicitacao_id).where(
+                Agendamento.status.in_(STATUS_OCUPANTES),
+                Agendamento.deleted_at.is_(None),
+            )
+        )
+    ).all()
+    reservadas = set(ja_reservadas)
+
+    geradas: List[Dict[str, Any]] = []
+    usadas_por_dia: dict[str, set[str]] = {}
+    alocadas_por_slot: dict[str, int] = {}
+    for solicitacao in elegiveis:
+        if solicitacao.id in reservadas:
+            continue
+        if not await _tem_aceite(db, solicitacao.id):
+            continue
+        if await _divergencias_ativas(db, solicitacao.id):
+            continue
+        codigos = {
+            str(item.get("codigoExame") or "").strip().upper()
+            for item in _json_itens(solicitacao.itens_exame)
+            if item.get("codigoExame")
+        }
+        chave = solicitacao.paciente_chave or ""
+        elegiveis_slots = [
+            slot for slot in slots
+            if slot["status"] == "DISPONIVEL"
+            and slot["livres"] - alocadas_por_slot.get(slot["id"], 0) > 0
+            and para_utc_aware(parse_datetime(slot["inicio"])) >= agora
+            and para_utc_aware(parse_datetime(slot["inicio"])) <= limite
+            and (not codigos or str(slot["codigoExame"] or "").strip().upper() in codigos)
+            and chave not in usadas_por_dia.get(slot["inicio"][:10], set())
+        ]
+        elegiveis_slots.sort(
+            key=lambda item: (
+                para_utc_aware(parse_datetime(item["inicio"])),
+                -((item["livres"] - alocadas_por_slot.get(item["id"], 0))
+                  / max(1, item["capacidade"])),
+            )
+        )
+        if not elegiveis_slots:
+            continue
+        slot = elegiveis_slots[0]
+        if await _conflito_paciente(
+            db, chave, parse_datetime(slot["inicio"]), parse_datetime(slot["fim"])
+        ):
+            continue
+        proposta = Agendamento(
+            id=str(uuid.uuid4()),
+            solicitacao_id=solicitacao.id,
+            slot_id=slot["id"],
+            paciente_chave=chave,
+            status="PROPOSTO",
+            autor=autor,
+            criado_em=_agora(),
+        )
+        status_anterior = solicitacao.status
+        solicitacao.status = STATUS_AGUARDANDO_CONFIRMACAO
+        solicitacao.atualizado_em = _agora()
+        db.add(proposta)
+        await db.flush()
+        usadas_por_dia.setdefault(slot["inicio"][:10], set()).add(chave)
+        alocadas_por_slot[slot["id"]] = alocadas_por_slot.get(slot["id"], 0) + 1
+        reservadas.add(solicitacao.id)
+        dto = await _agendamento_para_dict(db, proposta, provider)
+        geradas.append({**dto, "statusSolicitacaoAnterior": status_anterior})
+        await _auditar(
+            db,
+            usuario=autor,
+            categoria="NEGOCIO_CLINICO",
+            acao="GERAR_PROPOSTA_AGENDA",
+            recurso=f"agendamento:{proposta.id}",
+            anteriores={"statusSolicitacao": status_anterior},
+            novos={**dto, "statusSolicitacao": STATUS_AGUARDANDO_CONFIRMACAO},
+            ip=ip,
+        )
+    return {
+        "geradas": len(geradas),
+        "solicitacoes": len(elegiveis),
+        "dias": horizonte_dias,
+    }
+
+
+async def confirmar_proposta(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    agendamento_id: str,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Confirma a proposta em um clique, sem nova confirmação do paciente."""
+    agendamento = await _buscar_agendamento(db, agendamento_id)
+    if agendamento.status != "PROPOSTO":
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente propostas pendentes podem ser confirmadas.",
+        )
+    anterior = await _agendamento_para_dict(db, agendamento, provider)
+    solicitacao = await _buscar_solicitacao(db, agendamento.solicitacao_id)
+    status_anterior = solicitacao.status
+    agendamento.status = "ATIVO"
+    agendamento.autor = autor
+    solicitacao.status = STATUS_AGENDADA
+    solicitacao.atualizado_em = _agora()
+    await db.flush()
+    atualizado = await _agendamento_para_dict(db, agendamento, provider)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="CONFIRMAR_PROPOSTA_AGENDA",
+        recurso=f"agendamento:{agendamento_id}",
+        anteriores={**anterior, "statusSolicitacao": status_anterior},
+        novos={**atualizado, "statusSolicitacao": STATUS_AGENDADA},
+        ip=ip,
+    )
+    return atualizado
+
+
+async def registrar_nao_confirmacao(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    agendamento_id: str,
+    justificativa: Optional[str],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Registra que o paciente não confirmou e encaminha para reagendamento."""
+    if not justificativa or not justificativa.strip():
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Justificativa é obrigatória para registrar a não confirmação.",
+        )
+    agendamento = await _buscar_agendamento(db, agendamento_id)
+    if agendamento.status not in STATUS_OCUPANTES:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente propostas ou agendamentos ativos podem ser marcados como não confirmados.",
+        )
+    solicitacao = await _buscar_solicitacao(db, agendamento.solicitacao_id)
+    status_anterior = solicitacao.status
+    anterior = await _agendamento_para_dict(db, agendamento, provider)
+    agendamento.status = "CANCELADO"
+    agendamento.justificativa = justificativa.strip()
+    agendamento.cancelado_em = _agora()
+    agendamento.autor = autor
+    solicitacao.status = STATUS_AGUARDANDO_REAGENDAMENTO
+    solicitacao.atualizado_em = _agora()
+    await db.flush()
+    atualizado = await _agendamento_para_dict(db, agendamento, provider)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="REGISTRAR_NAO_CONFIRMACAO",
+        recurso=f"agendamento:{agendamento_id}",
+        anteriores={**anterior, "statusSolicitacao": status_anterior},
+        novos={
+            **atualizado,
+            "statusSolicitacao": STATUS_AGUARDANDO_REAGENDAMENTO,
+            "motivo": justificativa.strip(),
+        },
         ip=ip,
     )
     return atualizado
@@ -621,7 +877,7 @@ async def listar_calendario(
         select(Agendamento)
         .join(AgendaSlot, Agendamento.slot_id == AgendaSlot.id)
         .where(
-            Agendamento.status == "ATIVO",
+            Agendamento.status.in_(STATUS_OCUPANTES),
             Agendamento.deleted_at.is_(None),
             AgendaSlot.fim >= para_utc_naive(de_dt),
             AgendaSlot.inicio <= para_utc_naive(ate_dt),
@@ -759,7 +1015,7 @@ async def listar_sugestoes(
     ja_agendada = await db.scalar(
         select(Agendamento.id).where(
             Agendamento.solicitacao_id == solicitacao_id,
-            Agendamento.status == "ATIVO",
+            Agendamento.status.in_(STATUS_OCUPANTES),
             Agendamento.deleted_at.is_(None),
         )
     )

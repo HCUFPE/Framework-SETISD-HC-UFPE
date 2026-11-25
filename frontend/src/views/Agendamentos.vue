@@ -37,7 +37,7 @@
           </select>
         </label>
         <label class="text-sm">
-          <span class="mb-1 block font-semibold text-gray-700">Exame</span>
+          <span class="mb-1 block font-semibold text-gray-700">Tipo de exame</span>
           <select v-model="store.filtros.codigoExame" class="campo" @change="store.aoFiltrar">
             <option value="">Todos os exames</option>
             <option v-for="exame in store.exames" :key="exame.codigo" :value="exame.codigo">
@@ -68,7 +68,7 @@
             type="search"
             class="campo max-w-xs"
             placeholder="Buscar solicitação (nome, prontuário, protocolo)"
-            @keyup.enter="buscarSolicitacoes"
+            @keyup.enter="buscarSolicitacoes()"
           />
           <Button variant="secondary" @click="buscarSolicitacoes">Buscar solicitação</Button>
           <span v-if="store.solicitacao" class="text-sm text-gray-700">
@@ -76,7 +76,13 @@
           </span>
           <span v-else class="text-sm text-gray-500">Nenhuma solicitação selecionada</span>
         </div>
-        <div v-if="store.solicitacoes.length > 0" class="mt-2 flex max-h-32 flex-wrap gap-2 overflow-y-auto">
+        <p v-if="!buscaFeita" class="mt-2 text-xs text-gray-500">
+          A lista de solicitações aparece somente após a busca.
+        </p>
+        <p v-else-if="store.solicitacoes.length === 0 && !store.carregando" class="mt-2 text-xs text-gray-500">
+          Nenhuma solicitação encontrada para o termo informado.
+        </p>
+        <div v-if="buscaFeita && store.solicitacoes.length > 0" class="mt-2 flex max-h-32 flex-wrap gap-2 overflow-y-auto">
           <button
             v-for="item in store.solicitacoes"
             :key="item.id"
@@ -104,7 +110,7 @@
               :agendamentos="store.agendamentos"
               :readonly="!store.podeEditar"
               @periodo-alterado="store.definirPeriodo"
-              @dia-selecionado="store.selecionarDia"
+              @dia-selecionado="abrirDia"
               @slot-selecionado="store.selecionarSlot"
               @agendamento-selecionado="store.abrirAgendamento"
               @remarcar="aoRemarcar"
@@ -114,6 +120,17 @@
         </div>
 
         <div class="space-y-5">
+          <PainelPropostas
+            :propostas="propostasPendentes"
+            :pode-editar="store.podeEditar"
+            :ocupado="store.salvando"
+            @gerar="gerarPropostas"
+            @confirmar="confirmarProposta"
+            @remarcar="remarcarProposta"
+            @nao-confirmado="naoConfirmarProposta"
+            @cancelar="cancelarProposta"
+          />
+
           <Card>
             <template #header>
               <div>
@@ -180,6 +197,25 @@
       </div>
     </Card>
 
+    <ModalVagasDia
+      :show="store.modalDia"
+      :data="store.diaSelecionado"
+      :slots="store.slotsDoDia"
+      :solicitacao="store.solicitacao"
+      :solicitacoes="store.solicitacoes"
+      :selecionado-id="store.slotSelecionado?.id"
+      :modo="store.modoPopup"
+      :pode-editar="store.podeEditar"
+      :ocupado="store.salvando"
+      :erro="store.erro"
+      @close="store.fecharDia"
+      @buscar="buscarSolicitacoes"
+      @selecionar="selecionarSolicitacao"
+      @limpar="store.limparSolicitacao"
+      @selecionar-slot="store.selecionarSlot"
+      @marcar="store.marcarNoSlot"
+    />
+
     <ModalSugestoes
       :show="store.modalSugestoes"
       :sugestoes="store.sugestoes"
@@ -209,6 +245,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import Button from '../components/Button.vue';
 import Card from '../components/Card.vue';
@@ -216,7 +253,9 @@ import CalendarioAgendamentos from '../components/agendamentos/CalendarioAgendam
 import GestorVagas from '../components/agendamentos/GestorVagas.vue';
 import ModalRemarcacao from '../components/agendamentos/ModalRemarcacao.vue';
 import ModalSugestoes from '../components/agendamentos/ModalSugestoes.vue';
+import ModalVagasDia from '../components/agendamentos/ModalVagasDia.vue';
 import PainelPaciente from '../components/agendamentos/PainelPaciente.vue';
+import PainelPropostas from '../components/agendamentos/PainelPropostas.vue';
 import { USAR_MOCKS } from '../config/mocks';
 import { REFERENCIA_EM } from '../config/tempo';
 import { useAgendamentosStore } from '../stores/agendamentos';
@@ -224,16 +263,27 @@ import type { AgendaSlot, Agendamento } from '../types/sae';
 import { formatarDataHora } from '../utils/format';
 
 const store = useAgendamentosStore();
+const route = useRoute();
 const toast = useToast();
 const termoSolicitacao = ref('');
 const gestorVagasAberto = ref(false);
+const buscaFeita = ref(false);
 
 const pacienteSelecionado = computed(() =>
   store.pacientes.find((item) => item.pacienteChave === store.pacienteChave));
 
+const propostasPendentes = computed(() =>
+  store.agendamentos.filter((item) => item.status === 'PROPOSTO'));
+
 onMounted(() => {
   void store.carregar();
-  void store.buscarSolicitacoes('');
+  const solicitacaoId = typeof route.query.solicitacao === 'string' ? route.query.solicitacao : '';
+  const termo = typeof route.query.busca === 'string' ? route.query.busca : '';
+  if (solicitacaoId) {
+    termoSolicitacao.value = termo;
+    buscaFeita.value = true;
+    void store.buscarSolicitacoes(termo).then(() => selecionarSolicitacao(solicitacaoId));
+  }
 });
 
 function formatarData(iso: string): string {
@@ -252,8 +302,47 @@ function classeOcupacao(slot: AgendaSlot): string {
   return 'bg-emerald-100 text-emerald-800';
 }
 
-function buscarSolicitacoes(): void {
-  void store.buscarSolicitacoes(termoSolicitacao.value.trim());
+function buscarSolicitacoes(termo = termoSolicitacao.value.trim()): void {
+  if (termo) termoSolicitacao.value = termo;
+  buscaFeita.value = true;
+  void store.buscarSolicitacoes(termo);
+}
+
+function abrirDia(data: string): void {
+  store.abrirDia(data);
+}
+
+async function gerarPropostas(): Promise<void> {
+  const resultado = await store.gerarPropostas(30);
+  if (resultado) toast.success(`${resultado.geradas} proposta(s) gerada(s) para ${resultado.dias} dias.`);
+  else toast.error(store.erro || 'Não foi possível simular a agenda.');
+}
+
+async function confirmarProposta(proposta: Agendamento): Promise<void> {
+  if (await store.confirmarProposta(proposta)) toast.success('Proposta confirmada e agendamento efetivado.');
+  else toast.error(store.erro || 'Não foi possível confirmar a proposta.');
+}
+
+async function naoConfirmarProposta(proposta: Agendamento): Promise<void> {
+  const justificativa = window.prompt(
+    'Motivo da não confirmação pelo paciente:',
+    'Paciente não confirmou o horário proposto',
+  );
+  if (justificativa === null || !justificativa.trim()) return;
+  if (await store.registrarNaoConfirmacao(proposta, justificativa)) {
+    toast.info('Solicitação encaminhada para reagendamento.');
+  } else {
+    toast.error(store.erro || 'Não foi possível registrar a não confirmação.');
+  }
+}
+
+async function remarcarProposta(proposta: Agendamento): Promise<void> {
+  await store.selecionarSolicitacao(proposta.solicitacaoId);
+  store.abrirDia(proposta.dataHora, 'remarcar', proposta);
+}
+
+function cancelarProposta(proposta: Agendamento): void {
+  store.iniciarCancelamento(proposta);
 }
 
 function selecionarSolicitacao(id: string): void {

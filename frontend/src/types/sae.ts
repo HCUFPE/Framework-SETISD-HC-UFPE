@@ -1,5 +1,11 @@
 /** Contratos TypeScript compartilhados entre mocks, stores, views e a futura API. */
 
+/** Coluna configurável da fila de marcação. */
+export interface OpcaoColuna {
+  chave: string;
+  rotulo: string;
+}
+
 export type Perfil = 'AREA_GESTORA' | 'OPERADOR' | 'CHEFIA' | 'COORDENACAO' | 'ADMIN_TI';
 
 export const PERFIS: Perfil[] = ['OPERADOR', 'CHEFIA', 'AREA_GESTORA', 'COORDENACAO', 'ADMIN_TI'];
@@ -16,19 +22,21 @@ export type Prioridade = 'ALTA' | 'MEDIA' | 'BAIXA';
 
 export type StatusSolicitacao =
   | 'RECEBIDA'
-  | 'EM_CONFERENCIA'
   | 'PENDENTE_CORRECAO'
   | 'AGUARDANDO_CONTATO'
+  | 'AGUARDANDO_CONFIRMACAO'
+  | 'AGUARDANDO_REAGENDAMENTO'
   | 'AGENDADA'
   | 'CANCELADA';
 
 export const ROTULOS_STATUS: Record<StatusSolicitacao, string> = {
-  RECEBIDA: 'Recebida',
-  EM_CONFERENCIA: 'Em conferência',
+  RECEBIDA: 'Solicitação recebida',
   PENDENTE_CORRECAO: 'Pendente de correção',
   AGUARDANDO_CONTATO: 'Aguardando contato',
-  AGENDADA: 'Agendada',
-  CANCELADA: 'Cancelada',
+  AGUARDANDO_CONFIRMACAO: 'Aguardando confirmação',
+  AGUARDANDO_REAGENDAMENTO: 'Aguardando reagendamento',
+  AGENDADA: 'Agendado',
+  CANCELADA: 'Cancelado',
 };
 
 export type ResultadoContato = 'ACEITE' | 'RECUSA' | 'SEM_RESPOSTA';
@@ -167,7 +175,8 @@ export interface Agendamento {
   exame: string;
   slotId: string;
   dataHora: string;
-  status: 'ATIVO' | 'CANCELADO' | 'CONCLUIDO';
+  /** PROPOSTO = pré-alocação da simulação, pendente de confirmação do operador. */
+  status: 'PROPOSTO' | 'ATIVO' | 'CANCELADO' | 'CONCLUIDO';
   confirmadoPor: string;
   criadoEm: string;
   justificativa: string | null;
@@ -288,6 +297,7 @@ export interface FiltroFila {
   busca: string;
   status: string;
   tipoExame: string;
+  unidadeSolicitante: string;
   periodo: string;
   pagina: number;
   porPagina: number;

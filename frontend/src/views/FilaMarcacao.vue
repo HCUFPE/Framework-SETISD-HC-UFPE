@@ -17,7 +17,15 @@
               {{ formatarDataHora(REFERENCIA_EM) }} como referência
             </p>
           </div>
-          <span class="rounded-full bg-paper-primary/10 px-3 py-1 text-xs font-semibold text-paper-primary">RN-02: prioridade não editável pelo operador</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full bg-paper-primary/10 px-3 py-1 text-xs font-semibold text-paper-primary">RN-02: prioridade não editável pelo operador</span>
+            <ColumnMenu
+              :colunas="TODAS_COLUNAS"
+              :model-value="colunasVisiveis"
+              @update:model-value="colunasVisiveis = $event"
+              @redefinir="restaurarColunas"
+            />
+          </div>
         </div>
       </template>
 
@@ -25,8 +33,10 @@
         v-model:busca="store.filtros.busca"
         v-model:status="store.filtros.status"
         v-model:tipoExame="store.filtros.tipoExame"
+        v-model:unidadeSolicitante="store.filtros.unidadeSolicitante"
         v-model:periodo="store.filtros.periodo"
         :tipos-exame="tiposExame"
+        :unidades-solicitantes="unidadesSolicitantes"
         @filtrar="store.aoFiltrar"
       />
 
@@ -36,14 +46,15 @@
         <table class="w-full text-left text-sm">
           <thead class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
             <tr>
-              <th class="px-3 py-2">#</th>
-              <th class="px-3 py-2">Prioridade</th>
-              <th class="px-3 py-2">Paciente / prontuário</th>
-              <th class="px-3 py-2">Exame(s)</th>
-              <th class="px-3 py-2">Status</th>
-              <th class="px-3 py-2">Divergências</th>
-              <th class="px-3 py-2">Na fila</th>
-              <th class="px-3 py-2">Ação</th>
+              <th v-if="visivel('ordem')" class="px-3 py-2">#</th>
+              <th v-if="visivel('prioridade')" class="px-3 py-2">Prioridade</th>
+              <th v-if="visivel('paciente')" class="px-3 py-2">Paciente / Prontuário</th>
+              <th v-if="visivel('unidade')" class="px-3 py-2">Unidade solicitante</th>
+              <th v-if="visivel('exames')" class="px-3 py-2">Exame(s)</th>
+              <th v-if="visivel('status')" class="px-3 py-2">Status</th>
+              <th v-if="visivel('tempo')" class="px-3 py-2">Tempo na fila</th>
+              <th v-if="visivel('divergencias')" class="px-3 py-2">Divergências</th>
+              <th v-if="visivel('acao')" class="px-3 py-2">Ação</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
@@ -53,23 +64,30 @@
               class="cursor-pointer bg-white transition hover:bg-gray-50"
               @click="store.abrir(solicitacao.id)"
             >
-              <td class="px-3 py-3 font-medium text-gray-500">{{ (store.paginacao.pagina - 1) * store.paginacao.porPagina + indice + 1 }}</td>
-              <td class="px-3 py-3"><PriorityBadge :prioridade="solicitacao.prioridade" /><span class="ml-2 text-xs text-gray-500">{{ solicitacao.pontuacao }}</span></td>
-              <td class="px-3 py-3">
+              <td v-if="visivel('ordem')" class="px-3 py-3 font-medium text-gray-500">{{ (store.paginacao.pagina - 1) * store.paginacao.porPagina + indice + 1 }}</td>
+              <td v-if="visivel('prioridade')" class="px-3 py-3">
+                <PriorityBadge :prioridade="solicitacao.prioridade" />
+                <span class="ml-2 text-xs text-gray-500">{{ solicitacao.pontuacao }}</span>
+              </td>
+              <td v-if="visivel('paciente')" class="px-3 py-3">
                 <p class="font-medium text-gray-800">{{ solicitacao.pacienteNome }}</p>
                 <p class="text-xs text-gray-500">{{ solicitacao.protocolo }} · pront. {{ solicitacao.prontuario }}</p>
               </td>
-              <td class="px-3 py-3 text-gray-700">
+              <td v-if="visivel('unidade')" class="px-3 py-3">
+                <p class="text-gray-700">{{ solicitacao.setorSolicitante }}</p>
+                <p class="text-xs text-gray-500">{{ solicitacao.solicitanteNome }}</p>
+              </td>
+              <td v-if="visivel('exames')" class="px-3 py-3 text-gray-700">
                 <p>{{ solicitacao.exame }}</p>
                 <p v-if="solicitacao.itensExame.length > 1" class="text-xs text-paper-primary">+ {{ solicitacao.itensExame.length - 1 }} exame(s) na mesma solicitação</p>
               </td>
-              <td class="px-3 py-3"><StatusBadge :status="solicitacao.status" /></td>
-              <td class="px-3 py-3"><DivergenciaBadge :quantidade="solicitacao.divergencias.filter((item) => !item.tratada).length" /></td>
-              <td class="px-3 py-3 text-gray-600">{{ formatarDuracao(horasDesde(solicitacao.recebidaEm)) }}</td>
-              <td class="px-3 py-3"><Button variant="info" @click.stop="store.abrir(solicitacao.id)">Conferir</Button></td>
+              <td v-if="visivel('status')" class="px-3 py-3"><StatusBadge :status="solicitacao.status" /></td>
+              <td v-if="visivel('tempo')" class="px-3 py-3 text-gray-600">{{ formatarDuracao(horasDesde(solicitacao.recebidaEm)) }}</td>
+              <td v-if="visivel('divergencias')" class="px-3 py-3"><DivergenciaBadge :quantidade="solicitacao.divergencias.filter((item) => !item.tratada).length" /></td>
+              <td v-if="visivel('acao')" class="px-3 py-3"><Button variant="info" @click.stop="store.abrir(solicitacao.id)">Abrir</Button></td>
             </tr>
             <tr v-if="store.solicitacoes.length === 0 && !store.carregando">
-              <td colspan="8" class="px-3 py-8 text-center text-gray-500">Nenhuma solicitação encontrada para os filtros selecionados.</td>
+              <td :colspan="colunasVisiveis.length" class="px-3 py-8 text-center text-gray-500">Nenhuma solicitação encontrada para os filtros selecionados.</td>
             </tr>
           </tbody>
         </table>
@@ -97,16 +115,18 @@
       @close="store.fechar()"
       @validar="validar"
       @contato="contatar"
-      @agendar="agendar"
+      @efetuar-marcacao="efetuarMarcacao"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import Button from '../components/Button.vue';
 import Card from '../components/Card.vue';
+import ColumnMenu from '../components/ColumnMenu.vue';
 import DivergenciaBadge from '../components/DivergenciaBadge.vue';
 import FilterBar from '../components/FilterBar.vue';
 import LoadingIndicator from '../components/LoadingIndicator.vue';
@@ -114,19 +134,79 @@ import PriorityBadge from '../components/PriorityBadge.vue';
 import SolicitacaoDrawer from '../components/SolicitacaoDrawer.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { REFERENCIA_EM } from '../config/tempo';
+import { listarUnidadesSolicitantes } from '../services/sae';
 import { useAuthStore } from '../stores/auth';
 import { useSolicitacaoStore } from '../stores/solicitacao';
-import type { ResultadoContato } from '../types/sae';
+import type { OpcaoColuna, ResultadoContato, Solicitacao } from '../types/sae';
 import { formatarDataHora, formatarDuracao, horasDesde } from '../utils/format';
+
+const TODAS_COLUNAS: OpcaoColuna[] = [
+  { chave: 'ordem', rotulo: '#' },
+  { chave: 'prioridade', rotulo: 'Prioridade' },
+  { chave: 'paciente', rotulo: 'Paciente / Prontuário' },
+  { chave: 'unidade', rotulo: 'Unidade solicitante' },
+  { chave: 'exames', rotulo: 'Exame(s)' },
+  { chave: 'status', rotulo: 'Status' },
+  { chave: 'tempo', rotulo: 'Tempo na fila' },
+  { chave: 'divergencias', rotulo: 'Divergências' },
+  { chave: 'acao', rotulo: 'Ação' },
+];
+
+const CHAVE_PREFERENCIA = 'sae.fila.colunas';
+
+function colunasPadrao(): string[] {
+  return TODAS_COLUNAS
+    .map((coluna) => coluna.chave)
+    .filter((chave) => chave !== 'divergencias' && chave !== 'acao');
+}
+
+function preferenciaInicial(): string[] {
+  const padrao = colunasPadrao();
+  try {
+    const salvo = localStorage.getItem(CHAVE_PREFERENCIA);
+    if (!salvo) return padrao;
+    const interpretado: unknown = JSON.parse(salvo);
+    if (!Array.isArray(interpretado)) return padrao;
+    const validas = interpretado.filter((chave): chave is string =>
+      typeof chave === 'string' && TODAS_COLUNAS.some((coluna) => coluna.chave === chave));
+    return validas.length > 0 ? validas : padrao;
+  } catch {
+    return padrao;
+  }
+}
 
 const store = useSolicitacaoStore();
 const auth = useAuthStore();
 const toast = useToast();
+const router = useRouter();
 const tiposExame = ['Imagem', 'Laboratório', 'Medicina Nuclear', 'Fonoaudiologia', 'Outro'];
+const unidadesSolicitantes = ref<string[]>([]);
+const colunasVisiveis = ref<string[]>(preferenciaInicial());
 
 const podeEditar = computed(() => auth.temPerfil('OPERADOR', 'CHEFIA'));
 
-onMounted(() => { void store.carregar(); });
+watch(colunasVisiveis, (valor) => {
+  try {
+    localStorage.setItem(CHAVE_PREFERENCIA, JSON.stringify(valor));
+  } catch {
+    // Preferência não crítica: a tabela continua funcional sem persistência.
+  }
+});
+
+function visivel(chave: string): boolean {
+  return colunasVisiveis.value.includes(chave);
+}
+
+function restaurarColunas(): void {
+  colunasVisiveis.value = colunasPadrao();
+}
+
+onMounted(() => {
+  void store.carregar();
+  void listarUnidadesSolicitantes()
+    .then((unidades) => { unidadesSolicitantes.value = unidades; })
+    .catch(() => { unidadesSolicitantes.value = []; });
+});
 
 async function validar(justificativa: string): Promise<void> {
   await store.validar(justificativa);
@@ -138,8 +218,12 @@ async function contatar(resultado: ResultadoContato, observacao: string): Promis
   if (!store.erro) toast.info('Contato registrado no histórico.');
 }
 
-async function agendar(dataHora: string): Promise<void> {
-  await store.agendar(dataHora);
-  if (!store.erro) toast.success('Agendamento efetivado no AGHUX.');
+/** Leva o paciente já identificado para a fila de agendamento do calendário. */
+function efetuarMarcacao(solicitacao: Solicitacao): void {
+  store.fechar();
+  void router.push({
+    path: '/agendamentos',
+    query: { solicitacao: solicitacao.id, busca: solicitacao.prontuario },
+  });
 }
 </script>

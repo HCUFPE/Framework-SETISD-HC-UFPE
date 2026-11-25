@@ -14,7 +14,8 @@ export const useSolicitacaoStore = defineStore('solicitacao', () => {
   const solicitacoes = ref<Solicitacao[]>([]);
   const selecionada = ref<Solicitacao | null>(null);
   const filtros = ref<FiltroFila>({
-    busca: '', status: '', tipoExame: '', periodo: 'todos', pagina: 1, porPagina: 20,
+    busca: '', status: '', tipoExame: '', unidadeSolicitante: '',
+    periodo: 'todos', pagina: 1, porPagina: 20,
   });
   const paginacao = ref<Omit<ResultadoFila, 'itens'>>({
     total: 0, pagina: 1, porPagina: 20, totalPaginas: 1,

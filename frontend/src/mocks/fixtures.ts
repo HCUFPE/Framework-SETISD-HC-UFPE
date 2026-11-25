@@ -13,6 +13,7 @@ import type {
   AdUser,
   Alerta,
   CampoComparacao,
+  Contato,
   CriterioPriorizacao,
   Divergencia,
   EventoHistorico,
@@ -127,7 +128,13 @@ function historico(item: FonteAghux['solicitacoes'][number]): EventoHistorico[] 
   ];
 }
 
-const solicitacoes: Solicitacao[] = dadosAghux.solicitacoes.map((item) => {
+/**
+ * Distribuição determinística de estados para a demonstração: sem ela todas as
+ * solicitações ficariam em RECEBIDA e a simulação de agenda não teria o que
+ * propor. Divergência e não confirmação são explicitamente marcadas como
+ * simulação — nenhum dado pessoal é inventado.
+ */
+const solicitacoes: Solicitacao[] = dadosAghux.solicitacoes.map((item, indice) => {
   const atributos: Record<string, number> = {
     urgenciaClinica: 5,
     idade: 5,
@@ -135,6 +142,61 @@ const solicitacoes: Solicitacao[] = dadosAghux.solicitacoes.map((item) => {
     complexidadeExame: complexidadeExame(item.itens[0]?.codigoExame ?? ''),
   };
   const pontuacao = calcularPontuacao(atributos, criteriosPadrao);
+  const faixa = indice % 10;
+  const contatos: Contato[] = [];
+  const divergencias: Divergencia[] = [];
+  const historicoSolicitacao = historico(item);
+  const simulacoes: string[] = ['urgenciaClinica', 'idade'];
+  let status: Solicitacao['status'] = 'RECEBIDA';
+
+  if (faixa === 0) {
+    status = 'PENDENTE_CORRECAO';
+    simulacoes.push('divergenciaSimulada');
+    divergencias.push({
+      id: `${item.codigoSolicitacao}-div`,
+      campo: 'Telefone',
+      valorFormulario: '(valor divergente informado no Forms — simulação)',
+      valorAghux: item.telefone,
+      tratada: false,
+    });
+    historicoSolicitacao.push({
+      id: `${item.codigoSolicitacao}-h3`,
+      em: somarHoras(item.dataSolicitacao, 2),
+      acao: 'Divergência apontada no cruzamento com o AGHUX',
+      autor: 'Sistema',
+      categoria: 'NEGOCIO_CLINICO',
+      detalhes: 'Demonstração: divergência simulada para exibir a seção corretiva.',
+    });
+  } else if (faixa === 1 || faixa === 2) {
+    status = faixa === 1 ? 'AGUARDANDO_CONTATO' : 'AGUARDANDO_REAGENDAMENTO';
+    contatos.push({
+      id: `${item.codigoSolicitacao}-con`,
+      realizadoEm: somarHoras(item.dataSolicitacao, 4),
+      canal: 'Telefone',
+      resultado: 'ACEITE',
+      operador: 'Ana Operadora',
+      observacao: 'Aceite registrado para demonstração da proposta de horário.',
+    });
+    historicoSolicitacao.push({
+      id: `${item.codigoSolicitacao}-h3`,
+      em: somarHoras(item.dataSolicitacao, 4),
+      acao: 'Aceite do paciente registrado',
+      autor: 'Ana Operadora',
+      categoria: 'NEGOCIO_CLINICO',
+      detalhes: 'Contato simulado para permitir a proposta automática de horário.',
+    });
+    if (faixa === 2) {
+      historicoSolicitacao.push({
+        id: `${item.codigoSolicitacao}-h4`,
+        em: somarHoras(item.dataSolicitacao, 28),
+        acao: 'Paciente não confirmou o horário proposto',
+        autor: 'Sistema',
+        categoria: 'NEGOCIO_CLINICO',
+        detalhes: 'Simulação: solicitação aguardando reagendamento.',
+      });
+    }
+  }
+
   return {
     id: `aghux-${item.codigoSolicitacao}`,
     protocolo: `AGHUX-${item.codigoSolicitacao}`,
@@ -150,18 +212,18 @@ const solicitacoes: Solicitacao[] = dadosAghux.solicitacoes.map((item) => {
     setorSolicitante: item.unidadeSolicitante,
     solicitanteCodigo: item.solicitante.codigo,
     solicitanteNome: item.solicitante.nome,
-    status: 'RECEBIDA',
+    status,
     pontuacao,
     prioridade: classificarPrioridade(pontuacao),
     recebidaEm: item.dataSolicitacao,
     prazoValidacaoEm: somarHoras(item.dataSolicitacao, 24),
     atributos,
-    atributosSimulados: ['urgenciaClinica', 'idade'],
+    atributosSimulados: simulacoes,
     comparacoes: comparacoes(item),
     alertas: [] as Alerta[],
-    divergencias: [] as Divergencia[],
-    contatos: [],
-    historico: historico(item),
+    divergencias,
+    contatos,
+    historico: historicoSolicitacao,
     agendamento: null,
   };
 });

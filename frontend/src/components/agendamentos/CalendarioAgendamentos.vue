@@ -8,6 +8,7 @@
         <span class="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-800">Vagas livres</span>
         <span class="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-800">Últimas vagas</span>
         <span class="rounded-full bg-red-100 px-2 py-1 font-semibold text-red-800">Esgotada / encerrada</span>
+        <span class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-800">Proposta a confirmar</span>
       </div>
     </div>
     <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -64,6 +65,7 @@ function corOcupacao(slot: AgendaSlot): string {
 function corStatus(status: Agendamento['status']): string {
   if (status === 'CANCELADO') return '#dc2626';
   if (status === 'CONCLUIDO') return '#6b7280';
+  if (status === 'PROPOSTO') return '#0284c7';
   return '#0d9488';
 }
 

@@ -7,12 +7,16 @@ import {
   agendarExame,
   buscarPacientesAgendamento,
   cancelarAgendamento,
+  confirmarPropostaAgendamento,
+  gerarPropostasAgendamento,
   listarAgendamentosPaciente,
   listarCalendarioAgendamentos,
   listarFila,
   listarSugestoesAgendamento,
   obterSolicitacao,
+  registrarNaoConfirmacaoAgendamento,
   remarcarAgendamento,
+  type ResultadoSimulacaoAgenda,
 } from '../services/sae';
 import type {
   AgendaSlot,
@@ -45,10 +49,11 @@ function mensagemErro(erro: unknown, fallback: string): string {
 }
 
 function periodoInicial(): { de: string; ate: string } {
-  const referencia = new Date(agora());
-  const primeiroDia = new Date(referencia.getFullYear(), referencia.getMonth(), 1);
-  const fim = new Date(primeiroDia.getTime() + 45 * 86_400_000);
-  return { de: paraIsoLocal(primeiroDia.getTime()), ate: paraIsoLocal(fim.getTime()) };
+  const referencia = agora();
+  return {
+    de: paraIsoLocal(referencia),
+    ate: paraIsoLocal(referencia + 30 * 86_400_000),
+  };
 }
 
 export const useAgendamentosStore = defineStore('agendamentos', () => {
@@ -75,6 +80,9 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
   const sugestoes = ref<SugestaoAgendamento[]>([]);
   const modalSugestoes = ref(false);
   const modalAcao = ref(false);
+  const modalDia = ref(false);
+  const modoPopup = ref<'agendar' | 'remarcar'>('agendar');
+  const agendamentoPopup = ref<Agendamento | null>(null);
   const modoAcao = ref<ModoAcaoAgendamento>('agendar');
   const agendamentoSelecionado = ref<Agendamento | null>(null);
 
@@ -156,6 +164,32 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     selecionarDia(slot.inicio);
   }
 
+  /** Abre o popup de vagas do dia clicado no calendário. */
+  function abrirDia(
+    dataIso: string,
+    modo: 'agendar' | 'remarcar' = 'agendar',
+    agendamento: Agendamento | null = null,
+  ): void {
+    selecionarDia(dataIso);
+    modoPopup.value = modo;
+    agendamentoPopup.value = agendamento;
+    modalDia.value = true;
+  }
+
+  function fecharDia(): void {
+    modalDia.value = false;
+  }
+
+  /** Marca a solicitação selecionada (ou remarcar proposta) na vaga escolhida. */
+  function marcarNoSlot(slot: AgendaSlot): void {
+    modalDia.value = false;
+    if (modoPopup.value === 'remarcar' && agendamentoPopup.value) {
+      iniciarRemarcacao(agendamentoPopup.value, slot);
+      return;
+    }
+    iniciarAgendamento(slot);
+  }
+
   async function buscarPacientes(q: string): Promise<void> {
     limparErro();
     try {
@@ -184,7 +218,8 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     limparErro();
     try {
       const resultado = await listarFila({
-        busca: q, status: '', tipoExame: '', periodo: 'todos', pagina: 1, porPagina: 12,
+        busca: q, status: '', tipoExame: '', unidadeSolicitante: '',
+        periodo: 'todos', pagina: 1, porPagina: 12,
       });
       solicitacoes.value = resultado.itens;
     } catch (candidato) {
@@ -205,6 +240,11 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     } catch (candidato) {
       registrarErro(candidato, 'Não foi possível carregar a solicitação.');
     }
+  }
+
+  function limparSolicitacao(): void {
+    solicitacao.value = null;
+    solicitacoes.value = [];
   }
 
   function abrirAgendamento(agendamento: Agendamento): void {
@@ -261,9 +301,60 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
   function usarSugestao(slot: AgendaSlot): void {
     modalSugestoes.value = false;
     const ativo = agendamentosPaciente.value.find((item) =>
-      item.status === 'ATIVO' && item.solicitacaoId === solicitacao.value?.id);
+      (item.status === 'ATIVO' || item.status === 'PROPOSTO')
+      && item.solicitacaoId === solicitacao.value?.id);
     if (ativo && podeEditar.value) iniciarRemarcacao(ativo, slot);
     else iniciarAgendamento(slot);
+  }
+
+  async function gerarPropostas(dias = 30): Promise<ResultadoSimulacaoAgenda | null> {
+    if (!podeEditar.value) return null;
+    salvando.value = true;
+    limparErro();
+    try {
+      const resultado = await gerarPropostasAgendamento(dias, autor());
+      await recarregarTudo();
+      return resultado;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível simular a agenda.');
+      return null;
+    } finally {
+      salvando.value = false;
+    }
+  }
+
+  async function confirmarProposta(agendamento: Agendamento): Promise<boolean> {
+    if (!podeEditar.value || agendamento.status !== 'PROPOSTO') return false;
+    salvando.value = true;
+    limparErro();
+    try {
+      await confirmarPropostaAgendamento(agendamento.id, autor());
+      await recarregarTudo();
+      return true;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível confirmar a proposta.');
+      return false;
+    } finally {
+      salvando.value = false;
+    }
+  }
+
+  async function registrarNaoConfirmacao(
+    agendamento: Agendamento, justificativa: string,
+  ): Promise<boolean> {
+    if (!podeEditar.value) return false;
+    salvando.value = true;
+    limparErro();
+    try {
+      await registrarNaoConfirmacaoAgendamento(agendamento.id, justificativa, autor());
+      await recarregarTudo();
+      return true;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível registrar a não confirmação.');
+      return false;
+    } finally {
+      salvando.value = false;
+    }
   }
 
   async function recarregarTudo(): Promise<void> {
@@ -346,6 +437,8 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     sugestoes,
     modalSugestoes,
     modalAcao,
+    modalDia,
+    modoPopup,
     modoAcao,
     agendamentoSelecionado,
     podeEditar,
@@ -359,17 +452,24 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     aoFiltrar,
     selecionarDia,
     selecionarSlot,
+    abrirDia,
+    fecharDia,
+    marcarNoSlot,
     buscarPacientes,
     selecionarPaciente,
     carregarPaciente,
     buscarSolicitacoes,
     selecionarSolicitacao,
+    limparSolicitacao,
     abrirAgendamento,
     abrirSugestoes,
     iniciarAgendamento,
     iniciarRemarcacao,
     iniciarCancelamento,
     usarSugestao,
+    gerarPropostas,
+    confirmarProposta,
+    registrarNaoConfirmacao,
     confirmarAcao,
     limparErro,
   };

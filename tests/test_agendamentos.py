@@ -1,5 +1,5 @@
 # tests/test_agendamentos.py
-"""Testes da gestão de agendamentos (v0.3.0)."""
+"""Testes da gestão de agendamentos (v0.4.0)."""
 
 import json
 import sqlite3
@@ -622,3 +622,185 @@ async def test_falha_transitoria_do_osm_nao_fica_em_cache(monkeypatch):
     assert tentativas["total"] == 2
     assert segundo.fonte == "OSM"
     assert segundo.distancia_km == 15.0
+
+
+def _status_solicitacao(caminho, sid):
+    with _conexao(caminho) as conn:
+        return conn.execute(
+            "SELECT status FROM solicitacoes WHERE id=?", (sid,)
+        ).fetchone()["status"]
+
+
+def test_contato_aceite_e_recusa_atualizam_novos_status(cliente):
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(
+        caminho, prontuario="88888881", status="RECEBIDA", divergencia=True, aceite=False
+    )
+    with _conexao(caminho) as conn:
+        divergencia_id = conn.execute(
+            "SELECT id FROM divergencias WHERE solicitacao_id=?", (sid,)
+        ).fetchone()["id"]
+    validacao = cliente.post(
+        f"/api/solicitacoes/{sid}/validacao",
+        json={"justificativas": {str(divergencia_id): "Telefone validado"}},
+        headers=_headers(OPERADOR),
+    )
+    assert validacao.status_code == 200
+
+    aceite = cliente.post(
+        f"/api/solicitacoes/{sid}/contatos",
+        json={"canal": "TELEFONE", "resultado": "ACEITE", "operador": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert aceite.status_code == 201
+    assert _status_solicitacao(caminho, sid) == "AGUARDANDO_CONFIRMACAO"
+
+    recusa = cliente.post(
+        f"/api/solicitacoes/{sid}/contatos",
+        json={"canal": "TELEFONE", "resultado": "SEM_RESPOSTA", "operador": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert recusa.status_code == 201
+    assert _status_solicitacao(caminho, sid) == "AGUARDANDO_REAGENDAMENTO"
+
+
+def test_simulacao_gera_proposta_confirmavel_que_ocupa_vaga(cliente):
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho, prontuario="88888882")
+    slot = _criar_slot(cliente, capacidade=2)
+
+    simulacao = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia"},
+        headers=_headers(OPERADOR),
+    )
+    assert simulacao.status_code == 201, simulacao.text
+    assert simulacao.json()["geradas"] == 1
+    assert simulacao.json()["dias"] == 30
+
+    proposta = cliente.get(
+        "/api/agendamentos/calendario",
+        params={"de": _iso(_agora() - timedelta(days=1)),
+                "ate": _iso(_agora() + timedelta(days=31))},
+        headers=_headers(OPERADOR),
+    ).json()["agendamentos"][0]
+    assert proposta["status"] == "PROPOSTO"
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["livres"] == 1
+    assert _status_solicitacao(caminho, sid) == "AGUARDANDO_CONFIRMACAO"
+
+    confirmada = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/confirmar",
+        json={"autor": "chefia"},
+        headers=_headers(OPERADOR),
+    )
+    assert confirmada.status_code == 200, confirmada.text
+    assert confirmada.json()["status"] == "ATIVO"
+    assert _status_solicitacao(caminho, sid) == "AGENDADA"
+
+    with _conexao(caminho) as conn:
+        acoes = {
+            linha["acao"]
+            for linha in conn.execute("SELECT acao FROM audit_logs").fetchall()
+        }
+    assert {"GERAR_PROPOSTA_AGENDA", "CONFIRMAR_PROPOSTA_AGENDA"} <= acoes
+
+
+def test_nao_confirmacao_devolve_vaga_e_vai_para_reagendamento(cliente):
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho, prontuario="88888883")
+    slot = _criar_slot(cliente, capacidade=1)
+    cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia"},
+        headers=_headers(OPERADOR),
+    )
+    proposta = cliente.get(
+        "/api/agendamentos/calendario",
+        params={"de": _iso(_agora() - timedelta(days=1)),
+                "ate": _iso(_agora() + timedelta(days=31))},
+        headers=_headers(OPERADOR),
+    ).json()["agendamentos"][0]
+
+    resposta = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/nao-confirmado",
+        json={"justificativa": "Paciente não confirmou", "autor": "chefia"},
+        headers=_headers(OPERADOR),
+    )
+    assert resposta.status_code == 200, resposta.text
+    assert resposta.json()["status"] == "CANCELADO"
+    assert _status_solicitacao(caminho, sid) == "AGUARDANDO_REAGENDAMENTO"
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["livres"] == 1
+
+
+def test_novos_endpoints_de_proposta_respeitam_rbac(cliente):
+    cliente, caminho = cliente
+    _inserir_solicitacao(caminho, prontuario="88888884")
+    _criar_slot(cliente, capacidade=2)
+    assert cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "coordenacao"},
+        headers=_headers(COORDENACAO),
+    ).status_code == 403
+    assert cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "usuario"},
+        headers=_headers(["Users"]),
+    ).status_code == 403
+
+    assert cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "operador"},
+        headers=_headers(OPERADOR),
+    ).status_code == 201
+    proposta = cliente.get(
+        "/api/agendamentos/calendario",
+        params={"de": _iso(_agora() - timedelta(days=1)),
+                "ate": _iso(_agora() + timedelta(days=31))},
+        headers=_headers(OPERADOR),
+    ).json()["agendamentos"][0]
+
+    assert cliente.post(
+        f"/api/agendamentos/{proposta['id']}/confirmar",
+        json={"autor": "coordenacao"},
+        headers=_headers(COORDENACAO),
+    ).status_code == 403
+    assert cliente.post(
+        f"/api/agendamentos/{proposta['id']}/confirmar",
+        json={"autor": "usuario"},
+        headers=_headers(["Users"]),
+    ).status_code == 403
+    assert cliente.post(
+        f"/api/agendamentos/{proposta['id']}/nao-confirmado",
+        json={"justificativa": "Sem retorno", "autor": "coordenacao"},
+        headers=_headers(COORDENACAO),
+    ).status_code == 403
+    assert cliente.post(
+        f"/api/agendamentos/{proposta['id']}/nao-confirmado",
+        json={"justificativa": "Sem retorno", "autor": "usuario"},
+        headers=_headers(["Users"]),
+    ).status_code == 403
+
+
+def test_nao_confirmacao_exige_justificativa(cliente):
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho, prontuario="88888885")
+    slot = _criar_slot(cliente, capacidade=1)
+    cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia"},
+        headers=_headers(OPERADOR),
+    )
+    proposta = cliente.get(
+        "/api/agendamentos/calendario",
+        params={"de": _iso(_agora() - timedelta(days=1)),
+                "ate": _iso(_agora() + timedelta(days=31))},
+        headers=_headers(OPERADOR),
+    ).json()["agendamentos"][0]
+    resposta = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/nao-confirmado",
+        json={"justificativa": "   ", "autor": "chefia"},
+        headers=_headers(OPERADOR),
+    )
+    assert resposta.status_code == 422
+    assert _status_solicitacao(caminho, sid) == "AGUARDANDO_CONFIRMACAO"
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["livres"] == 0

@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+  <div class="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
     <input
       :value="busca"
       class="form-control"
@@ -14,6 +14,10 @@
     <select :value="tipoExame" class="form-control" aria-label="Filtrar por tipo de exame" @change="aoTipo">
       <option value="">Todos os tipos</option>
       <option v-for="tipo in tiposExame" :key="tipo" :value="tipo">{{ tipo }}</option>
+    </select>
+    <select :value="unidadeSolicitante" class="form-control" aria-label="Filtrar por unidade solicitante" @change="aoUnidade">
+      <option value="">Todas as unidades solicitantes</option>
+      <option v-for="unidade in unidadesSolicitantes" :key="unidade" :value="unidade">{{ unidade }}</option>
     </select>
     <div class="flex gap-2">
       <select :value="periodo" class="form-control" aria-label="Filtrar por período" @change="aoPeriodo">
@@ -36,14 +40,17 @@ defineProps<{
   busca: string;
   status: string;
   tipoExame: string;
+  unidadeSolicitante: string;
   periodo: string;
   tiposExame: string[];
+  unidadesSolicitantes: string[];
 }>();
 
 const emit = defineEmits<{
   (e: 'update:busca', valor: string): void;
   (e: 'update:status', valor: string): void;
   (e: 'update:tipoExame', valor: string): void;
+  (e: 'update:unidadeSolicitante', valor: string): void;
   (e: 'update:periodo', valor: string): void;
   (e: 'filtrar'): void;
 }>();
@@ -58,6 +65,10 @@ function aoStatus(evento: Event): void {
 
 function aoTipo(evento: Event): void {
   emit('update:tipoExame', (evento.target as HTMLSelectElement).value);
+}
+
+function aoUnidade(evento: Event): void {
+  emit('update:unidadeSolicitante', (evento.target as HTMLSelectElement).value);
 }
 
 function aoPeriodo(evento: Event): void {

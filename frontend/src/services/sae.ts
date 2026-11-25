@@ -33,7 +33,8 @@ import type {
 const pausa = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 120));
 
 const FILTROS_TODOS: FiltroFila = {
-  busca: '', status: '', tipoExame: '', periodo: 'todos', pagina: 1, porPagina: 20,
+  busca: '', status: '', tipoExame: '', unidadeSolicitante: '',
+  periodo: 'todos', pagina: 1, porPagina: 20,
 };
 
 function registrar(acao: string, autor: string, categoria: EventoHistorico['categoria'], detalhes: string): void {
@@ -73,7 +74,9 @@ function filaCompleta(filtros: FiltroFila): Solicitacao[] {
       const buscaOk = !termo || alvo.includes(termo);
       const statusOk = !filtros.status || item.status === filtros.status;
       const tipoOk = !filtros.tipoExame || item.tipoExame === filtros.tipoExame;
-      return buscaOk && statusOk && tipoOk && filtrarPorPeriodo(item, filtros.periodo);
+      const unidadeOk = !filtros.unidadeSolicitante
+        || item.setorSolicitante === filtros.unidadeSolicitante;
+      return buscaOk && statusOk && tipoOk && unidadeOk && filtrarPorPeriodo(item, filtros.periodo);
     })
     .sort((a, b) => b.pontuacao - a.pontuacao
       || new Date(a.recebidaEm).getTime() - new Date(b.recebidaEm).getTime()
@@ -97,6 +100,20 @@ export async function listarFila(filtros: FiltroFila): Promise<ResultadoFila> {
     porPagina,
     totalPaginas,
   };
+}
+
+/** Unidades solicitantes disponíveis para o filtro da fila. */
+export async function listarUnidadesSolicitantes(): Promise<string[]> {
+  if (!USAR_MOCKS) {
+    // Endpoint de fila ainda pendente no backend; a lista vem da própria fila.
+    const { data } = await api.get<ResultadoFila>('/api/fila', {
+      params: { ...FILTROS_TODOS, porPagina: 500 },
+    });
+    return Array.from(new Set(data.itens.map((item) => item.setorSolicitante))).sort();
+  }
+  return Array.from(
+    new Set(mockDb.solicitacoes.map((item) => item.setorSolicitante)),
+  ).sort();
 }
 
 export async function obterSolicitacao(id: string): Promise<Solicitacao> {
@@ -133,7 +150,7 @@ export async function validarSolicitacao(id: string, justificativa: string, auto
     acao: 'Dados validados com assinatura eletrônica',
     autor,
     categoria: 'NEGOCIO_CLINICO',
-    detalhes: justificativa.trim() ? `Justificativa: ${justificativa.trim()}` : 'Conferência concluída sem divergências pendentes.',
+    detalhes: justificativa.trim() ? `Justificativa: ${justificativa.trim()}` : 'Validação concluída sem divergências pendentes.',
   });
   registrar('Validação de solicitação', autor, 'NEGOCIO_CLINICO', `${solicitacao.protocolo} validado.`);
   return clonar(solicitacao);
@@ -164,7 +181,9 @@ export async function registrarContato(
     operador,
     observacao,
   });
-  solicitacao.status = resultado === 'ACEITE' ? 'AGUARDANDO_CONTATO' : 'EM_CONFERENCIA';
+  solicitacao.status = resultado === 'ACEITE'
+    ? 'AGUARDANDO_CONFIRMACAO'
+    : 'AGUARDANDO_REAGENDAMENTO';
   solicitacao.historico.push({
     id: `hist-${crypto.randomUUID()}`,
     em: agoraIso(),
@@ -184,8 +203,8 @@ export async function efetivarAgendamento(id: string, dataHora: string, autor: s
   await pausa();
   const solicitacao = mockDb.solicitacoes.find((item) => item.id === id);
   if (!solicitacao) throw new Error('Solicitação não encontrada.');
-  if (solicitacao.status !== 'AGUARDANDO_CONTATO') {
-    throw new Error('A solicitação precisa estar validada e aguardando contato.');
+  if (solicitacao.status !== 'AGUARDANDO_CONTATO' && solicitacao.status !== 'AGUARDANDO_CONFIRMACAO') {
+    throw new Error('A solicitação precisa estar aguardando contato ou confirmação.');
   }
   if (!solicitacao.contatos.some((contato) => contato.resultado === 'ACEITE')) {
     throw new Error('Registre o aceite do paciente antes de efetivar o agendamento.');
@@ -200,10 +219,10 @@ export async function efetivarAgendamento(id: string, dataHora: string, autor: s
   solicitacao.historico.push({
     id: `hist-${crypto.randomUUID()}`,
     em: agoraIso(),
-    acao: 'Agendamento efetivado no AGHUX',
+    acao: 'Agendamento registrado na agenda local',
     autor,
     categoria: 'NEGOCIO_CLINICO',
-    detalhes: `Data e horário confirmados: ${solicitacao.agendamento.dataHora}.`,
+    detalhes: `Horário reservado no SAE-HC: ${solicitacao.agendamento.dataHora}. Nenhuma marcação foi enviada ao AGHUX.`,
   });
   return clonar(solicitacao);
 }
@@ -233,7 +252,7 @@ export async function listarIndicadores(filtros: FiltroIndicadores): Promise<Ind
   });
   const mediaHoras = horas.length ? Math.round(horas.reduce((soma, valor) => soma + valor, 0) / horas.length) : 0;
   const fator = filtros.periodo === 'todos' ? 4 : Math.max(1, Number(filtros.periodo) / 24);
-  const etapas = ['Conferência com AGHUX', 'Contato com paciente', 'Validação automática'];
+  const etapas = ['Validação com AGHUX', 'Contato com paciente', 'Validação automática'];
   const gargalos = Array.from(porUnidadeMap, ([unidade, quantidade], indice) => ({
     etapa: etapas[indice] ?? 'Fila de espera',
     unidadeSolicitante: unidade,
@@ -518,7 +537,7 @@ export async function reprocessarEventoIntegracao(responseId: string): Promise<F
 }
 
 /* -------------------------------------------------------------------------- */
-/* Agendamentos, calendário, sugestões e gestão de vagas (entrega v0.3.0)      */
+/* Agendamentos, calendário, sugestões e simulação de propostas (v0.4.0)     */
 /* -------------------------------------------------------------------------- */
 
 export interface FiltrosCalendarioAgendamentos {
@@ -593,7 +612,8 @@ const agendamentosMock: Agendamento[] = [];
 /** Ocupação sempre reflete todos os agendamentos ativos, independente do filtro do paciente. */
 function sincronizarOcupacaoMock(): void {
   slotsAgendaMock.forEach((slot) => {
-    const ocupadas = agendamentosMock.filter((item) => item.slotId === slot.id && item.status === 'ATIVO').length;
+    const ocupadas = agendamentosMock.filter((item) =>
+      item.slotId === slot.id && (item.status === 'ATIVO' || item.status === 'PROPOSTO')).length;
     slot.ocupadas = ocupadas;
     slot.livres = Math.max(0, slot.capacidade - ocupadas);
     if (slot.status !== 'ENCERRADO') {
@@ -625,7 +645,7 @@ function validarSlotMock(slot: AgendaSlot, pacienteChave?: string, ignorarId?: s
   if (slot.status === 'ENCERRADO') throw new Error('Esta vaga foi encerrada pela gestão.');
   if (slot.livres <= 0) throw new Error('Vaga esgotada para o horário selecionado.');
   if (pacienteChave && agendamentosMock.some((item) =>
-    item.status === 'ATIVO' && item.id !== ignorarId
+    (item.status === 'ATIVO' || item.status === 'PROPOSTO') && item.id !== ignorarId
     && item.pacienteChave === pacienteChave && item.slotId === slot.id)) {
     throw new Error('O paciente já possui agendamento ativo neste horário.');
   }
@@ -743,17 +763,18 @@ export async function listarSugestoesAgendamento(
   const hoje = agoraIso().slice(0, 10);
   const elegiveis = slotsAgendaMock.filter((slot) =>
     slot.status !== 'ENCERRADO' && slot.livres > 0 && slot.inicio.slice(0, 10) >= hoje);
-  const compatíveis = elegiveis.filter((slot) => slot.codigoExame === codigoDesejado);
-  const candidatos = (compatíveis.length > 0 ? compatíveis : elegiveis)
+  // O código do exame da solicitação é filtro duro: não se sugere outro exame.
+  const candidatos = (codigoDesejado
+    ? elegiveis.filter((slot) => slot.codigoExame === codigoDesejado)
+    : elegiveis)
     .map((slot) => {
       const dias = Math.max(0, Math.round((new Date(slot.inicio.slice(0, 10)).getTime()
         - new Date(hoje).getTime()) / 86_400_000));
-      const pontuacao = Math.min(99, Math.max(1,
-        92 - dias * 3 + slot.livres * 2 + (slot.codigoExame === codigoDesejado ? 6 : 0)));
+      const pontuacao = Math.min(99, Math.max(1, 92 - dias * 3 + slot.livres * 2));
       const motivos = [
-        slot.codigoExame === codigoDesejado
-          ? 'Exame compatível com a solicitação'
-          : 'Vaga em unidade alternativa próxima',
+        codigoDesejado
+          ? `Exame ${codigoDesejado} compatível com a solicitação`
+          : 'Vaga disponível para a solicitação',
         `${slot.livres} vaga(s) livre(s) no horário`,
         dias === 0 ? 'Horário disponível ainda hoje' : `Disponível em ${dias} dia(s)`,
         'Distância estimada em 12,5 km (simulação, sem endereço do paciente)',
@@ -782,9 +803,18 @@ export async function agendarExame(
   const solicitacao = encontrarSolicitacaoMock(solicitacaoId);
   if (!solicitacao) throw new Error('Solicitação não encontrada.');
   if (solicitacao.status === 'CANCELADA') throw new Error('Não é possível agendar uma solicitação cancelada.');
+  if (![
+    'AGUARDANDO_CONTATO', 'AGUARDANDO_CONFIRMACAO', 'AGUARDANDO_REAGENDAMENTO',
+  ].includes(solicitacao.status)) {
+    throw new Error('A solicitação precisa estar aguardando contato, confirmação ou reagendamento.');
+  }
+  if (!solicitacao.contatos.some((contato) => contato.resultado === 'ACEITE')) {
+    throw new Error('Registre o aceite do paciente antes de agendar.');
+  }
   const slot = slotsAgendaMock.find((item) => item.id === slotId);
   if (!slot) throw new Error('Vaga não encontrada.');
-  if (agendamentosMock.some((item) => item.status === 'ATIVO' && item.solicitacaoId === solicitacao.id)) {
+  if (agendamentosMock.some((item) =>
+    (item.status === 'ATIVO' || item.status === 'PROPOSTO') && item.solicitacaoId === solicitacao.id)) {
     throw new Error('Esta solicitação já possui agendamento ativo.');
   }
   validarSlotMock(slot, chavePacienteMock(solicitacao.prontuario));
@@ -842,7 +872,9 @@ export async function remarcarAgendamento(
   sincronizarOcupacaoMock();
   const agendamento = agendamentosMock.find((item) => item.id === id);
   if (!agendamento) throw new Error('Agendamento não encontrado.');
-  if (agendamento.status !== 'ATIVO') throw new Error('Somente agendamentos ativos podem ser remarcados.');
+  if (agendamento.status !== 'ATIVO' && agendamento.status !== 'PROPOSTO') {
+    throw new Error('Somente agendamentos ativos ou propostos podem ser remarcados.');
+  }
   if (!justificativa.trim()) throw new Error('A justificativa é obrigatória para remarcar.');
   const slot = slotsAgendaMock.find((item) => item.id === slotId);
   if (!slot) throw new Error('Vaga não encontrada.');
@@ -877,18 +909,189 @@ export async function cancelarAgendamento(
   await pausa();
   const agendamento = agendamentosMock.find((item) => item.id === id);
   if (!agendamento) throw new Error('Agendamento não encontrado.');
-  if (agendamento.status !== 'ATIVO') throw new Error('Somente agendamentos ativos podem ser cancelados.');
+  if (agendamento.status !== 'ATIVO' && agendamento.status !== 'PROPOSTO') {
+    throw new Error('Somente agendamentos ativos ou propostos podem ser cancelados.');
+  }
   if (!justificativa.trim()) throw new Error('A justificativa é obrigatória para cancelar.');
+  const eraProposta = agendamento.status === 'PROPOSTO';
   agendamento.status = 'CANCELADO';
   agendamento.justificativa = justificativa.trim();
   agendamento.confirmadoPor = autor;
   const solicitacao = encontrarSolicitacaoMock(agendamento.solicitacaoId);
   if (solicitacao) {
-    solicitacao.status = 'AGUARDANDO_CONTATO';
+    solicitacao.status = eraProposta ? 'AGUARDANDO_REAGENDAMENTO' : 'CANCELADA';
     solicitacao.agendamento = null;
   }
   registrar('Agendamento cancelado', autor, 'NEGOCIO_CLINICO',
     `${agendamento.protocolo}: ${agendamento.dataHora}. Justificativa: ${justificativa.trim()}`);
+  sincronizarOcupacaoMock();
+  return clonar(agendamento);
+}
+
+export interface ResultadoSimulacaoAgenda {
+  geradas: number;
+  solicitacoes: number;
+  dias: number;
+}
+
+/**
+ * POST /api/agendamentos/propostas/gerar (simulação local)
+ * Pré-aloca solicitações com aceite nas vagas dos próximos dias. As propostas
+ * ocupam a vaga, mas só viram agendamentos ATIVOS após confirmação do operador.
+ */
+export async function gerarPropostasAgendamento(
+  dias = 30,
+  autor = 'Sistema',
+): Promise<ResultadoSimulacaoAgenda> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<ResultadoSimulacaoAgenda>(
+      '/api/agendamentos/propostas/gerar', { dias, autor },
+    );
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const inicio = agoraIso();
+  const limite = somarHoras(inicio, Math.max(1, dias) * 24).slice(0, 10);
+  const elegiveis = mockDb.solicitacoes
+    .filter((solicitacao) => [
+      'AGUARDANDO_CONTATO', 'AGUARDANDO_CONFIRMACAO', 'AGUARDANDO_REAGENDAMENTO',
+    ].includes(solicitacao.status))
+    .filter((solicitacao) => solicitacao.contatos.some((contato) => contato.resultado === 'ACEITE'))
+    .filter((solicitacao) => !solicitacao.divergencias.some((divergencia) => !divergencia.tratada))
+    .filter((solicitacao) => !agendamentosMock.some((agendamento) =>
+      agendamento.solicitacaoId === solicitacao.id
+      && (agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO')))
+    .sort((a, b) => b.pontuacao - a.pontuacao
+      || new Date(a.recebidaEm).getTime() - new Date(b.recebidaEm).getTime());
+
+  let geradas = 0;
+  elegiveis.forEach((solicitacao) => {
+    const codigo = solicitacao.itensExame[0]?.codigoExame ?? '';
+    const chave = chavePacienteMock(solicitacao.prontuario);
+    const slot = slotsAgendaMock
+      .filter((candidato) => candidato.codigoExame === codigo
+        && candidato.inicio >= inicio
+        && candidato.inicio.slice(0, 10) <= limite
+        && candidato.status !== 'ENCERRADO'
+        && candidato.livres > 0)
+      .sort((a, b) => a.inicio.localeCompare(b.inicio))
+      .find((candidato) => !agendamentosMock.some((agendamento) =>
+        agendamento.pacienteChave === chave
+        && (agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO')
+        && agendamento.dataHora.slice(0, 10) === candidato.inicio.slice(0, 10)));
+    if (!slot) return;
+
+    const proposta: Agendamento = {
+      id: `ag-${crypto.randomUUID()}`,
+      solicitacaoId: solicitacao.id,
+      protocolo: solicitacao.protocolo,
+      pacienteChave: chave,
+      pacienteNome: solicitacao.pacienteNome,
+      prontuario: solicitacao.prontuario,
+      unidade: slot.unidade,
+      exame: slot.nomeExame,
+      slotId: slot.id,
+      dataHora: slot.inicio,
+      status: 'PROPOSTO',
+      confirmadoPor: autor,
+      criadoEm: agoraIso(),
+      justificativa: null,
+    };
+    agendamentosMock.push(proposta);
+    solicitacao.status = 'AGUARDANDO_CONFIRMACAO';
+    solicitacao.historico.push({
+      id: `hist-${crypto.randomUUID()}`,
+      em: agoraIso(),
+      acao: 'Horário proposto pela simulação da agenda',
+      autor,
+      categoria: 'NEGOCIO_CLINICO',
+      detalhes: `${slot.unidade} · ${slot.inicio} · vaga reservada para confirmação.`,
+    });
+    geradas += 1;
+  });
+
+  sincronizarOcupacaoMock();
+  registrar('Simulação de agenda', autor, 'NEGOCIO_CLINICO',
+    `${geradas} proposta(s) gerada(s) para os próximos ${dias} dias.`);
+  return { geradas, solicitacoes: elegiveis.length, dias };
+}
+
+/** POST /api/agendamentos/{id}/confirmar — confirma a proposta em um clique. */
+export async function confirmarPropostaAgendamento(
+  id: string, autor: string,
+): Promise<Agendamento> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Agendamento>(
+      `/api/agendamentos/${encodeURIComponent(id)}/confirmar`, { autor },
+    );
+    return data;
+  }
+  await pausa();
+  const agendamento = agendamentosMock.find((item) => item.id === id);
+  if (!agendamento) throw new Error('Proposta não encontrada.');
+  if (agendamento.status !== 'PROPOSTO') throw new Error('Somente propostas podem ser confirmadas.');
+  agendamento.status = 'ATIVO';
+  agendamento.confirmadoPor = autor;
+  const solicitacao = encontrarSolicitacaoMock(agendamento.solicitacaoId);
+  if (solicitacao) {
+    solicitacao.status = 'AGENDADA';
+    solicitacao.agendamento = {
+      dataHora: agendamento.dataHora,
+      unidade: agendamento.unidade,
+      confirmadoPor: autor,
+      criadoEm: agoraIso(),
+    };
+    solicitacao.historico.push({
+      id: `hist-${crypto.randomUUID()}`,
+      em: agoraIso(),
+      acao: 'Proposta confirmada pelo operador',
+      autor,
+      categoria: 'NEGOCIO_CLINICO',
+      detalhes: `${agendamento.protocolo} confirmado em ${agendamento.dataHora}.`,
+    });
+  }
+  registrar('Proposta de agendamento confirmada', autor, 'NEGOCIO_CLINICO',
+    `${agendamento.protocolo} em ${agendamento.dataHora}.`);
+  sincronizarOcupacaoMock();
+  return clonar(agendamento);
+}
+
+/** POST /api/agendamentos/{id}/nao-confirmado — paciente não confirmou. */
+export async function registrarNaoConfirmacaoAgendamento(
+  id: string, justificativa: string, autor: string,
+): Promise<Agendamento> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Agendamento>(
+      `/api/agendamentos/${encodeURIComponent(id)}/nao-confirmado`,
+      { justificativa, autor },
+    );
+    return data;
+  }
+  await pausa();
+  const agendamento = agendamentosMock.find((item) => item.id === id);
+  if (!agendamento) throw new Error('Agendamento não encontrado.');
+  if (agendamento.status !== 'PROPOSTO' && agendamento.status !== 'ATIVO') {
+    throw new Error('Somente propostas ou agendamentos ativos podem ser marcados como não confirmados.');
+  }
+  agendamento.status = 'CANCELADO';
+  agendamento.justificativa = justificativa.trim() || 'Paciente não confirmou o horário';
+  agendamento.confirmadoPor = autor;
+  const solicitacao = encontrarSolicitacaoMock(agendamento.solicitacaoId);
+  if (solicitacao) {
+    solicitacao.status = 'AGUARDANDO_REAGENDAMENTO';
+    solicitacao.agendamento = null;
+    solicitacao.historico.push({
+      id: `hist-${crypto.randomUUID()}`,
+      em: agoraIso(),
+      acao: 'Paciente não confirmou o horário',
+      autor,
+      categoria: 'NEGOCIO_CLINICO',
+      detalhes: agendamento.justificativa,
+    });
+  }
+  registrar('Não confirmação de agendamento', autor, 'NEGOCIO_CLINICO',
+    `${agendamento.protocolo}: ${agendamento.justificativa}.`);
   sincronizarOcupacaoMock();
   return clonar(agendamento);
 }

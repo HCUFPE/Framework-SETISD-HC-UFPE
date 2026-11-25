@@ -1,5 +1,5 @@
 """
-Routers da Gestão de Agendamentos (v0.3.0)
+Routers da Gestão de Agendamentos (v0.4.0)
 ==========================================
 Todos os roteadores declaram JWT no nível do `APIRouter` (default-private) e
 reforçam RBAC no backend. O grupo `GLO-SEC-HCPE-SETISD` do usuário mock
@@ -140,6 +140,26 @@ class CancelarPayload(BaseModel):
     autor: str = Field(min_length=1)
 
 
+class GerarPropostasPayload(BaseModel):
+    """Horizonte da simulação local da agenda."""
+
+    dias: int = Field(default=30, ge=1, le=90)
+    autor: str = Field(default="Sistema", min_length=1)
+
+
+class ConfirmarPropostaPayload(BaseModel):
+    """Confirmação da proposta pelo operador (um clique)."""
+
+    autor: str = Field(min_length=1)
+
+
+class NaoConfirmacaoPayload(BaseModel):
+    """Registro de não confirmação do paciente, com justificativa."""
+
+    justificativa: Optional[str] = None
+    autor: str = Field(min_length=1)
+
+
 class ValidacaoPayload(BaseModel):
     """Justificativas opcionais das divergências tratadas."""
 
@@ -233,6 +253,63 @@ async def criar_agendamento(
         provider,
         solicitacao_id=payload.solicitacaoId,
         slot_id=payload.slotId,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@router.post("/propostas/gerar", status_code=status.HTTP_201_CREATED)
+async def gerar_propostas(
+    payload: GerarPropostasPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_escrita),
+):
+    """Pré-aloca solicitações elegíveis nas vagas dos próximos dias."""
+    return await controller.gerar_propostas(
+        db,
+        provider,
+        dias=payload.dias,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@router.post("/{agendamento_id}/confirmar")
+async def confirmar_proposta(
+    agendamento_id: str,
+    payload: ConfirmarPropostaPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_escrita),
+):
+    """Confirma a proposta em um clique; não depende de nova confirmação."""
+    return await controller.confirmar_proposta(
+        db,
+        provider,
+        agendamento_id=agendamento_id,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@router.post("/{agendamento_id}/nao-confirmado")
+async def nao_confirmacao(
+    agendamento_id: str,
+    payload: NaoConfirmacaoPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_escrita),
+):
+    """Registra não confirmação do paciente e encaminha para reagendamento."""
+    return await controller.registrar_nao_confirmacao(
+        db,
+        provider,
+        agendamento_id=agendamento_id,
+        justificativa=payload.justificativa,
         autor=payload.autor,
         ip=_ip(request),
     )
