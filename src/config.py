@@ -26,6 +26,11 @@ DEFAULT_FORMS_FIELD_MAP: Dict[str, List[str]] = {
     "cpf": ["cpf", "CPF"],
     "cns": ["cns", "CNS"],
     "telefone": ["telefone", "celular", "phone", "contato"],
+    "cep": ["cep", "cepPaciente", "postalCode", "zipCode"],
+    "logradouro": ["logradouro", "endereco", "endereço", "address", "rua", "avenida"],
+    "numero": ["numero", "número", "numeroEndereco", "number"],
+    "complemento": ["complemento", "complementoEndereco", "complement"],
+    "bairro": ["bairro", "district", "neighborhood"],
     "cidade": ["cidade", "city"],
     "estado": ["estado", "uf", "state"],
     "codigoExame": ["codigoExame", "codigo_exame", "examCode", "exame"],
@@ -98,6 +103,28 @@ class Settings:
     )
     PHI_ENCRYPTION_KEY: str = os.getenv("PHI_ENCRYPTION_KEY", "")
 
+    # 6. Gestão de Agendamentos e Distância (v0.3.0)
+    DISTANCE_PROVIDER_TYPE: str = os.getenv("DISTANCE_PROVIDER_TYPE", "OSM").upper()
+    OSM_NOMINATIM_URL: str = os.getenv(
+        "OSM_NOMINATIM_URL", "https://nominatim.openstreetmap.org/search"
+    )
+    OSM_OSRM_URL: str = os.getenv("OSM_OSRM_URL", "https://router.project-osrm.org")
+    OSM_USER_AGENT: str = os.getenv(
+        "OSM_USER_AGENT", "SAE-HC/0.3.0 (contato: ti@hc.ebserh.gov.br)"
+    )
+    HOSPITAL_LATITUDE: str = os.getenv("HOSPITAL_LATITUDE", "-8.0476")
+    HOSPITAL_LONGITUDE: str = os.getenv("HOSPITAL_LONGITUDE", "-34.8770")
+    DISTANCE_TIMEOUT_SECONDS: float = float(os.getenv("DISTANCE_TIMEOUT_SECONDS", "5"))
+    DISTANCE_CACHE_TTL_HOURS: float = float(os.getenv("DISTANCE_CACHE_TTL_HOURS", "168"))
+    MOCK_DISTANCE_KM: float = float(os.getenv("MOCK_DISTANCE_KM", "12.5"))
+    AGENDA_SUGGESTION_HORIZON_DAYS: int = int(os.getenv("AGENDA_SUGGESTION_HORIZON_DAYS", "30"))
+    AGENDA_SUGGESTION_LIMIT: int = int(os.getenv("AGENDA_SUGGESTION_LIMIT", "3"))
+    AGENDA_WEIGHT_PRIORIDADE: float = float(os.getenv("AGENDA_WEIGHT_PRIORIDADE", "35"))
+    AGENDA_WEIGHT_VAGAS: float = float(os.getenv("AGENDA_WEIGHT_VAGAS", "15"))
+    AGENDA_WEIGHT_COMPATIBILIDADE: float = float(os.getenv("AGENDA_WEIGHT_COMPATIBILIDADE", "20"))
+    AGENDA_WEIGHT_ESPERA: float = float(os.getenv("AGENDA_WEIGHT_ESPERA", "20"))
+    AGENDA_WEIGHT_DISTANCIA: float = float(os.getenv("AGENDA_WEIGHT_DISTANCIA", "10"))
+
     @classmethod
     def chave_cripto(cls) -> bytes:
         """
@@ -156,6 +183,25 @@ class Settings:
                 logger.warning(
                     "⚠️ AVISO: provedores MOCK/JSON ativos em produção. "
                     "Configure FORMS_PROVIDER_TYPE e AGHUX_PROVIDER_TYPE com as fontes reais."
+                )
+            marcadores_user_agent = ("ALTERAR", "SEU_USER", "PLACEHOLDER", "SUBSTITUIR")
+            if (
+                not cls.OSM_USER_AGENT.strip()
+                or any(marca in cls.OSM_USER_AGENT.upper() for marca in marcadores_user_agent)
+            ):
+                logger.error(
+                    "❌ ERRO CRÍTICO: 'OSM_USER_AGENT' está vazio/placeholder em produção. "
+                    "Informe um User-Agent identificável com contato para o OpenStreetMap."
+                )
+            if not cls.HOSPITAL_LATITUDE.strip() or not cls.HOSPITAL_LONGITUDE.strip():
+                logger.error(
+                    "❌ ERRO CRÍTICO: 'HOSPITAL_LATITUDE'/'HOSPITAL_LONGITUDE' vazias em produção; "
+                    "o cálculo de distância até o hospital ficará indisponível."
+                )
+            if cls.DISTANCE_PROVIDER_TYPE == "MOCK":
+                logger.error(
+                    "❌ ERRO CRÍTICO: 'DISTANCE_PROVIDER_TYPE=MOCK' em produção; "
+                    "distâncias simuladas não podem orientar agendamentos reais."
                 )
         logger.info(f"Configurações carregadas com sucesso. Ambiente: '{cls.ENV.upper()}'")
 

@@ -116,6 +116,7 @@ import {
   CubeTransparentIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
+  CalendarDaysIcon,
 } from '@heroicons/vue/24/outline';
 import ProfileDropdown from '../components/ProfileDropdown.vue';
 import Button from '../components/Button.vue';
@@ -123,13 +124,14 @@ import { useAuthStore } from '../stores/auth';
 import { usePerfilStore } from '../stores/perfil';
 import { APP_VERSION, APP_NAME, SYSTEM_TITLE } from '../config/version';
 import { USAR_MOCKS } from '../config/mocks';
+import { papeisAgendamentos, possuiPapel } from '../router';
 import { PERFIS, ROTULOS_PERFIL, type Perfil } from '../types/sae';
 
 interface ItemMenu {
   rota: string;
   nome: string;
   icone: Component;
-  perfis: Perfil[];
+  perfis: typeof papeisAgendamentos;
 }
 
 interface GrupoMenu {
@@ -150,6 +152,7 @@ const grupos: GrupoMenu[] = [
     titulo: 'Operação',
     itens: [
       { rota: '/fila', nome: 'Fila de Marcação', icone: TableCellsIcon, perfis: ['OPERADOR', 'CHEFIA', 'AREA_GESTORA'] },
+      { rota: '/agendamentos', nome: 'Agendamentos', icone: CalendarDaysIcon, perfis: papeisAgendamentos },
     ],
   },
   {
@@ -173,7 +176,7 @@ const grupos: GrupoMenu[] = [
 ];
 
 const gruposVisiveis = computed(() => grupos
-  .map((grupo) => ({ ...grupo, itens: grupo.itens.filter((item) => authStore.temPerfil(...item.perfis)) }))
+  .map((grupo) => ({ ...grupo, itens: grupo.itens.filter((item) => possuiPapel(authStore, item.perfis)) }))
   .filter((grupo) => grupo.itens.length > 0));
 
 function toggleSidebar(): void {
@@ -182,8 +185,8 @@ function toggleSidebar(): void {
 
 function definirPerfil(evento: Event): void {
   perfilStore.definir((evento.target as HTMLSelectElement).value as Perfil);
-  const perfis = route.meta.roles as Perfil[] | undefined;
-  if (perfis && perfis.length > 0 && !authStore.temPerfil(...perfis)) {
+  const perfis = route.meta.roles as typeof papeisAgendamentos | undefined;
+  if (perfis && perfis.length > 0 && !possuiPapel(authStore, perfis)) {
     void router.push({ name: 'Início' });
   }
 }

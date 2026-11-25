@@ -71,6 +71,12 @@ def mask_phi(value: Optional[str]) -> Optional[str]:
 
 
 def to_dict_seguro(valores: dict) -> dict:
-    """Remove chaves sensíveis antes de gravar em auditoria."""
-    sensiveis = {"cpf", "cns", "cpf_cripto", "cns_cripto", "cpf_hash", "cns_hash", "payload", "resposta"}
+    """Remove chaves sensíveis (incluindo endereço) antes de gravar em auditoria."""
+    sensiveis = {
+        "cpf", "cns", "cpf_cripto", "cns_cripto", "cpf_hash", "cns_hash",
+        "payload", "resposta",
+        "cep", "endereco", "logradouro", "numero", "complemento", "bairro",
+        "pacienteEndereco", "paciente_endereco",
+        "distancia", "distanciaKm", "distancia_bruta", "latitude", "longitude",
+    }
     return {chave: valor for chave, valor in valores.items() if chave not in sensiveis}

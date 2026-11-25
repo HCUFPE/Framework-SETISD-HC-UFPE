@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 from .providers.implementations.paciente_postgres_provider import PacientePostgresProvider
 from .providers.implementations.paciente_csv_provider import PacienteCsvProvider
-from .resources.database import get_aghu_db_session
+from .resources.database import get_aghu_db_session, get_app_db_session
 
 # 1. Funções "getter" simples e independentes (privadas por convenção)
 def _get_paciente_postgres_provider(
@@ -59,3 +59,25 @@ def get_aghux_provider() -> AghuxProviderInterface:
     if settings.AGHUX_PROVIDER_TYPE.upper() == "AGHU":
         return AghuProvider()
     return AghuxJsonProvider()
+
+
+# 7. Gestão de Agendamentos (v0.3.0)
+from .providers.interfaces.distance_provider_interface import DistanceProviderInterface
+from .providers.interfaces.slot_provider_interface import SlotProviderInterface
+from .providers.implementations.distance_provider import (
+    MockDistanceProvider,
+    OpenStreetMapDistanceProvider,
+)
+from .providers.implementations.slot_provider import SlotProvider
+
+
+def get_slot_provider(db: AsyncSession = Depends(get_app_db_session)) -> SlotProviderInterface:
+    """Fornece o provedor de vagas locais na sessão do banco da aplicação."""
+    return SlotProvider(db=db)
+
+
+def get_distance_provider() -> DistanceProviderInterface:
+    """Seleciona o provedor de distância; MOCK apenas em desenvolvimento/testes."""
+    if settings.DISTANCE_PROVIDER_TYPE.upper() == "MOCK":
+        return MockDistanceProvider()
+    return OpenStreetMapDistanceProvider()

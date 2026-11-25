@@ -5,22 +5,27 @@
  */
 import api from './api';
 import { USAR_MOCKS } from '../config/mocks';
-import { agoraIso, horasDesdeReferencia, somarHoras } from '../config/tempo';
+import { REFERENCIA_EM, agoraIso, horasDesdeReferencia, paraIsoLocal, somarHoras } from '../config/tempo';
 import { calcularPontuacao, clonar, consultarAdMock, mockDb } from '../mocks/fixtures';
 import { classificarPrioridade } from '../utils/format';
 import type {
   AdUser,
+  AgendaSlot,
+  Agendamento,
+  CalendarioAgendamentos,
   CriterioPriorizacao,
   EventoHistorico,
   FiltroFila,
   FiltroIndicadores,
   FormsEvento,
   Indicadores,
+  PacienteAgendamentos,
   Relatorio,
   ResultadoContato,
   ResultadoFila,
   ResultadoRelatorio,
   Solicitacao,
+  SugestaoAgendamento,
   UsuarioEquipe,
   VersaoCriterios,
 } from '../types/sae';
@@ -510,4 +515,473 @@ export async function reprocessarEventoIntegracao(responseId: string): Promise<F
   }
   registrar('Reprocessamento de evento Forms', 'Área Gestora', 'NEGOCIO_CLINICO', `${responseId} reprocessado: ${evento.status}.`);
   return clonar(evento);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Agendamentos, calendário, sugestões e gestão de vagas (entrega v0.3.0)      */
+/* -------------------------------------------------------------------------- */
+
+export interface FiltrosCalendarioAgendamentos {
+  de: string;
+  ate: string;
+  unidade?: string;
+  codigoExame?: string;
+  pacienteChave?: string;
+}
+
+export interface DadosNovoSlot {
+  unidade: string;
+  codigoExame: string;
+  nomeExame: string;
+  inicio: string;
+  fim: string;
+  capacidade: number;
+}
+
+export interface AjusteSlot {
+  capacidade?: number;
+  status?: AgendaSlot['status'];
+}
+
+/** Unidades e exames usados para compor a agenda simulada (derivados do export AGHUX). */
+const unidadesAgendaMock = Array.from(
+  new Set(mockDb.solicitacoes.map((item) => item.setorSolicitante)),
+).sort().slice(0, 3);
+
+const examesAgendaMock = Array.from(
+  new Map(mockDb.solicitacoes.flatMap((item) => item.itensExame)
+    .map((item) => [item.codigoExame, item] as const)).values(),
+).slice(0, 3);
+
+const TURNOS_AGENDA = [[8, 10], [10, 12], [13, 15], [15, 17]] as const;
+
+function gerarSlotsDeterministicos(): AgendaSlot[] {
+  const referencia = new Date(`${REFERENCIA_EM.slice(0, 10)}T12:00:00`).getTime();
+  const slots: AgendaSlot[] = [];
+  for (let offset = 0; offset < 30; offset += 1) {
+    const data = new Date(referencia + offset * 86_400_000);
+    const diaSemana = data.getDay();
+    if (diaSemana === 0 || diaSemana === 6) continue;
+    const dia = paraIsoLocal(data.getTime()).slice(0, 10);
+    unidadesAgendaMock.forEach((unidade, indiceUnidade) => {
+      examesAgendaMock.forEach((exame, indiceExame) => {
+        TURNOS_AGENDA.forEach(([horaInicio, horaFim], indiceTurno) => {
+          const capacidade = 3 + ((offset + indiceUnidade + indiceExame + indiceTurno) % 3);
+          const dois = (valor: number): string => String(valor).padStart(2, '0');
+          slots.push({
+            id: `slot-${dia.replace(/-/g, '')}-${indiceUnidade}-${indiceExame}-${indiceTurno}`,
+            unidade,
+            codigoExame: exame.codigoExame,
+            nomeExame: exame.nomeExame,
+            inicio: `${dia}T${dois(horaInicio)}:00:00.000`,
+            fim: `${dia}T${dois(horaFim)}:00:00.000`,
+            capacidade,
+            ocupadas: 0,
+            livres: capacidade,
+            status: 'DISPONIVEL',
+          });
+        });
+      });
+    });
+  }
+  return slots.sort((a, b) => a.inicio.localeCompare(b.inicio) || a.unidade.localeCompare(b.unidade));
+}
+
+const slotsAgendaMock: AgendaSlot[] = gerarSlotsDeterministicos();
+const agendamentosMock: Agendamento[] = [];
+
+/** Ocupação sempre reflete todos os agendamentos ativos, independente do filtro do paciente. */
+function sincronizarOcupacaoMock(): void {
+  slotsAgendaMock.forEach((slot) => {
+    const ocupadas = agendamentosMock.filter((item) => item.slotId === slot.id && item.status === 'ATIVO').length;
+    slot.ocupadas = ocupadas;
+    slot.livres = Math.max(0, slot.capacidade - ocupadas);
+    if (slot.status !== 'ENCERRADO') {
+      slot.status = slot.livres === 0 ? 'LOTADO' : 'DISPONIVEL';
+    }
+  });
+}
+
+function chavePacienteMock(prontuario: string): string {
+  return `PAC-${prontuario}`;
+}
+
+function encontrarSolicitacaoMock(id: string): Solicitacao | undefined {
+  return mockDb.solicitacoes.find((item) =>
+    item.id === id || item.protocolo === id || item.codigoSolicitacaoAghux === id);
+}
+
+function normalizarIsoMock(valor: string): string {
+  return valor.length === 16 ? `${valor}:00.000` : valor;
+}
+
+function limitesConsultaMock(de: string, ate: string): { inicio: string; fim: string } {
+  const inicio = de.length === 10 ? `${de}T00:00:00.000` : de;
+  const fim = ate.length === 10 ? `${ate}T23:59:59.999` : ate;
+  return { inicio, fim };
+}
+
+function validarSlotMock(slot: AgendaSlot, pacienteChave?: string, ignorarId?: string): void {
+  if (slot.status === 'ENCERRADO') throw new Error('Esta vaga foi encerrada pela gestão.');
+  if (slot.livres <= 0) throw new Error('Vaga esgotada para o horário selecionado.');
+  if (pacienteChave && agendamentosMock.some((item) =>
+    item.status === 'ATIVO' && item.id !== ignorarId
+    && item.pacienteChave === pacienteChave && item.slotId === slot.id)) {
+    throw new Error('O paciente já possui agendamento ativo neste horário.');
+  }
+}
+
+/** GET /api/agendamentos/calendario */
+export async function listarCalendarioAgendamentos(
+  filtros: FiltrosCalendarioAgendamentos,
+): Promise<CalendarioAgendamentos> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.get<CalendarioAgendamentos>('/api/agendamentos/calendario', {
+      params: {
+        de: filtros.de,
+        ate: filtros.ate,
+        unidade: filtros.unidade ?? '',
+        codigoExame: filtros.codigoExame ?? '',
+        pacienteChave: filtros.pacienteChave ?? '',
+      },
+    });
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const { inicio, fim } = limitesConsultaMock(filtros.de, filtros.ate);
+  const slots = slotsAgendaMock.filter((slot) =>
+    slot.inicio >= inicio && slot.inicio < fim
+    && (!filtros.unidade || slot.unidade === filtros.unidade)
+    && (!filtros.codigoExame || slot.codigoExame === filtros.codigoExame));
+  const slotsPorId = new Map(slotsAgendaMock.map((slot) => [slot.id, slot]));
+  const agendamentos = agendamentosMock.filter((agendamento) =>
+    agendamento.dataHora >= inicio && agendamento.dataHora < fim
+    && (!filtros.unidade || agendamento.unidade === filtros.unidade)
+    && (!filtros.codigoExame || slotsPorId.get(agendamento.slotId)?.codigoExame === filtros.codigoExame)
+    && (!filtros.pacienteChave || agendamento.pacienteChave === filtros.pacienteChave));
+  return { de: filtros.de, ate: filtros.ate, slots: clonar(slots), agendamentos: clonar(agendamentos) };
+}
+
+/** GET /api/agendamentos/pacientes/buscar?q= */
+export async function buscarPacientesAgendamento(q: string): Promise<PacienteAgendamentos[]> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.get<PacienteAgendamentos[]>('/api/agendamentos/pacientes/buscar', {
+      params: { q },
+    });
+    return data;
+  }
+  await pausa();
+  const pacientes = new Map<string, PacienteAgendamentos>();
+  const protocolosPorProntuario = new Map<string, string[]>();
+  mockDb.solicitacoes.forEach((solicitacao) => {
+    const chave = chavePacienteMock(solicitacao.prontuario);
+    if (!pacientes.has(chave)) {
+      pacientes.set(chave, {
+        pacienteChave: chave,
+        pacienteNome: solicitacao.pacienteNome,
+        prontuario: solicitacao.prontuario,
+        agendamentosAtivos: 0,
+      });
+    }
+    const protocolos = protocolosPorProntuario.get(solicitacao.prontuario) ?? [];
+    protocolos.push(solicitacao.protocolo);
+    protocolosPorProntuario.set(solicitacao.prontuario, protocolos);
+  });
+  agendamentosMock.filter((item) => item.status === 'ATIVO').forEach((agendamento) => {
+    const paciente = pacientes.get(agendamento.pacienteChave) ?? {
+      pacienteChave: agendamento.pacienteChave,
+      pacienteNome: agendamento.pacienteNome,
+      prontuario: agendamento.prontuario,
+      agendamentosAtivos: 0,
+    };
+    paciente.agendamentosAtivos += 1;
+    pacientes.set(paciente.pacienteChave, paciente);
+  });
+  const termo = q.trim().toLowerCase();
+  return Array.from(pacientes.values())
+    .filter((paciente) => !termo || [
+      paciente.pacienteNome,
+      paciente.prontuario,
+      ...(protocolosPorProntuario.get(paciente.prontuario) ?? []),
+    ].join(' ').toLowerCase().includes(termo))
+    .sort((a, b) => a.pacienteNome.localeCompare(b.pacienteNome))
+    .slice(0, 20);
+}
+
+/** GET /api/agendamentos/paciente/{pacienteChave} */
+export async function listarAgendamentosPaciente(pacienteChave: string): Promise<Agendamento[]> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.get<Agendamento[]>(
+      `/api/agendamentos/paciente/${encodeURIComponent(pacienteChave)}`,
+    );
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  return clonar(agendamentosMock
+    .filter((item) => item.pacienteChave === pacienteChave || item.prontuario === pacienteChave)
+    .sort((a, b) => b.dataHora.localeCompare(a.dataHora)));
+}
+
+/** GET /api/agendamentos/sugestoes/{solicitacaoId}?limite=3 */
+export async function listarSugestoesAgendamento(
+  solicitacaoId: string,
+  limite = 3,
+): Promise<SugestaoAgendamento[]> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.get<SugestaoAgendamento[]>(
+      `/api/agendamentos/sugestoes/${encodeURIComponent(solicitacaoId)}`,
+      { params: { limite } },
+    );
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const solicitacao = encontrarSolicitacaoMock(solicitacaoId);
+  const codigoDesejado = solicitacao?.itensExame[0]?.codigoExame ?? '';
+  const hoje = agoraIso().slice(0, 10);
+  const elegiveis = slotsAgendaMock.filter((slot) =>
+    slot.status !== 'ENCERRADO' && slot.livres > 0 && slot.inicio.slice(0, 10) >= hoje);
+  const compatíveis = elegiveis.filter((slot) => slot.codigoExame === codigoDesejado);
+  const candidatos = (compatíveis.length > 0 ? compatíveis : elegiveis)
+    .map((slot) => {
+      const dias = Math.max(0, Math.round((new Date(slot.inicio.slice(0, 10)).getTime()
+        - new Date(hoje).getTime()) / 86_400_000));
+      const pontuacao = Math.min(99, Math.max(1,
+        92 - dias * 3 + slot.livres * 2 + (slot.codigoExame === codigoDesejado ? 6 : 0)));
+      const motivos = [
+        slot.codigoExame === codigoDesejado
+          ? 'Exame compatível com a solicitação'
+          : 'Vaga em unidade alternativa próxima',
+        `${slot.livres} vaga(s) livre(s) no horário`,
+        dias === 0 ? 'Horário disponível ainda hoje' : `Disponível em ${dias} dia(s)`,
+        'Distância estimada em 12,5 km (simulação, sem endereço do paciente)',
+      ];
+      const sugestao: SugestaoAgendamento = {
+        slot: clonar(slot), pontuacao, motivos, distanciaKm: 12.5, distanciaOrigem: 'MOCK',
+      };
+      return sugestao;
+    })
+    .sort((a, b) => b.pontuacao - a.pontuacao || a.slot.inicio.localeCompare(b.slot.inicio));
+  return candidatos.slice(0, Math.max(1, Math.min(limite, 10)));
+}
+
+/** POST /api/agendamentos */
+export async function agendarExame(
+  solicitacaoId: string,
+  slotId: string,
+  autor: string,
+): Promise<Agendamento> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Agendamento>('/api/agendamentos', { solicitacaoId, slotId, autor });
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const solicitacao = encontrarSolicitacaoMock(solicitacaoId);
+  if (!solicitacao) throw new Error('Solicitação não encontrada.');
+  if (solicitacao.status === 'CANCELADA') throw new Error('Não é possível agendar uma solicitação cancelada.');
+  const slot = slotsAgendaMock.find((item) => item.id === slotId);
+  if (!slot) throw new Error('Vaga não encontrada.');
+  if (agendamentosMock.some((item) => item.status === 'ATIVO' && item.solicitacaoId === solicitacao.id)) {
+    throw new Error('Esta solicitação já possui agendamento ativo.');
+  }
+  validarSlotMock(slot, chavePacienteMock(solicitacao.prontuario));
+  const agendamento: Agendamento = {
+    id: `ag-${crypto.randomUUID()}`,
+    solicitacaoId: solicitacao.id,
+    protocolo: solicitacao.protocolo,
+    pacienteChave: chavePacienteMock(solicitacao.prontuario),
+    pacienteNome: solicitacao.pacienteNome,
+    prontuario: solicitacao.prontuario,
+    unidade: slot.unidade,
+    exame: slot.nomeExame,
+    slotId: slot.id,
+    dataHora: slot.inicio,
+    status: 'ATIVO',
+    confirmadoPor: autor,
+    criadoEm: agoraIso(),
+    justificativa: null,
+  };
+  agendamentosMock.push(agendamento);
+  solicitacao.status = 'AGENDADA';
+  solicitacao.agendamento = {
+    dataHora: slot.inicio,
+    unidade: slot.unidade,
+    confirmadoPor: autor,
+    criadoEm: agoraIso(),
+  };
+  solicitacao.historico.push({
+    id: `hist-${crypto.randomUUID()}`,
+    em: agoraIso(),
+    acao: 'Agendamento efetivado na agenda',
+    autor,
+    categoria: 'NEGOCIO_CLINICO',
+    detalhes: `${solicitacao.protocolo} — ${slot.unidade} em ${slot.inicio}.`,
+  });
+  registrar('Agendamento criado', autor, 'NEGOCIO_CLINICO', `${solicitacao.protocolo} em ${slot.inicio}.`);
+  sincronizarOcupacaoMock();
+  return clonar(agendamento);
+}
+
+/** POST /api/agendamentos/{id}/remarcar */
+export async function remarcarAgendamento(
+  id: string,
+  slotId: string,
+  justificativa: string,
+  autor: string,
+): Promise<Agendamento> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Agendamento>(`/api/agendamentos/${encodeURIComponent(id)}/remarcar`, {
+      slotId, justificativa, autor,
+    });
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const agendamento = agendamentosMock.find((item) => item.id === id);
+  if (!agendamento) throw new Error('Agendamento não encontrado.');
+  if (agendamento.status !== 'ATIVO') throw new Error('Somente agendamentos ativos podem ser remarcados.');
+  if (!justificativa.trim()) throw new Error('A justificativa é obrigatória para remarcar.');
+  const slot = slotsAgendaMock.find((item) => item.id === slotId);
+  if (!slot) throw new Error('Vaga não encontrada.');
+  validarSlotMock(slot, agendamento.pacienteChave, agendamento.id);
+  const anterior = agendamento.dataHora;
+  agendamento.slotId = slot.id;
+  agendamento.dataHora = slot.inicio;
+  agendamento.unidade = slot.unidade;
+  agendamento.exame = slot.nomeExame;
+  agendamento.justificativa = justificativa.trim();
+  agendamento.confirmadoPor = autor;
+  const solicitacao = encontrarSolicitacaoMock(agendamento.solicitacaoId);
+  if (solicitacao?.agendamento) solicitacao.agendamento.dataHora = slot.inicio;
+  registrar('Agendamento remarcado', autor, 'NEGOCIO_CLINICO',
+    `${agendamento.protocolo}: ${anterior} → ${slot.inicio}. Justificativa: ${justificativa.trim()}`);
+  sincronizarOcupacaoMock();
+  return clonar(agendamento);
+}
+
+/** POST /api/agendamentos/{id}/cancelar */
+export async function cancelarAgendamento(
+  id: string,
+  justificativa: string,
+  autor: string,
+): Promise<Agendamento> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Agendamento>(`/api/agendamentos/${encodeURIComponent(id)}/cancelar`, {
+      justificativa, autor,
+    });
+    return data;
+  }
+  await pausa();
+  const agendamento = agendamentosMock.find((item) => item.id === id);
+  if (!agendamento) throw new Error('Agendamento não encontrado.');
+  if (agendamento.status !== 'ATIVO') throw new Error('Somente agendamentos ativos podem ser cancelados.');
+  if (!justificativa.trim()) throw new Error('A justificativa é obrigatória para cancelar.');
+  agendamento.status = 'CANCELADO';
+  agendamento.justificativa = justificativa.trim();
+  agendamento.confirmadoPor = autor;
+  const solicitacao = encontrarSolicitacaoMock(agendamento.solicitacaoId);
+  if (solicitacao) {
+    solicitacao.status = 'AGUARDANDO_CONTATO';
+    solicitacao.agendamento = null;
+  }
+  registrar('Agendamento cancelado', autor, 'NEGOCIO_CLINICO',
+    `${agendamento.protocolo}: ${agendamento.dataHora}. Justificativa: ${justificativa.trim()}`);
+  sincronizarOcupacaoMock();
+  return clonar(agendamento);
+}
+
+/** GET /api/admin/agenda/slots */
+export async function listarSlotsAdmin(): Promise<AgendaSlot[]> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.get<AgendaSlot[]>('/api/admin/agenda/slots');
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  return clonar(slotsAgendaMock);
+}
+
+/** POST /api/admin/agenda/slots */
+export async function criarSlotAdmin(dados: DadosNovoSlot, autor: string): Promise<AgendaSlot> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<AgendaSlot>('/api/admin/agenda/slots', { ...dados, autor });
+    return data;
+  }
+  await pausa();
+  const unidade = dados.unidade.trim();
+  const codigoExame = dados.codigoExame.trim();
+  const nomeExame = dados.nomeExame.trim();
+  const inicio = normalizarIsoMock(dados.inicio);
+  const fim = normalizarIsoMock(dados.fim);
+  const capacidade = Number(dados.capacidade);
+  if (!unidade || !codigoExame || !nomeExame || !dados.inicio || !dados.fim) {
+    throw new Error('Preencha unidade, exame, início e fim da vaga.');
+  }
+  if (!Number.isInteger(capacidade) || capacidade < 1) {
+    throw new Error('A capacidade deve ser um número inteiro maior que zero.');
+  }
+  if (new Date(fim).getTime() <= new Date(inicio).getTime()) {
+    throw new Error('O fim da vaga deve ser posterior ao início.');
+  }
+  if (slotsAgendaMock.some((slot) =>
+    slot.unidade === unidade && slot.codigoExame === codigoExame && slot.inicio === inicio)) {
+    throw new Error('Já existe uma vaga com estes unidade, exame e horário.');
+  }
+  const slot: AgendaSlot = {
+    id: `slot-${crypto.randomUUID()}`,
+    unidade,
+    codigoExame,
+    nomeExame,
+    inicio,
+    fim,
+    capacidade,
+    ocupadas: 0,
+    livres: capacidade,
+    status: 'DISPONIVEL',
+  };
+  slotsAgendaMock.push(slot);
+  registrar('Vaga criada', autor, 'CONFIGURACAO', `${unidade} · ${nomeExame} · ${inicio} (${capacidade} vagas).`);
+  sincronizarOcupacaoMock();
+  return clonar(slot);
+}
+
+/** PATCH /api/admin/agenda/slots/{id} */
+export async function atualizarSlotAdmin(
+  id: string,
+  ajuste: AjusteSlot,
+  autor: string,
+): Promise<AgendaSlot> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.patch<AgendaSlot>(`/api/admin/agenda/slots/${encodeURIComponent(id)}`, {
+      ...ajuste, autor,
+    });
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const slot = slotsAgendaMock.find((item) => item.id === id);
+  if (!slot) throw new Error('Vaga não encontrada.');
+  if (ajuste.capacidade !== undefined) {
+    const capacidade = Number(ajuste.capacidade);
+    if (!Number.isInteger(capacidade) || capacidade < 1) {
+      throw new Error('A capacidade deve ser um número inteiro maior que zero.');
+    }
+    if (capacidade < slot.ocupadas) {
+      throw new Error(`A capacidade não pode ficar abaixo das ${slot.ocupadas} vaga(s) ocupada(s).`);
+    }
+    slot.capacidade = capacidade;
+  }
+  if (ajuste.status !== undefined) {
+    if (!['DISPONIVEL', 'LOTADO', 'ENCERRADO'].includes(ajuste.status)) {
+      throw new Error('Situação de vaga inválida.');
+    }
+    slot.status = ajuste.status;
+  }
+  registrar('Vaga atualizada', autor, 'CONFIGURACAO',
+    `${slot.unidade} · ${slot.nomeExame} · capacidade ${slot.capacidade}, situação ${slot.status}.`);
+  sincronizarOcupacaoMock();
+  return clonar(slot);
 }

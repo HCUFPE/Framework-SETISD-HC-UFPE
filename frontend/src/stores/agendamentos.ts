@@ -1,0 +1,376 @@
+/** Estado da tela de agendamentos: calendário, paciente, sugestões e mutações. */
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
+import { USAR_MOCKS } from '../config/mocks';
+import { agora, paraIsoLocal } from '../config/tempo';
+import {
+  agendarExame,
+  buscarPacientesAgendamento,
+  cancelarAgendamento,
+  listarAgendamentosPaciente,
+  listarCalendarioAgendamentos,
+  listarFila,
+  listarSugestoesAgendamento,
+  obterSolicitacao,
+  remarcarAgendamento,
+} from '../services/sae';
+import type {
+  AgendaSlot,
+  Agendamento,
+  CalendarioAgendamentos,
+  PacienteAgendamentos,
+  Solicitacao,
+  SugestaoAgendamento,
+} from '../types/sae';
+import { useAuthStore } from './auth';
+
+export type ModoAcaoAgendamento = 'agendar' | 'remarcar' | 'cancelar';
+
+interface ErroComStatus {
+  message?: string;
+  response?: { status?: number; data?: { detail?: unknown } };
+}
+
+function mensagemErro(erro: unknown, fallback: string): string {
+  const candidato = erro as ErroComStatus;
+  const detail = candidato?.response?.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const mensagens = detail
+      .map((item) => (item && typeof item === 'object' && 'msg' in item ? String(item.msg) : ''))
+      .filter(Boolean);
+    if (mensagens.length > 0) return mensagens.join('; ');
+  }
+  return candidato?.message?.trim() || fallback;
+}
+
+function periodoInicial(): { de: string; ate: string } {
+  const referencia = new Date(agora());
+  const primeiroDia = new Date(referencia.getFullYear(), referencia.getMonth(), 1);
+  const fim = new Date(primeiroDia.getTime() + 45 * 86_400_000);
+  return { de: paraIsoLocal(primeiroDia.getTime()), ate: paraIsoLocal(fim.getTime()) };
+}
+
+export const useAgendamentosStore = defineStore('agendamentos', () => {
+  const auth = useAuthStore();
+
+  const calendario = ref<CalendarioAgendamentos | null>(null);
+  const periodo = ref(periodoInicial());
+  const filtros = ref({ unidade: '', codigoExame: '', pacienteChave: '' });
+  const carregando = ref(false);
+  const salvando = ref(false);
+  const erro = ref('');
+  const erroStatus = ref<number | null>(null);
+
+  const diaSelecionado = ref('');
+  const slotsDoDia = ref<AgendaSlot[]>([]);
+  const slotSelecionado = ref<AgendaSlot | null>(null);
+
+  const pacientes = ref<PacienteAgendamentos[]>([]);
+  const pacienteChave = ref('');
+  const agendamentosPaciente = ref<Agendamento[]>([]);
+
+  const solicitacoes = ref<Solicitacao[]>([]);
+  const solicitacao = ref<Solicitacao | null>(null);
+  const sugestoes = ref<SugestaoAgendamento[]>([]);
+  const modalSugestoes = ref(false);
+  const modalAcao = ref(false);
+  const modoAcao = ref<ModoAcaoAgendamento>('agendar');
+  const agendamentoSelecionado = ref<Agendamento | null>(null);
+
+  const podeEditar = computed(() => !auth.temPerfil('COORDENACAO'));
+  const podeGerirVagas = computed(() => USAR_MOCKS
+    ? auth.temPerfil('AREA_GESTORA', 'ADMIN_TI')
+    : auth.isAdmin || auth.temPerfil('AREA_GESTORA', 'ADMIN_TI'));
+
+  const unidades = computed(() => Array.from(
+    new Set(calendario.value?.slots.map((slot) => slot.unidade) ?? []),
+  ).sort());
+
+  const exames = computed(() => Array.from(
+    new Map((calendario.value?.slots ?? [])
+      .map((slot) => [slot.codigoExame, { codigo: slot.codigoExame, nome: slot.nomeExame }] as const))
+      .values(),
+  ).sort((a, b) => a.nome.localeCompare(b.nome)));
+
+  const agendamentos = computed(() => calendario.value?.agendamentos ?? []);
+  const slots = computed(() => calendario.value?.slots ?? []);
+
+  function autor(): string {
+    return auth.user?.displayName?.[0] ?? auth.user?.username ?? 'Operador';
+  }
+
+  function limparErro(): void {
+    erro.value = '';
+    erroStatus.value = null;
+  }
+
+  function registrarErro(candidato: unknown, fallback: string): void {
+    const erroApi = candidato as ErroComStatus;
+    erro.value = mensagemErro(candidato, fallback);
+    erroStatus.value = erroApi?.response?.status ?? null;
+  }
+
+  async function carregar(): Promise<void> {
+    carregando.value = true;
+    limparErro();
+    try {
+      calendario.value = await listarCalendarioAgendamentos({
+        de: periodo.value.de,
+        ate: periodo.value.ate,
+        unidade: filtros.value.unidade,
+        codigoExame: filtros.value.codigoExame,
+        pacienteChave: filtros.value.pacienteChave,
+      });
+      if (diaSelecionado.value) selecionarDia(diaSelecionado.value);
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível carregar o calendário de agendamentos.');
+    } finally {
+      carregando.value = false;
+    }
+  }
+
+  function definirPeriodo(de: string, ate: string): void {
+    if (periodo.value.de === de && periodo.value.ate === ate) return;
+    periodo.value = { de, ate };
+    void carregar();
+  }
+
+  function aoFiltrar(): void {
+    void carregar();
+  }
+
+  function selecionarDia(dataIso: string): void {
+    diaSelecionado.value = dataIso.slice(0, 10);
+    const dia = diaSelecionado.value;
+    slotsDoDia.value = slots.value
+      .filter((slot) => slot.inicio.slice(0, 10) === dia)
+      .sort((a, b) => a.inicio.localeCompare(b.inicio)
+        || a.unidade.localeCompare(b.unidade));
+    const aindaSelecionado = slotsDoDia.value.find((slot) => slot.id === slotSelecionado.value?.id);
+    if (slotSelecionado.value && !aindaSelecionado) slotSelecionado.value = null;
+  }
+
+  function selecionarSlot(slot: AgendaSlot): void {
+    slotSelecionado.value = slot;
+    selecionarDia(slot.inicio);
+  }
+
+  async function buscarPacientes(q: string): Promise<void> {
+    limparErro();
+    try {
+      pacientes.value = await buscarPacientesAgendamento(q);
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível buscar pacientes.');
+    }
+  }
+
+  async function selecionarPaciente(chave: string): Promise<void> {
+    pacienteChave.value = chave;
+    filtros.value.pacienteChave = chave;
+    await Promise.all([carregar(), carregarPaciente(chave)]);
+  }
+
+  async function carregarPaciente(chave: string): Promise<void> {
+    limparErro();
+    try {
+      agendamentosPaciente.value = await listarAgendamentosPaciente(chave);
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível carregar os agendamentos do paciente.');
+    }
+  }
+
+  async function buscarSolicitacoes(q: string): Promise<void> {
+    limparErro();
+    try {
+      const resultado = await listarFila({
+        busca: q, status: '', tipoExame: '', periodo: 'todos', pagina: 1, porPagina: 12,
+      });
+      solicitacoes.value = resultado.itens;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível buscar solicitações.');
+    }
+  }
+
+  async function selecionarSolicitacao(id: string): Promise<void> {
+    limparErro();
+    try {
+      solicitacao.value = await obterSolicitacao(id);
+      const encontrados = await buscarPacientesAgendamento(solicitacao.value.prontuario);
+      const paciente = encontrados.find((item) => item.prontuario === solicitacao.value?.prontuario);
+      if (paciente) {
+        pacientes.value = encontrados;
+        await selecionarPaciente(paciente.pacienteChave);
+      }
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível carregar a solicitação.');
+    }
+  }
+
+  function abrirAgendamento(agendamento: Agendamento): void {
+    agendamentoSelecionado.value = agendamento;
+    solicitacao.value = null;
+    void selecionarPaciente(agendamento.pacienteChave);
+    void selecionarSolicitacao(agendamento.solicitacaoId);
+  }
+
+  async function abrirSugestoes(): Promise<void> {
+    if (!solicitacao.value) {
+      erro.value = 'Selecione uma solicitação antes de pedir sugestões de horário.';
+      return;
+    }
+    limparErro();
+    try {
+      sugestoes.value = await listarSugestoesAgendamento(solicitacao.value.id, 3);
+      modalSugestoes.value = true;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível calcular sugestões de horário.');
+    }
+  }
+
+  function iniciarAgendamento(slot?: AgendaSlot): void {
+    if (!podeEditar.value) return;
+    if (slot) slotSelecionado.value = slot;
+    if (!solicitacao.value) {
+      erro.value = 'Selecione uma solicitação para agendar o exame.';
+      return;
+    }
+    modoAcao.value = 'agendar';
+    agendamentoSelecionado.value = null;
+    limparErro();
+    modalAcao.value = true;
+  }
+
+  function iniciarRemarcacao(agendamento: Agendamento, slot?: AgendaSlot): void {
+    if (!podeEditar.value) return;
+    agendamentoSelecionado.value = agendamento;
+    if (slot) slotSelecionado.value = slot;
+    modoAcao.value = 'remarcar';
+    limparErro();
+    modalAcao.value = true;
+  }
+
+  function iniciarCancelamento(agendamento: Agendamento): void {
+    if (!podeEditar.value) return;
+    agendamentoSelecionado.value = agendamento;
+    modoAcao.value = 'cancelar';
+    limparErro();
+    modalAcao.value = true;
+  }
+
+  function usarSugestao(slot: AgendaSlot): void {
+    modalSugestoes.value = false;
+    const ativo = agendamentosPaciente.value.find((item) =>
+      item.status === 'ATIVO' && item.solicitacaoId === solicitacao.value?.id);
+    if (ativo && podeEditar.value) iniciarRemarcacao(ativo, slot);
+    else iniciarAgendamento(slot);
+  }
+
+  async function recarregarTudo(): Promise<void> {
+    await carregar();
+    if (pacienteChave.value) await carregarPaciente(pacienteChave.value);
+    if (solicitacao.value) {
+      try {
+        solicitacao.value = await obterSolicitacao(solicitacao.value.id);
+      } catch {
+        // A solicitação pode ter mudado de estado; mantém a última leitura válida.
+      }
+    }
+  }
+
+  async function confirmarAcao(justificativa: string): Promise<boolean> {
+    if (modoAcao.value === 'cancelar') return cancelar(justificativa);
+    if (!slotSelecionado.value) {
+      erro.value = 'Selecione uma vaga no calendário ou nas sugestões.';
+      return false;
+    }
+    salvando.value = true;
+    limparErro();
+    try {
+      if (modoAcao.value === 'remarcar' && agendamentoSelecionado.value) {
+        await remarcarAgendamento(
+          agendamentoSelecionado.value.id,
+          slotSelecionado.value.id,
+          justificativa,
+          autor(),
+        );
+      } else if (solicitacao.value) {
+        await agendarExame(solicitacao.value.id, slotSelecionado.value.id, autor());
+      } else {
+        throw new Error('Selecione uma solicitação antes de confirmar o agendamento.');
+      }
+      modalAcao.value = false;
+      await recarregarTudo();
+      return true;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível concluir a operação.');
+      return false;
+    } finally {
+      salvando.value = false;
+    }
+  }
+
+  async function cancelar(justificativa: string): Promise<boolean> {
+    if (!agendamentoSelecionado.value) return false;
+    salvando.value = true;
+    limparErro();
+    try {
+      await cancelarAgendamento(agendamentoSelecionado.value.id, justificativa, autor());
+      modalAcao.value = false;
+      await recarregarTudo();
+      return true;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível cancelar o agendamento.');
+      return false;
+    } finally {
+      salvando.value = false;
+    }
+  }
+
+  return {
+    calendario,
+    periodo,
+    filtros,
+    carregando,
+    salvando,
+    erro,
+    erroStatus,
+    diaSelecionado,
+    slotsDoDia,
+    slotSelecionado,
+    pacientes,
+    pacienteChave,
+    agendamentosPaciente,
+    solicitacoes,
+    solicitacao,
+    sugestoes,
+    modalSugestoes,
+    modalAcao,
+    modoAcao,
+    agendamentoSelecionado,
+    podeEditar,
+    podeGerirVagas,
+    unidades,
+    exames,
+    agendamentos,
+    slots,
+    carregar,
+    definirPeriodo,
+    aoFiltrar,
+    selecionarDia,
+    selecionarSlot,
+    buscarPacientes,
+    selecionarPaciente,
+    carregarPaciente,
+    buscarSolicitacoes,
+    selecionarSolicitacao,
+    abrirAgendamento,
+    abrirSugestoes,
+    iniciarAgendamento,
+    iniciarRemarcacao,
+    iniciarCancelamento,
+    usarSugestao,
+    confirmarAcao,
+    limparErro,
+  };
+});

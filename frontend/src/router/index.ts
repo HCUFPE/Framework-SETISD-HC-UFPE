@@ -8,6 +8,7 @@ import Configuracoes from '../views/Configuracoes.vue';
 import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
 import FilaMarcacao from '../views/FilaMarcacao.vue';
+import Agendamentos from '../views/Agendamentos.vue';
 import PainelGestao from '../views/PainelGestao.vue';
 import Relatorios from '../views/Relatorios.vue';
 import CriteriosPriorizacao from '../views/CriteriosPriorizacao.vue';
@@ -18,6 +19,21 @@ import AcessoNegado from '../views/AcessoNegado.vue';
 const perfisOperacao: Perfil[] = ['OPERADOR', 'CHEFIA', 'AREA_GESTORA'];
 const perfisGestao: Perfil[] = ['CHEFIA', 'AREA_GESTORA', 'COORDENACAO', 'ADMIN_TI'];
 const perfisAdmin: Perfil[] = ['AREA_GESTORA', 'ADMIN_TI'];
+
+/** Grupo corporativo do framework que também autoriza o acesso (login mock admin/admin). */
+export const GRUPO_ADMIN_SEGURANCA = 'GLO-SEC-HCPE-SETISD';
+type PapelAcesso = Perfil | typeof GRUPO_ADMIN_SEGURANCA;
+
+export const papeisAgendamentos: PapelAcesso[] = [
+  'OPERADOR', 'CHEFIA', 'AREA_GESTORA', 'ADMIN_TI', 'COORDENACAO', GRUPO_ADMIN_SEGURANCA,
+];
+
+/** Avalia perfis locais e grupos do AD usando a mesma regra do guard de rotas. */
+export function possuiPapel(authStore: ReturnType<typeof useAuthStore>, papeis: PapelAcesso[]): boolean {
+  return papeis.some((papel) => papel === GRUPO_ADMIN_SEGURANCA
+    ? (authStore.user?.groups ?? []).includes(GRUPO_ADMIN_SEGURANCA)
+    : authStore.temPerfil(papel));
+}
 
 const routes = [
   {
@@ -43,6 +59,12 @@ const routes = [
     name: 'Fila de Marcação',
     component: FilaMarcacao,
     meta: { requiresAuth: true, roles: perfisOperacao },
+  },
+  {
+    path: '/agendamentos',
+    name: 'Agendamentos',
+    component: Agendamentos,
+    meta: { requiresAuth: true, roles: papeisAgendamentos },
   },
   {
     path: '/painel',
@@ -109,8 +131,8 @@ router.beforeEach((to, _from, next: NavigationGuardNext) => {
     return;
   }
 
-  const perfis = to.meta.roles as Perfil[] | undefined;
-  if (perfis && perfis.length > 0 && !authStore.temPerfil(...perfis)) {
+  const papeis = to.meta.roles as PapelAcesso[] | undefined;
+  if (papeis && papeis.length > 0 && !possuiPapel(authStore, papeis)) {
     next({ name: 'AcessoNegado' });
     return;
   }

@@ -9,6 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.22",
+    "@fullcalendar/daygrid": "^6.1.22",
+    "@fullcalendar/interaction": "^6.1.22",
+    "@fullcalendar/timegrid": "^6.1.22",
+    "@fullcalendar/vue3": "^6.1.22",
     "@heroicons/vue": "^2.0.18",
     "@vee-validate/zod": "^4.15.1",
     "axios": "^1.13.2",

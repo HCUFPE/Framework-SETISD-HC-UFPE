@@ -19,7 +19,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import settings
 from ..helpers.audit_helper import registrar_auditoria
 from ..helpers.crypto_helper import decrypt_phi, encrypt_phi, hash_phi, to_dict_seguro
+from ..helpers.paciente_helper import paciente_chave as gerar_paciente_chave
 from ..helpers.string_helper import extrair_codigo_exame, normalizar_texto, parse_datetime
+from ..models.agendamento import PacienteEndereco
 from ..models.forms_integration import (
     Alerta,
     Divergencia,
@@ -29,6 +31,10 @@ from ..models.forms_integration import (
     WebhookNonce,
 )
 from ..providers.interfaces.aghux_provider_interface import AghuxProviderInterface
+from ..providers.interfaces.distance_provider_interface import (
+    DistanceProviderInterface,
+    DistanceResult,
+)
 from ..providers.interfaces.forms_provider_interface import FormsProviderInterface
 
 logger = logging.getLogger("forms_integration")
@@ -38,6 +44,8 @@ STATUS_PROCESSADA = "PROCESSADA"
 STATUS_DUPLICADA = "DUPLICADA"
 STATUS_ERRO = "ERRO"
 PESOS_PADRAO = {"urgenciaClinica": 40, "idade": 25, "tempoEspera": 20, "complexidadeExame": 15}
+# Campos que, quando preenchidos, caracterizam endereço informado no formulário.
+CAMPOS_ENDERECO = ("cep", "logradouro", "numero", "complemento", "bairro")
 
 
 def _agora() -> datetime:
@@ -219,12 +227,79 @@ async def _audit_falha(db: AsyncSession, evento: FormsResponse, erro: str, ip: O
         logger.error("Falha ao auditar erro do webhook: %s", exc)
 
 
+async def _atualizar_endereco(
+    db: AsyncSession,
+    solicitacao: Solicitacao,
+    resposta: Dict[str, Any],
+    agora: datetime,
+    distance_provider: Optional[DistanceProviderInterface],
+) -> None:
+    """Grava endereço cifrado e distância calculada, sem inventar coordenadas."""
+    if distance_provider is None:
+        # Import tardio evita ciclo entre dependencies e este controller.
+        from ..dependencies import get_distance_provider
+
+        distance_provider = get_distance_provider()
+
+    endereco = await db.scalar(
+        select(PacienteEndereco).where(
+            PacienteEndereco.paciente_chave == solicitacao.paciente_chave,
+            PacienteEndereco.deleted_at.is_(None),
+        )
+    )
+    if not endereco:
+        endereco = PacienteEndereco(
+            id=str(uuid.uuid4()),
+            paciente_chave=solicitacao.paciente_chave,
+        )
+        db.add(endereco)
+
+    endereco.cep_cripto = encrypt_phi(resposta.get("cep"))
+    endereco.logradouro_cripto = encrypt_phi(resposta.get("logradouro"))
+    endereco.numero_cripto = encrypt_phi(resposta.get("numero"))
+    endereco.complemento_cripto = encrypt_phi(resposta.get("complemento"))
+    endereco.bairro_cripto = encrypt_phi(resposta.get("bairro"))
+    endereco.cidade = str(resposta.get("cidade") or "")
+    endereco.estado = str(resposta.get("estado") or "")
+    endereco.deleted_at = None
+
+    try:
+        resultado = await distance_provider.calcular(
+            {
+                "cep": resposta.get("cep"),
+                "logradouro": resposta.get("logradouro"),
+                "numero": resposta.get("numero"),
+                "complemento": resposta.get("complemento"),
+                "bairro": resposta.get("bairro"),
+                "cidade": resposta.get("cidade"),
+                "estado": resposta.get("estado"),
+            }
+        )
+    except Exception as exc:  # falha de rede/provedor nunca interrompe a ingestão
+        logger.warning("Distância indisponível: %s", type(exc).__name__)
+        resultado = DistanceResult(fonte="INDISPONIVEL")
+
+    fonte = (resultado.fonte or "").upper()
+    if fonte not in {"OSM", "MOCK"} or resultado.distancia_km is None:
+        endereco.latitude = None
+        endereco.longitude = None
+        endereco.distancia_km = None
+        endereco.distancia_fonte = "INDISPONIVEL"
+    else:
+        endereco.latitude = resultado.latitude
+        endereco.longitude = resultado.longitude
+        endereco.distancia_km = float(resultado.distancia_km)
+        endereco.distancia_fonte = fonte
+    endereco.calculado_em = agora
+
+
 async def processar_resposta(
     db: AsyncSession,
     response_id: str,
     forms_provider: FormsProviderInterface,
     aghux_provider: AghuxProviderInterface,
     ip_origem: Optional[str] = None,
+    distance_provider: Optional[DistanceProviderInterface] = None,
 ) -> Optional[FormsResponse]:
     """Processa um evento pendente e persiste a solicitação resultante."""
     evento = await db.scalar(
@@ -345,6 +420,9 @@ async def processar_resposta(
             if registro else str(resposta.get("codigoSolicitacaoAghux") or "")
         )
         solicitacao.prontuario = str(resposta.get("prontuario") or "")
+        solicitacao.paciente_chave = gerar_paciente_chave(
+            resposta.get("prontuario"), resposta.get("cpf"), resposta.get("cns")
+        )
         solicitacao.paciente_nome = str(resposta.get("nome") or "Paciente não informado")
         solicitacao.telefone = str(resposta.get("telefone") or "")
         solicitacao.cidade = str(resposta.get("cidade") or "")
@@ -366,6 +444,14 @@ async def processar_resposta(
         solicitacao.prioridade = prioridade
         solicitacao.recebida_em = recebida_em
         solicitacao.atualizado_em = agora
+
+        endereco_informado = any(
+            str(resposta.get(campo) or "").strip() for campo in CAMPOS_ENDERECO
+        )
+        if endereco_informado:
+            await _atualizar_endereco(
+                db, solicitacao, resposta, agora, distance_provider
+            )
 
         for item in itens:
             db.add(
@@ -420,6 +506,7 @@ async def processar_resposta(
                 "alertas": len(alertas),
                 "cpfInformado": bool(resposta.get("cpf")),
                 "cnsInformado": bool(resposta.get("cns")),
+                "enderecoInformado": endereco_informado,
             }),
             ip_origem=ip_origem or evento.ip_origem,
         )
@@ -462,6 +549,7 @@ async def reprocessar_evento(
     forms_provider: FormsProviderInterface,
     aghux_provider: AghuxProviderInterface,
     ip_origem: Optional[str] = None,
+    distance_provider: Optional[DistanceProviderInterface] = None,
 ) -> Optional[FormsResponse]:
     """Permite nova tentativa de processamento sem criar outro evento."""
     evento = await db.scalar(
@@ -473,4 +561,6 @@ async def reprocessar_evento(
     evento.ultimo_erro = None
     evento.processado_em = None
     await db.commit()
-    return await processar_resposta(db, response_id, forms_provider, aghux_provider, ip_origem)
+    return await processar_resposta(
+        db, response_id, forms_provider, aghux_provider, ip_origem, distance_provider
+    )

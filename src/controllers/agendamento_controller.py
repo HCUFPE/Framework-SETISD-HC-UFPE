@@ -1,0 +1,845 @@
+"""
+Controller de Gestão de Agendamentos (v0.3.0)
+============================================
+Centraliza as regras de negócio: pré-condições (RN-04/RN-07), conflito de
+paciente (RN-05), capacidade local, cancelamento/remarcação com justificativa,
+busca segura de pacientes e sugestão automática de vagas.
+
+A pontuação da sugestão é 0..100 com pesos configuráveis. A distância é apenas
+desempate (10 pontos no máximo) e nunca supera a prioridade clínica (35 pontos).
+"""
+
+import json
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
+from fastapi import HTTPException, status
+from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..config import settings
+from ..helpers.audit_helper import registrar_auditoria
+from ..helpers.crypto_helper import to_dict_seguro
+from ..helpers.string_helper import parse_datetime
+from ..models.agendamento import AgendaSlot, Agendamento, ContatoPaciente, PacienteEndereco
+from ..models.forms_integration import Divergencia, Solicitacao
+from ..providers.interfaces.distance_provider_interface import DistanceProviderInterface
+from ..providers.interfaces.slot_provider_interface import SlotProviderInterface
+from ..providers.implementations.slot_provider import (
+    para_iso,
+    para_utc_aware,
+    para_utc_naive,
+)
+
+STATUS_SLOT = {"DISPONIVEL", "LOTADO", "ENCERRADO"}
+RESULTADOS_CONTATO = {"ACEITE", "RECUSA", "SEM_RESPOSTA"}
+STATUS_AGUARDANDO_CONTATO = "AGUARDANDO_CONTATO"
+
+
+def _agora() -> datetime:
+    """Retorna datetime UTC atual."""
+    return datetime.now(timezone.utc)
+
+
+def _erro(codigo: int, mensagem: str) -> HTTPException:
+    """Padroniza erros no formato `{"detail": "..."}` do framework."""
+    return HTTPException(status_code=codigo, detail=mensagem)
+
+
+def _json_itens(valor: Optional[str]) -> List[Dict[str, Any]]:
+    """Desserializa `itens_exame` sem falhar com dados legados."""
+    if not valor:
+        return []
+    try:
+        itens = json.loads(valor)
+    except (TypeError, ValueError):
+        return []
+    return [item for item in itens if isinstance(item, dict)] if isinstance(itens, list) else []
+
+
+async def _buscar_solicitacao(db: AsyncSession, solicitacao_id: str) -> Solicitacao:
+    """Localiza uma solicitação ativa ou responde 404."""
+    solicitacao = await db.scalar(
+        select(Solicitacao).where(
+            Solicitacao.id == solicitacao_id, Solicitacao.deleted_at.is_(None)
+        )
+    )
+    if not solicitacao:
+        raise _erro(status.HTTP_404_NOT_FOUND, "Solicitação não encontrada.")
+    return solicitacao
+
+
+async def _buscar_agendamento(db: AsyncSession, agendamento_id: str) -> Agendamento:
+    """Localiza um agendamento ativo ou responde 404."""
+    agendamento = await db.scalar(
+        select(Agendamento).where(
+            Agendamento.id == agendamento_id, Agendamento.deleted_at.is_(None)
+        )
+    )
+    if not agendamento:
+        raise _erro(status.HTTP_404_NOT_FOUND, "Agendamento não encontrado.")
+    return agendamento
+
+
+async def _divergencias_ativas(db: AsyncSession, solicitacao_id: str) -> List[Divergencia]:
+    """Lista divergências ainda não tratadas (RN-04)."""
+    return list(
+        (
+            await db.scalars(
+                select(Divergencia).where(
+                    Divergencia.solicitacao_id == solicitacao_id,
+                    Divergencia.deleted_at.is_(None),
+                    or_(Divergencia.tratada.is_(False), Divergencia.tratada.is_(None)),
+                )
+            )
+        ).all()
+    )
+
+
+async def _tem_aceite(db: AsyncSession, solicitacao_id: str) -> bool:
+    """Verifica se existe pelo menos um contato com resultado ACEITE (RN-07)."""
+    contato = await db.scalar(
+        select(ContatoPaciente.id).where(
+            ContatoPaciente.solicitacao_id == solicitacao_id,
+            ContatoPaciente.resultado == "ACEITE",
+            ContatoPaciente.deleted_at.is_(None),
+        )
+    )
+    return contato is not None
+
+
+async def _verificar_precondicoes(db: AsyncSession, solicitacao: Solicitacao) -> None:
+    """Aplica RN-04/RN-07 antes de criar ou remarcar um agendamento."""
+    if solicitacao.status != STATUS_AGUARDANDO_CONTATO:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A solicitação precisa estar AGUARDANDO_CONTATO para ser agendada.",
+        )
+    if await _divergencias_ativas(db, solicitacao.id):
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Existem divergências não tratadas; valide a solicitação antes de agendar.",
+        )
+    if not await _tem_aceite(db, solicitacao.id):
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "É necessário registrar um contato com ACEITE do paciente antes de agendar.",
+        )
+
+
+async def _slot_disponivel(
+    provider: SlotProviderInterface, slot_id: str
+) -> Dict[str, Any]:
+    """Obtém a vaga e bloqueia vagas encerradas, esgotadas ou no passado."""
+    slot = await provider.obter(slot_id)
+    if not slot:
+        raise _erro(status.HTTP_404_NOT_FOUND, "Vaga não encontrada.")
+    if slot["status"] == "ENCERRADO":
+        raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, "A vaga está encerrada.")
+    if para_utc_aware(parse_datetime(slot["inicio"])) < _agora():
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Não é possível agendar em uma vaga passada.",
+        )
+    if slot["livres"] <= 0:
+        raise _erro(status.HTTP_409_CONFLICT, "Vaga esgotada para este horário.")
+    return slot
+
+
+async def _conflito_paciente(
+    db: AsyncSession,
+    paciente_chave: str,
+    inicio: datetime,
+    fim: datetime,
+    *,
+    ignorar_agendamento_id: Optional[str] = None,
+) -> bool:
+    """Bloqueia dois agendamentos ATIVOS sobrepostos para o mesmo paciente (RN-05)."""
+    if not paciente_chave:
+        return False
+    linhas = (
+        await db.execute(
+            select(Agendamento.id, AgendaSlot.inicio, AgendaSlot.fim)
+            .join(AgendaSlot, Agendamento.slot_id == AgendaSlot.id)
+            .where(
+                Agendamento.paciente_chave == paciente_chave,
+                Agendamento.status == "ATIVO",
+                Agendamento.deleted_at.is_(None),
+            )
+        )
+    ).all()
+    inicio_alvo = para_utc_aware(inicio)
+    fim_alvo = para_utc_aware(fim)
+    for ag_id, slot_inicio, slot_fim in linhas:
+        if ignorar_agendamento_id and ag_id == ignorar_agendamento_id:
+            continue
+        if inicio_alvo < para_utc_aware(slot_fim) and para_utc_aware(slot_inicio) < fim_alvo:
+            return True
+    return False
+
+
+async def _agendamento_para_dict(
+    db: AsyncSession,
+    agendamento: Agendamento,
+    provider: SlotProviderInterface,
+) -> Dict[str, Any]:
+    """Converte um agendamento para o DTO `Agendamento` do contrato HTTP."""
+    solicitacao = await db.scalar(
+        select(Solicitacao).where(Solicitacao.id == agendamento.solicitacao_id)
+    )
+    slot = await provider.obter(agendamento.slot_id)
+    return {
+        "id": agendamento.id,
+        "solicitacaoId": agendamento.solicitacao_id,
+        "protocolo": solicitacao.protocolo if solicitacao else "",
+        "pacienteChave": agendamento.paciente_chave or (solicitacao.paciente_chave if solicitacao else ""),
+        "pacienteNome": solicitacao.paciente_nome if solicitacao else "",
+        "prontuario": solicitacao.prontuario if solicitacao else "",
+        "unidade": slot["unidade"] if slot else (solicitacao.setor_solicitante if solicitacao else ""),
+        "exame": slot["nomeExame"] if slot else (solicitacao.exame if solicitacao else ""),
+        "slotId": agendamento.slot_id,
+        "dataHora": slot["inicio"] if slot else para_iso(agendamento.criado_em),
+        "status": agendamento.status,
+        "confirmadoPor": agendamento.autor,
+        "criadoEm": para_iso(agendamento.criado_em),
+        "justificativa": agendamento.justificativa,
+    }
+
+
+async def _auditar(
+    db: AsyncSession,
+    *,
+    usuario: str,
+    categoria: str,
+    acao: str,
+    recurso: str,
+    anteriores: Optional[Dict[str, Any]],
+    novos: Optional[Dict[str, Any]],
+    ip: Optional[str],
+) -> None:
+    """Registra auditoria com estado anterior/posterior, IP e categoria.
+
+    `registrar_auditoria()` confirma a transação: as mutações da vaga e do
+    agendamento são gravadas no mesmo commit do log de auditoria.
+    """
+    await registrar_auditoria(
+        db=db,
+        usuario=usuario or "sistema",
+        categoria=categoria,
+        acao=acao,
+        recurso=recurso,
+        dados_anteriores=to_dict_seguro(anteriores) if anteriores else None,
+        dados_novos=to_dict_seguro(novos) if novos else None,
+        ip_origem=ip,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Administração de vagas locais
+# ---------------------------------------------------------------------------
+
+def _validar_dados_slot(dados: Dict[str, Any], *, parcial: bool = False) -> None:
+    """Valida os campos obrigatórios/coerentes de uma vaga."""
+    if not parcial:
+        for campo in ("unidade", "inicio", "fim", "capacidade"):
+            valor = dados.get(campo)
+            if valor is None or (isinstance(valor, str) and not valor.strip()):
+                raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Campo '{campo}' é obrigatório.")
+    if not dados:
+        raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe ao menos um campo para atualizar.")
+    if "capacidade" in dados and dados["capacidade"] is not None:
+        try:
+            if int(dados["capacidade"]) < 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, "Capacidade deve ser um inteiro positivo.")
+    if "situacao" in dados and dados["situacao"] is not None:
+        if str(dados["situacao"]).upper() not in STATUS_SLOT:
+            raise _erro(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Situação deve ser DISPONIVEL, LOTADO ou ENCERRADO.",
+            )
+    inicio = dados.get("inicio")
+    fim = dados.get("fim")
+    if inicio is not None and fim is not None and para_utc_aware(
+        parse_datetime(fim)
+    ) <= para_utc_aware(parse_datetime(inicio)):
+        raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, "O fim da vaga deve ser posterior ao início.")
+
+
+async def criar_slot(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    dados: Dict[str, Any],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Cria uma vaga local e registra auditoria CONFIGURACAO."""
+    _validar_dados_slot(dados)
+    slot = await provider.criar(dados)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="CONFIGURACAO",
+        acao="CRIAR_SLOT_AGENDA",
+        recurso=f"agenda-slot:{slot['id']}",
+        anteriores=None,
+        novos=slot,
+        ip=ip,
+    )
+    return slot
+
+
+async def atualizar_slot(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    slot_id: str,
+    dados: Dict[str, Any],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Atualiza uma vaga local e registra auditoria CONFIGURACAO."""
+    _validar_dados_slot(dados, parcial=True)
+    anterior = await provider.obter(slot_id)
+    if not anterior:
+        raise _erro(status.HTTP_404_NOT_FOUND, "Vaga não encontrada.")
+    atualizado = await provider.atualizar(slot_id, dados)
+    if not atualizado:
+        raise _erro(status.HTTP_404_NOT_FOUND, "Vaga não encontrada.")
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="CONFIGURACAO",
+        acao="ATUALIZAR_SLOT_AGENDA",
+        recurso=f"agenda-slot:{slot_id}",
+        anteriores=anterior,
+        novos=atualizado,
+        ip=ip,
+    )
+    return atualizado
+
+
+# ---------------------------------------------------------------------------
+# Solicitações: validação e contato do paciente
+# ---------------------------------------------------------------------------
+
+async def validar_divergencias(
+    db: AsyncSession,
+    *,
+    solicitacao_id: str,
+    justificativas: Optional[Dict[str, str]],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Trata divergências ativas e movesolicitação para AGUARDANDO_CONTATO."""
+    solicitacao = await _buscar_solicitacao(db, solicitacao_id)
+    divergencias = await _divergencias_ativas(db, solicitacao_id)
+    mapa = justificativas or {}
+    antes = {
+        "status": solicitacao.status,
+        "divergenciasAtivas": len(divergencias),
+    }
+    for divergencia in divergencias:
+        divergencia.tratada = True
+        divergencia.justificativa = str(
+            mapa.get(str(divergencia.id))
+            or mapa.get(divergencia.campo)
+            or "Divergência validada pelo operador"
+        )
+    solicitacao.status = STATUS_AGUARDANDO_CONTATO
+    solicitacao.atualizado_em = _agora()
+    await db.flush()
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="VALIDAR_DIVERGENCIAS",
+        recurso=f"solicitacao:{solicitacao_id}",
+        anteriores=antes,
+        novos={
+            "status": solicitacao.status,
+            "divergenciasTratadas": len(divergencias),
+            "justificativasInformadas": sorted(str(chave) for chave in mapa),
+        },
+        ip=ip,
+    )
+    return {
+        "solicitacaoId": solicitacao_id,
+        "status": solicitacao.status,
+        "divergenciasTratadas": len(divergencias),
+    }
+
+
+async def registrar_contato(
+    db: AsyncSession,
+    *,
+    solicitacao_id: str,
+    canal: str,
+    resultado: str,
+    observacao: Optional[str],
+    operador: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Registra aceite/recusa/sem resposta, exigindo status de aguardando contato."""
+    solicitacao = await _buscar_solicitacao(db, solicitacao_id)
+    if solicitacao.status != STATUS_AGUARDANDO_CONTATO:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Contatos só podem ser registrados com a solicitação em AGUARDANDO_CONTATO.",
+        )
+    if resultado not in RESULTADOS_CONTATO:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Resultado deve ser ACEITE, RECUSA ou SEM_RESPOSTA.",
+        )
+    contato = ContatoPaciente(
+        id=str(uuid.uuid4()),
+        solicitacao_id=solicitacao_id,
+        canal=canal,
+        resultado=resultado,
+        observacao=observacao,
+        operador=operador,
+        realizado_em=_agora(),
+    )
+    db.add(contato)
+    await db.flush()
+    resposta = {
+        "id": contato.id,
+        "solicitacaoId": solicitacao_id,
+        "canal": contato.canal,
+        "resultado": contato.resultado,
+        "observacao": contato.observacao,
+        "operador": contato.operador,
+        "realizadoEm": para_iso(contato.realizado_em),
+    }
+    # A observação pode conter dados informados pelo paciente: não entra na auditoria.
+    await _auditar(
+        db,
+        usuario=operador,
+        categoria="NEGOCIO_CLINICO",
+        acao="REGISTRAR_CONTATO_PACIENTE",
+        recurso=f"solicitacao:{solicitacao_id}",
+        anteriores={"status": solicitacao.status},
+        novos={
+            "contatoId": contato.id,
+            "canal": contato.canal,
+            "resultado": contato.resultado,
+            "operador": contato.operador,
+        },
+        ip=ip,
+    )
+    return resposta
+
+
+# ---------------------------------------------------------------------------
+# Agendamentos
+# ---------------------------------------------------------------------------
+
+async def criar_agendamento(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    solicitacao_id: str,
+    slot_id: str,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Efetiva um agendamento após validações RN-04/RN-05/RN-07."""
+    solicitacao = await _buscar_solicitacao(db, solicitacao_id)
+    await _verificar_precondicoes(db, solicitacao)
+    slot = await _slot_disponivel(provider, slot_id)
+
+    ja_agendada = await db.scalar(
+        select(Agendamento.id).where(
+            Agendamento.solicitacao_id == solicitacao_id,
+            Agendamento.status == "ATIVO",
+            Agendamento.deleted_at.is_(None),
+        )
+    )
+    if ja_agendada:
+        raise _erro(status.HTTP_409_CONFLICT, "Esta solicitação já possui agendamento ativo.")
+
+    chave = solicitacao.paciente_chave or ""
+    if await _conflito_paciente(
+        db, chave, parse_datetime(slot["inicio"]), parse_datetime(slot["fim"])
+    ):
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            "Já existe agendamento ativo para este paciente neste intervalo.",
+        )
+
+    agendamento = Agendamento(
+        id=str(uuid.uuid4()),
+        solicitacao_id=solicitacao_id,
+        slot_id=slot_id,
+        paciente_chave=chave,
+        status="ATIVO",
+        autor=autor,
+        criado_em=_agora(),
+    )
+    db.add(agendamento)
+    await db.flush()
+    dto = await _agendamento_para_dict(db, agendamento, provider)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="CRIAR_AGENDAMENTO",
+        recurso=f"agendamento:{agendamento.id}",
+        anteriores=None,
+        novos=dto,
+        ip=ip,
+    )
+    return dto
+
+
+async def remarcar_agendamento(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    agendamento_id: str,
+    slot_id: str,
+    justificativa: Optional[str],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Troca a vaga, devolvendo a antiga na mesma transação do log."""
+    if not justificativa or not justificativa.strip():
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Justificativa é obrigatória para remarcar um agendamento.",
+        )
+    agendamento = await _buscar_agendamento(db, agendamento_id)
+    if agendamento.status != "ATIVO":
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente agendamentos ativos podem ser remarcados.",
+        )
+    if slot_id == agendamento.slot_id:
+        raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, "A vaga informada já é a atual.")
+    solicitacao = await _buscar_solicitacao(db, agendamento.solicitacao_id)
+    await _verificar_precondicoes(db, solicitacao)
+    slot = await _slot_disponivel(provider, slot_id)
+    if await _conflito_paciente(
+        db,
+        agendamento.paciente_chave,
+        parse_datetime(slot["inicio"]),
+        parse_datetime(slot["fim"]),
+        ignorar_agendamento_id=agendamento_id,
+    ):
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            "Já existe agendamento ativo para este paciente neste intervalo.",
+        )
+
+    anterior = await _agendamento_para_dict(db, agendamento, provider)
+    agendamento.slot_id = slot_id
+    agendamento.justificativa = justificativa.strip()
+    await db.flush()
+    atualizado = await _agendamento_para_dict(db, agendamento, provider)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="REMARCAR_AGENDAMENTO",
+        recurso=f"agendamento:{agendamento_id}",
+        anteriores=anterior,
+        novos={**atualizado, "motivo": justificativa.strip()},
+        ip=ip,
+    )
+    return atualizado
+
+
+async def cancelar_agendamento(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    agendamento_id: str,
+    justificativa: Optional[str],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Cancela o agendamento e devolve a vaga na mesma transação do log."""
+    if not justificativa or not justificativa.strip():
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Justificativa é obrigatória para cancelar um agendamento.",
+        )
+    agendamento = await _buscar_agendamento(db, agendamento_id)
+    if agendamento.status != "ATIVO":
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente agendamentos ativos podem ser cancelados.",
+        )
+    anterior = await _agendamento_para_dict(db, agendamento, provider)
+    agendamento.status = "CANCELADO"
+    agendamento.justificativa = justificativa.strip()
+    agendamento.cancelado_em = _agora()
+    await db.flush()
+    atualizado = await _agendamento_para_dict(db, agendamento, provider)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="CANCELAR_AGENDAMENTO",
+        recurso=f"agendamento:{agendamento_id}",
+        anteriores=anterior,
+        novos={**atualizado, "motivo": justificativa.strip()},
+        ip=ip,
+    )
+    return atualizado
+
+
+# ---------------------------------------------------------------------------
+# Consultas e sugestões
+# ---------------------------------------------------------------------------
+
+async def listar_calendario(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    de: Optional[str],
+    ate: Optional[str],
+    unidade: str,
+    codigo_exame: str,
+    paciente_chave: Optional[str],
+) -> Dict[str, Any]:
+    """Monta o contrato do calendário; ocupadas ignora o filtro de paciente."""
+    inicio_padrao = _agora() - timedelta(days=1)
+    fim_padrao = inicio_padrao + timedelta(days=settings.AGENDA_SUGGESTION_HORIZON_DAYS)
+    de_dt = parse_datetime(de, inicio_padrao) if de else inicio_padrao
+    ate_dt = parse_datetime(ate, fim_padrao) if ate else fim_padrao
+
+    slots = await provider.listar(
+        de=de_dt, ate=ate_dt, unidade=unidade, codigo_exame=codigo_exame
+    )
+
+    stmt = (
+        select(Agendamento)
+        .join(AgendaSlot, Agendamento.slot_id == AgendaSlot.id)
+        .where(
+            Agendamento.status == "ATIVO",
+            Agendamento.deleted_at.is_(None),
+            AgendaSlot.fim >= para_utc_naive(de_dt),
+            AgendaSlot.inicio <= para_utc_naive(ate_dt),
+        )
+    )
+    if paciente_chave:
+        stmt = stmt.where(Agendamento.paciente_chave == paciente_chave)
+    agendamentos = (await db.scalars(stmt.order_by(AgendaSlot.inicio))).all()
+    return {
+        "de": para_iso(de_dt),
+        "ate": para_iso(ate_dt),
+        "slots": slots,
+        "agendamentos": [
+            await _agendamento_para_dict(db, agendamento, provider)
+            for agendamento in agendamentos
+        ],
+    }
+
+
+async def listar_por_paciente(
+    db: AsyncSession, provider: SlotProviderInterface, paciente_chave: str
+) -> List[Dict[str, Any]]:
+    """Lista todos os status de um paciente, ordenados por dataHora desc."""
+    agendamentos = (
+        await db.scalars(
+            select(Agendamento).where(
+                Agendamento.paciente_chave == paciente_chave,
+                Agendamento.deleted_at.is_(None),
+            )
+        )
+    ).all()
+    resultado = [
+        await _agendamento_para_dict(db, agendamento, provider)
+        for agendamento in agendamentos
+    ]
+    return sorted(
+        resultado,
+        key=lambda item: parse_datetime(item["dataHora"], datetime.min.replace(tzinfo=timezone.utc)),
+        reverse=True,
+    )
+
+
+async def buscar_pacientes(db: AsyncSession, termo: str) -> List[Dict[str, Any]]:
+    """Busca por prontuário/nome/protocolo, sem CPF/CNS nem endereço."""
+    busca = f"%{termo.strip()}%"
+    solicitacoes = (
+        await db.scalars(
+            select(Solicitacao)
+            .where(
+                Solicitacao.deleted_at.is_(None),
+                or_(
+                    Solicitacao.prontuario.ilike(busca),
+                    Solicitacao.paciente_nome.ilike(busca),
+                    Solicitacao.protocolo.ilike(busca),
+                ),
+            )
+            .order_by(Solicitacao.paciente_nome)
+            .limit(50)
+        )
+    ).all()
+    contagens = dict(
+        (
+            await db.execute(
+                select(Agendamento.paciente_chave, func.count(Agendamento.id))
+                .where(
+                    Agendamento.status == "ATIVO",
+                    Agendamento.deleted_at.is_(None),
+                )
+                .group_by(Agendamento.paciente_chave)
+            )
+        ).all()
+    )
+    vistos: set[str] = set()
+    resultado: List[Dict[str, Any]] = []
+    for solicitacao in solicitacoes:
+        chave = solicitacao.paciente_chave or ""
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        resultado.append(
+            {
+                "pacienteChave": chave,
+                "pacienteNome": solicitacao.paciente_nome,
+                "prontuario": solicitacao.prontuario,
+                "agendamentosAtivos": int(contagens.get(chave, 0)),
+            }
+        )
+    return resultado
+
+
+async def _distancia_do_paciente(
+    db: AsyncSession, paciente_chave: str
+) -> tuple[Optional[float], str]:
+    """Lê a última distância calculada; sem registro não inventa coordenadas."""
+    endereco = await db.scalar(
+        select(PacienteEndereco)
+        .where(
+            PacienteEndereco.paciente_chave == paciente_chave,
+            PacienteEndereco.deleted_at.is_(None),
+        )
+        .order_by(PacienteEndereco.calculado_em.desc())
+    )
+    if not endereco or endereco.distancia_km is None:
+        return None, "INDISPONIVEL"
+    fonte = (endereco.distancia_fonte or "").upper()
+    if fonte not in {"OSM", "MOCK"}:
+        fonte = "INDISPONIVEL"
+    return float(endereco.distancia_km), fonte
+
+
+def _pesos() -> Dict[str, float]:
+    """Pesos configuráveis normalizados para soma 100."""
+    pesos = {
+        "prioridade": max(0.0, float(settings.AGENDA_WEIGHT_PRIORIDADE)),
+        "vagas": max(0.0, float(settings.AGENDA_WEIGHT_VAGAS)),
+        "compatibilidade": max(0.0, float(settings.AGENDA_WEIGHT_COMPATIBILIDADE)),
+        "espera": max(0.0, float(settings.AGENDA_WEIGHT_ESPERA)),
+        "distancia": max(0.0, float(settings.AGENDA_WEIGHT_DISTANCIA)),
+    }
+    total = sum(pesos.values())
+    if total <= 0:
+        return {chave: valor / 5 for chave, valor in pesos.items()}
+    return {chave: valor * 100 / total for chave, valor in pesos.items()}
+
+
+async def listar_sugestoes(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    solicitacao_id: str,
+    *,
+    limite: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """Sugere vagas por prioridade, vagas, compatibilidade, espera e distância."""
+    solicitacao = await _buscar_solicitacao(db, solicitacao_id)
+    ja_agendada = await db.scalar(
+        select(Agendamento.id).where(
+            Agendamento.solicitacao_id == solicitacao_id,
+            Agendamento.status == "ATIVO",
+            Agendamento.deleted_at.is_(None),
+        )
+    )
+    if ja_agendada:
+        return []
+
+    agora = _agora()
+    horizonte = agora + timedelta(days=max(1, int(settings.AGENDA_SUGGESTION_HORIZON_DAYS)))
+    slots = await provider.listar(de=agora, ate=horizonte)
+    codigos = {
+        str(item.get("codigoExame") or "").strip().upper()
+        for item in _json_itens(solicitacao.itens_exame)
+        if item.get("codigoExame")
+    }
+
+    distancia_km, distancia_fonte = await _distancia_do_paciente(
+        db, solicitacao.paciente_chave or ""
+    )
+    pesos = _pesos()
+    pontuacao_clinica = min(100.0, max(0.0, float(solicitacao.pontuacao or 0)))
+    candidatos: List[Dict[str, Any]] = []
+
+    for slot in slots:
+        if slot["status"] != "DISPONIVEL" or slot["livres"] <= 0:
+            continue
+        inicio = para_utc_aware(parse_datetime(slot["inicio"]))
+        fim = para_utc_aware(parse_datetime(slot["fim"]))
+        if inicio < agora or inicio > horizonte:
+            continue
+        codigo_slot = str(slot["codigoExame"] or "").strip().upper()
+        if codigo_slot and codigo_slot not in codigos:
+            continue
+        generico = not codigo_slot
+        if await _conflito_paciente(
+            db, solicitacao.paciente_chave or "", inicio, fim
+        ):
+            continue
+
+        dias_espera = min(1.0, max(0.0, (inicio - agora).total_seconds() / 86400))
+        razao_vagas = min(1.0, slot["livres"] / max(1, slot["capacidade"]))
+        fator_distancia = (
+            0.5
+            if distancia_km is None
+            else 1.0 - min(distancia_km, 50.0) / 50.0
+        )
+        compatibilidade = 0.5 if generico else 1.0
+        nota = (
+            pesos["prioridade"] * (pontuacao_clinica / 100)
+            + pesos["vagas"] * razao_vagas
+            + pesos["compatibilidade"] * compatibilidade
+            + pesos["espera"] * (1.0 - dias_espera)
+            + pesos["distancia"] * fator_distancia
+        )
+        motivos = [
+            f"Prioridade clínica (pontuação {int(pontuacao_clinica)})",
+            f"Vaga com {slot['livres']} livre(s) de {slot['capacidade']}",
+            "Slot genérico compatível" if generico else f"Exame compatível ({codigo_slot})",
+            f"Disponível em {dias_espera:.1f} dia(s)",
+            (
+                f"Distância de {distancia_km:.1f} km (fonte {distancia_fonte})"
+                if distancia_km is not None and distancia_fonte != "INDISPONIVEL"
+                else "Distância indisponível (peso neutro)"
+            ),
+        ]
+        candidatos.append(
+            {
+                "slot": slot,
+                "pontuacao": round(min(100.0, max(0.0, nota)), 1),
+                "motivos": motivos,
+                "distanciaKm": distancia_km,
+                "distanciaOrigem": distancia_fonte,
+            }
+        )
+
+    candidatos.sort(
+        key=lambda item: (
+            -item["pontuacao"],
+            item["distanciaKm"] if item["distanciaKm"] is not None else float("inf"),
+            item["slot"]["inicio"],
+        )
+    )
+    total = int(limite) if limite is not None else int(settings.AGENDA_SUGGESTION_LIMIT)
+    return candidatos[: max(1, total)]

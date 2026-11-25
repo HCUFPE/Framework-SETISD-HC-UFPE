@@ -74,7 +74,8 @@ export interface EventoHistorico {
   detalhes: string;
 }
 
-export interface Agendamento {
+/** Registro de agendamento embutido na solicitação (fluxo legado da fila). */
+export interface AgendamentoRegistro {
   dataHora: string;
   unidade: string;
   confirmadoPor: string;
@@ -137,7 +138,64 @@ export interface Solicitacao {
   divergencias: Divergencia[];
   contatos: Contato[];
   historico: EventoHistorico[];
-  agendamento: Agendamento | null;
+  agendamento: AgendamentoRegistro | null;
+}
+
+/** Vaga disponível na agenda (contrato de /api/agendamentos/calendario). */
+export interface AgendaSlot {
+  id: string;
+  unidade: string;
+  codigoExame: string;
+  nomeExame: string;
+  inicio: string;
+  fim: string;
+  capacidade: number;
+  ocupadas: number;
+  livres: number;
+  status: 'DISPONIVEL' | 'LOTADO' | 'ENCERRADO';
+}
+
+/** Agendamento efetivado, com rastreabilidade completa. */
+export interface Agendamento {
+  id: string;
+  solicitacaoId: string;
+  protocolo: string;
+  pacienteChave: string;
+  pacienteNome: string;
+  prontuario: string;
+  unidade: string;
+  exame: string;
+  slotId: string;
+  dataHora: string;
+  status: 'ATIVO' | 'CANCELADO' | 'CONCLUIDO';
+  confirmadoPor: string;
+  criadoEm: string;
+  justificativa: string | null;
+}
+
+/** Horário sugerido automaticamente para uma solicitação (top 3). */
+export interface SugestaoAgendamento {
+  slot: AgendaSlot;
+  pontuacao: number;
+  motivos: string[];
+  distanciaKm: number | null;
+  distanciaOrigem: 'OSM' | 'MOCK' | 'INDISPONIVEL';
+}
+
+/** Resposta de GET /api/agendamentos/calendario. */
+export interface CalendarioAgendamentos {
+  de: string;
+  ate: string;
+  slots: AgendaSlot[];
+  agendamentos: Agendamento[];
+}
+
+/** Paciente encontrado na busca de agendamentos. */
+export interface PacienteAgendamentos {
+  pacienteChave: string;
+  pacienteNome: string;
+  prontuario: string;
+  agendamentosAtivos: number;
 }
 
 /** Resultado paginado da fila (contrato de GET /api/fila). */

@@ -22,7 +22,7 @@ from ..controllers.forms_webhook_controller import (
     receber_evento,
     reprocessar_evento,
 )
-from ..dependencies import get_aghux_provider, get_forms_provider
+from ..dependencies import get_aghux_provider, get_distance_provider, get_forms_provider
 from ..helpers.webhook_helper import validar_assinatura_webhook
 from ..resources.database import get_app_db_session
 
@@ -76,6 +76,7 @@ async def _processar_em_background(
     response_id: str,
     gerenciador_banco: Any,
     ip_origem: Optional[str],
+    distance_provider: Any = None,
 ) -> None:
     """Executa o processamento em sessão própria após responder 202 ao Power Automate."""
     async for db in gerenciador_banco.get_session():
@@ -85,6 +86,7 @@ async def _processar_em_background(
             get_forms_provider(),
             get_aghux_provider(),
             ip_origem,
+            distance_provider or get_distance_provider(),
         )
 
 
@@ -131,6 +133,7 @@ async def receber_webhook_forms(
         evento.response_id,
         request.app.state.app_db,
         ip_origem,
+        get_distance_provider(),
     )
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
@@ -152,6 +155,7 @@ async def reprocessar_evento_forms(
     response_id: str,
     request: Request,
     db: AsyncSession = Depends(get_app_db_session),
+    distance_provider: Any = Depends(get_distance_provider),
 ):
     """Reexecuta a ingestão de um evento sem criar um novo registro."""
     ip_origem = request.client.host if request.client else None
@@ -161,6 +165,7 @@ async def reprocessar_evento_forms(
         get_forms_provider(),
         get_aghux_provider(),
         ip_origem,
+        distance_provider,
     )
     if not evento:
         raise HTTPException(

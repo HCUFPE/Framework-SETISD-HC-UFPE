@@ -58,6 +58,7 @@ class Solicitacao(Base):
     forms_response_id = Column(String(255), nullable=True, unique=True, index=True)
     codigo_solicitacao_aghux = Column(String(100), nullable=True, index=True)
     prontuario = Column(String(100), nullable=True, index=True)
+    paciente_chave = Column(String(64), nullable=True, index=True)
     paciente_nome = Column(String(300), nullable=False)
     telefone = Column(String(50), nullable=True)
     cidade = Column(String(150), nullable=True)

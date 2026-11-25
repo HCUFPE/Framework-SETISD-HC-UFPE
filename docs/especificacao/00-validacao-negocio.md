@@ -76,7 +76,9 @@ O profissional da Central de Marcação acessa a fila de trabalho unificada já 
 4. **Confirmação e Agendamento com o Paciente**:
 Com os dados conferidos e livres de erros, o operador realiza a comunicação de confirmação da data e horário com o paciente, registrando o retorno no próprio sistema para evitar contatos duplicados.
 5. **Efetivação e Inclusão Facilitada no AGHUX**:
-Após o aceite do paciente, o operador confirma o agendamento no AGHUX. O sistema registra o histórico completo do processo (quem solicitou, quem validou, quais alterações foram feitas e quando a marcação foi concluída), gerando uma trilha auditável inviolável.
+Após o aceite do paciente, o operador escolhe uma vaga no calendário. O sistema sugere automaticamente os melhores horários, respeitando a quantidade de vagas e as já ocupadas por outros pacientes, e registra o histórico completo do processo (quem solicitou, quem validou, quais alterações foram feitas e quando a marcação foi concluída), gerando uma trilha auditável inviolável. A confirmação efetiva no AGHUX segue como etapa futura; nesta versão a marcação é registrada na agenda local do sistema.
+5.1. **Remarcação e Distância**:
+Quando o paciente pede outro horário, a chefia ou o operador consulta o histórico de agendamentos daquele paciente no calendário, escolhe uma nova vaga e informa o motivo. A vaga anterior volta a ficar disponível imediatamente. Se o endereço tiver sido informado no formulário, o sistema calcula a distância até o hospital e a usa apenas como desempate entre horários equivalentes — nunca para superar um caso clinicamente mais prioritário.
 6. **Acompanhamento e Gestão em Tempo Real**:
 A gestão acessa um painel de controle central para acompanhar os indicadores operacionais em tempo real: volume de solicitações pendentes, tempo médio de validação, exames agendados e gargalos da fila, dispensando o tempo gasto na consolidação de relatórios e conferências manuais.
 
@@ -104,6 +106,8 @@ A gestão acessa um painel de controle central para acompanhar os indicadores op
 * **RN-06 (Autenticação Institucional e Assinatura Eletrônica):** O acesso interno exige login institucional com a conta de rede do hospital. Toda ação (correção, validação, agendamento) é vinculada à assinatura eletrônica do operador, com data e hora.
 * **RN-07 (Confirmação com o Paciente antes da Efetivação):** O exame só é marcado no AGHUX após o aceite do paciente. O retorno do contato (aceite, recusa ou sem resposta) é registrado no sistema para evitar contatos duplicados.
 * **RN-08 (Preservação e Imutabilidade do Histórico):** Nenhum registro é apagado ou sobrescrito. Todo o histórico (quem solicitou, validou, alterou e agendou, e quando) forma uma trilha auditável inviolável.
+* **RN-09 (Ocupação Real de Vagas):** Nenhum horário é oferecido acima da capacidade cadastrada pela Área Gestora, e a ocupação considera todos os agendamentos ativos — inclusive os de outros pacientes.
+* **RN-10 (Privacidade do Endereço):** O endereço informado no formulário é usado somente para calcular a distância até o hospital. Não pode aparecer em telas de terceiros, relatórios, histórico de auditoria ou logs; se o cálculo falhar, o sistema informa que a distância está indisponível em vez de estimar um valor.
 
 ---
 
@@ -125,11 +129,13 @@ O sistema deve disponibilizar painel gerencial em tempo real, com os seguintes i
 | # | Ponto a Decidir | Impacto no Processo | Quem deve decidir? | Status / Definição |
 | :-: | :--- | :--- | :--- | :--- |
 | **1** | **Critérios de Priorização:** Quais critérios (urgência clínica, idade, tempo de espera, outros) e qual o peso de cada um? | Define a ordem automática da fila e a equidade no atendimento. | Gestão da Área / Direção Clínica | 🟡 Em definição |
-| **2** | **Política de Preenchimento de Vagas:** Como as vagas disponíveis serão distribuídas entre as solicitações da fila? | Evita vagas ociosas e garante que os casos prioritários sejam atendidos primeiro. | Gestão da Área | 🟡 Em definição |
+| **2** | **Política de Preenchimento de Vagas:** Como as vagas disponíveis serão distribuídas entre as solicitações da fila? | Evita vagas ociosas e garante que os casos prioritários sejam atendidos primeiro. | Gestão da Área | 🟢 **Definido (v0.3.0):** a Área Gestora cadastra vagas por unidade/exame/data/horário; a sugestão respeita a capacidade e as vagas já ocupadas, ordenando por prioridade, compatibilidade, tempo de espera e distância como desempate. |
 | **3** | **Prazo Máximo de Validação:** Qual o tempo-limite para o operador validar uma solicitação? | Define os alertas de atraso e a meta do indicador de tempo médio de validação. | Gestão Central / Chefias | 🟡 Em definição |
 | **4** | **Regra de Contato com o Paciente:** Qual o canal oficial, quantas tentativas e qual o prazo de resposta antes de devolver a solicitação à fila? | Evita contatos duplicados e vagas bloqueadas por pacientes sem retorno. | Gestão da Área | 🟡 Em definição |
 | **5** | **Alteração Excepcional de Prioridade:** Quais situações permitem à Área Gestora mudar a ordem da fila e qual a justificativa mínima? | Mantém a equidade sem impedir o tratamento de exceções reais. | Gestão Central | 🟡 Em definição |
-| **6** | **Cancelamento e Reagendamento:** Qual o rito formal para desmarcar ou remarcar um exame já efetivado? | Define o registro no histórico e o retorno da vaga à fila. | Gestão Central | 🟡 Em definição |
+| **6** | **Cancelamento e Reagendamento:** Qual o rito formal para desmarcar ou remarcar um exame já efetivado? | Define o registro no histórico e o retorno da vaga à fila. | Gestão Central | 🟢 **Definido (v0.3.0):** toda remarcação ou cancelamento exige justificativa, devolve a vaga anterior na mesma operação e registra quem fez, quando e o motivo; o histórico de todos os agendamentos do paciente fica consultável no calendário. |
+| **7** | **Distância até o hospital:** Como obter a distância a partir do endereço informado no formulário? | Permite encaixes mais próximos do paciente sem usar dados sensíveis em telas ou relatórios. | Gestão da Área / TI | 🟢 **Definido (v0.3.0):** geocoding com OpenStreetMap (Nominatim) e rota com OSRM, sem chave paga, com cache e timeout; falha no cálculo é sinalizada como indisponível, nunca estimada. |
+| **8** | **Ferramenta de calendário:** qual visualização usar para vagas e remarcação? | Define a usabilidade da Central de Marcação e o custo de manutenção do frontend. | Gestão da Área / TI | 🟢 **Definido (v0.3.0):** FullCalendar Vue 3 nas visões mês e semana, com cores por ocupação; arrastar um agendamento abre confirmação com justificativa antes de salvar. |
 
 ---
 ---

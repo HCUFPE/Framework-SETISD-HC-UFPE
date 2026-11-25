@@ -10,10 +10,12 @@ Este documento é a **ÚNICA fonte de verdade** para a orquestração do desenvo
 - [ ] Administração de critérios de priorização e da equipe com perfis locais validados no AD (RF006/RF016).
 - [ ] Trilha de auditoria imutável para toda mutação (RF013, RNF002/RNF005).
 
-### Entrega atual (F0 a F3 + início da Fase 4 — v0.2.0)
-Escopo aprovado: **frontend navegável com dados simulados**, agora alimentados pelo export real do AGHUX (576 itens agrupados em 493 solicitações), **mais o backend da integração Microsoft Forms → AGHUX**, que inicia a Fase 4. A versão é `v0.2.0` (`src/version.py` e fallback em `frontend/src/config/version.ts`); **nenhuma tag de produção foi criada**.
+### Entrega atual (F0 a F4 + Fase 5 — v0.3.0)
+Escopo aprovado: **frontend navegável com dados simulados** alimentados pelo export real do AGHUX (576 itens agrupados em 493 solicitações), **backend da integração Microsoft Forms → AGHUX** (v0.2.0) e, agora, **gestão de agendamentos com calendário, vagas locais, remarcação, sugestão automática e distância até o hospital**. A versão é `v0.3.0` (`src/version.py` e fallback em `frontend/src/config/version.ts`); **nenhuma tag de produção foi criada**.
 
-A integração adota a abordagem híbrida (Forms → Power Automate → webhook assinado), persiste eventos e solicitações no banco local com criptografia de CPF/CNS e trilha de auditoria, e expõe a tela administrativa `/integracoes`. Os contratos HTTP já implantados estão em `05-interfaces.md`; os demais contratos de domínio permanecem documentados para entregas seguintes. As telas operacionais (Fila, Painel, Relatórios, Critérios e Equipe) continuam usando o adaptador de mocks, controlado por `VITE_USE_MOCKS` (`frontend/.env.example`, documentado em `06-arquitetura.md`). O resumo de escopo (política de vagas/compatibilidade) segue pendente de apontamentos e **não é implementado nesta entrega**.
+A integração adota a abordagem híbrida (Forms → Power Automate → webhook assinado), persiste eventos e solicitações no banco local com criptografia de CPF/CNS e trilha de auditoria, e expõe a tela administrativa `/integracoes`. A v0.3.0 acrescenta a tela `/agendamentos` com FullCalendar (mês/semana, ocupação por vaga, arrastar para remarcar), os endpoints protegidos de calendário/sugestões/mutações e a administração de vagas pela Área Gestora. Vagas e ocupação são **configuração local** no SQLite; o provider do AGHU real segue reservado e **nenhum agendamento é prometido no AGHU**. A distância usa OpenStreetMap (Nominatim + OSRM), sem chave paga, com cache, timeout e `User-Agent`; o endereço do formulário é dado sensível, criptografado em repouso e nunca exposto em logs, auditoria ou respostas da API — a tela mostra apenas cidade/UF e distância em km.
+
+Os contratos HTTP implantados estão em `05-interfaces.md`; os demais contratos de domínio permanecem documentados para entregas seguintes. As telas operacionais (Fila, Painel, Relatórios, Critérios e Equipe) continuam usando o adaptador de mocks, controlado por `VITE_USE_MOCKS` (`frontend/.env.example`, documentado em `06-arquitetura.md`). A sugestão automática segue a decisão da gestão: prioridade clínica e vagas como critérios principais, compatibilidade e tempo de espera na sequência, e distância apenas como desempate — nunca substituindo prioridade.
 
 ## 2. Contexto do Projeto (Documentação Imutável)
 - [Validação e Fluxo de Negócio](00-validacao-negocio.md) (Fase 0 - Negócio)
@@ -30,18 +32,19 @@ A integração adota a abordagem híbrida (Forms → Power Automate → webhook 
 - Seguir rigorosamente o Modelo de Dados definido em `04-modelo-dados.md`, inclusive soft delete e criptografia AES-GCM (chave de 32 bytes, nonce de 96 bits) de CPF/CNS.
 - Implementar testes automatizados para cada nova funcionalidade de backend; validar o frontend com `npm run build` e verificar manualmente os fluxos das telas.
 - Manter os interceptadores de `frontend/src/services/api.ts` e os componentes reutilizáveis do framework.
-- Proteger toda rota de dados com `Depends(auth_handler.decode_token)` no roteador; a única exceção pública é `POST /api/integracoes/forms/webhook`, protegida por HMAC-SHA256, timestamp e nonce. No frontend, declarar `meta.roles` e tratar a autorização no backend como fonte de verdade.
+- Proteger toda rota de dados com `Depends(auth_handler.decode_token)` no roteador; a única exceção pública é `POST /api/integracoes/forms/webhook`, protegida por HMAC-SHA256, timestamp e nonce. No frontend, declarar `meta.roles` e tratar a autorização no backend como fonte de verdade, inclusive nas rotas administrativas de vagas e nas mutações de agendamento.
 - Registrar mudanças de critérios, perfis e solicitações via `registrar_auditoria()` com `dados_anteriores`, `dados_novos`, `ip_origem` e categoria.
 - Executar o auditor de conformidade ao final de cada entrega. O script `audit_framework.py` possui um defeito conhecido na função `colorize()` (`ENDC` não qualificado) que **não deve ser corrigido nesta entrega**; executá-lo por shim em memória:
   `python -c "import audit_framework as a; a.ENDC=''; a.FrameworkAuditor('.').run()"`
 
 **A IA NÃO DEVE:**
-- Criar dependências externas não documentadas em `06-arquitetura.md`. Nesta entrega há **uma dependência backend nova**, `cryptography>=42`, e **zero dependências npm novas**; gráficos seguem em SVG/CSS.
+- Criar dependências externas não documentadas em `06-arquitetura.md`. Nesta entrega as **únicas dependências npm autorizadas** são os cinco pacotes FullCalendar v6 (`core`, `vue3`, `daygrid`, `timegrid`, `interaction`); nenhum pacote premium ou outra biblioteca de calendário é permitida. O backend **não adiciona pacote**: `httpx>=0.27` já faz parte do projeto. Gráficos do painel seguem em SVG/CSS.
 - Implementar exclusão física de registros (usar `deleted_at`).
 - Burlar o sistema RBAC; esconder controles no frontend nunca substitui a validação no backend.
 - Alterar manualmente a prioridade individual de solicitações na tela do operador (RN-02); exceções são exclusivas da Área Gestora e exigem justificativa (RN-03).
 - Corrigir `audit_framework.py`, `src/main.py` ou demais arquivos de infraestrutura sem instrução explícita neste `SPEC.md`.
-- Prometer recursos não implementados: agendamento real no AGHU, provider `FORMS_API` funcional ou tag de produção. `FORMS_API` e `AGHU` são apenas pontos de extensão reservados.
+- Prometer recursos não implementados: agendamento real no AGHU, provider `FORMS_API` funcional ou tag de produção. `FORMS_API` e `AGHU` são apenas pontos de extensão reservados; a v0.3.0 registra agendamentos no banco local e não confirma a marcação no AGHUX.
+- Expor endereço completo do paciente (CEP, logradouro, número, complemento, bairro) em resposta, auditoria ou log, ou inventar coordenadas/distância quando o provedor de geocoding falhar.
 
 ## 4. Task Breakdown (Plano de Implementação)
 
@@ -68,8 +71,8 @@ A integração adota a abordagem híbrida (Forms → Power Automate → webhook 
 ### Fase 3 — Contratos para o backend (documentação nesta entrega)
 - [x] [TASK-023] Publicar em `05-interfaces.md` os contratos de `/api/fila`, `/api/painel/indicadores`, `/api/relatorios`, `/api/criterios-priorizacao` e `/api/admin/equipe`.
 
-### Fase 4 — Backend de domínio (iniciada nesta entrega)
-- [x] [TASK-024] Implementar models, providers, controllers e routers protegidos; integração real com formulário externo e AGHUX; notificações e regras de cancelamento/reagendamento. **Concluída no escopo desta entrega** quanto aos models/providers/controllers/routers da integração Forms → AGHUX. Notificações, cancelamento/reagendamento e o provider `AGHU` real **não foram implementados** e permanecem para entrega futura.
+### Fase 4 — Backend de integração (concluída na v0.2.0)
+- [x] [TASK-024] Implementar models, providers, controllers e routers protegidos; integração real com formulário externo e AGHUX; notificações e regras de cancelamento/reagendamento. **Concluída no escopo da v0.2.0** quanto aos models/providers/controllers/routers da integração Forms → AGHUX. Notificações, cancelamento/reagendamento e o provider `AGHU` real **não foram implementados** nessa versão; cancelamento/reagendamento são entregues na Fase 5, e notificações e o provider `AGHU` permanecem para entrega futura.
 - [x] [TASK-026] Criar os modelos `forms_responses`, `webhook_nonces`, `solicitacoes`, `solicitacao_itens_exame`, `divergencias` e `alertas`, com a migração Alembic `c4f1a7d9e2b3` (revises `8a2efbe37bb6`).
 - [x] [TASK-027] Definir `FormsProviderInterface` (Mock, Power Automate e `FORMS_API` reservado) e `AghuxProviderInterface` (`AghuxJsonProvider` sobre a fixture de 576 itens / 493 solicitações e `AghuProvider` reservado), com fábricas em `src/dependencies.py`.
 - [x] [TASK-028] Proteger o webhook com HMAC-SHA256 sobre `timestamp . nonce . corpo_bruto`, cabeçalhos `X-SAE-Timestamp`, `X-SAE-Nonce` e `X-SAE-Signature`, janela `WEBHOOK_MAX_SKEW_SECONDS` e nonce único anti-replay; documentar a exceção pública ao default-private.
@@ -78,10 +81,23 @@ A integração adota a abordagem híbrida (Forms → Power Automate → webhook 
 - [x] [TASK-031] Entregar a tela `/integracoes` no grupo **Sistema** (`AREA_GESTORA`/`ADMIN_TI`) para listar eventos e reprocessar falhas/duplicidades, mantendo o fallback de versão `v0.2.0` no frontend.
 - [x] [TASK-032] Validar a entrega: 18 testes pytest (9 anteriores + 9 novos), `npm run build` e auditoria 11/11 via shim em memória.
 
+### Fase 5 — Gestão de agendamentos, calendário e distância (v0.3.0)
+- [x] [TASK-033] Decidir as quatro premissas com a gestão: vagas em configuração local, distância via OSM/Nominatim+OSRM, calendário com FullCalendar e sugestão por prioridade + vagas + compatibilidade + espera, com distância como desempate. Nenhuma tag de produção.
+- [x] [TASK-034] Criar a migração Alembic `e7c1a9d4b3f2` (revises `c4f1a7d9e2b3`) e os models `agenda_slots`, `agendamentos`, `contatos_paciente` e `paciente_enderecos`, com `deleted_at`, índices e `solicitacoes.paciente_chave` derivado por HMAC.
+- [x] [TASK-035] Definir `SlotProviderInterface` (`LocalSlotProvider`, `AghuSlotProvider` reservado) e `DistanceProviderInterface` (`OpenStreetMapDistanceProvider`, `MockDistanceProvider` somente em testes), com fábricas em `src/dependencies.py`, cache, timeout e `User-Agent` configuráveis.
+- [x] [TASK-036] Implementar validação de divergências, registro de contato e as regras de agendar/remarcar/cancelar do controller: aceite prévio (RN-07), divergências tratadas (RN-04), sem choque para o mesmo paciente (RN-05), capacidade da vaga local, justificativa obrigatória, devolução de vaga na mesma transação e auditoria `NEGOCIO_CLINICO` com IP e antes/depois.
+- [x] [TASK-037] Implementar a sugestão automática: filtros duros de vaga livre, data futura, compatibilidade de exame/unidade e ausência de conflito; score `0..100` com pesos `35/15/20/20/10` configuráveis por ambiente, distância apenas como desempate.
+- [x] [TASK-038] Expor os endpoints protegidos de calendário, histórico/busca de paciente, sugestões, mutações e administração de vagas, com RBAC no backend (`COORDENACAO` somente leitura; `GLO-SEC-HCPE-SETISD` equiparado a `ADMIN_TI`).
+- [x] [TASK-039] Entregar a tela `/agendamentos` com FullCalendar (mês/semana), ocupação por vaga, painel do paciente com histórico, remarcação por arrastar ou botão (sempre com justificativa), modal de sugestões e gestão de vagas para Área Gestora/Admin TI, preservando os interceptadores do Axios e os componentes reutilizáveis.
+- [x] [TASK-040] Ampliar `FORMS_FIELD_MAP` com apelidos de endereço, criptografar CEP/logradouro/número/complemento/bairro em `paciente_enderecos`, calcular distância até o hospital e garantir que nenhum campo de endereço apareça em logs, auditoria ou respostas da API. Sem endereço no formulário, nenhuma distância é inventada.
+- [x] [TASK-041] Validar a entrega: 33 testes pytest (18 anteriores + 15 novos em `tests/test_agendamentos.py`), `npm run build`, importador AGHUX, auditoria 11/11 via shim em memória e bump da versão para `v0.3.0`.
+
 ## 5. Critérios de Verificação Global
 - [x] `npm run build` conclui sem erros de tipo (`vue-tsc`) para o frontend.
 - [x] Auditoria arquitetural: 11/11 (100%, EXCELENTE) com o comando via shim da Seção 3.
-- [x] `uv run pytest` sem regressões: 18 testes aprovados (9 anteriores + 9 novos em `tests/test_integracao_forms.py`), cobrindo HMAC válido/inválido, skew, replay, idempotência, RBAC, reprocessamento, alerta sem correspondência no AGHUX e cripto.
-- [x] Nenhuma mutação de tela sem registro correspondente no histórico simulado; as mutações da integração são gravadas em `audit_logs` com estado anterior/posterior, IP de origem e categoria.
-- [x] Nenhum CPF/CNS inventado nos mocks ou nos provedores: o export AGHUX não contém esses campos e um formulário sem CPF/CNS não inventa valores; quando informados, são criptografados com AES-GCM, com hash HMAC para deduplicação e máscara `***` nos últimos 4 dígitos, nunca em claro em payload, auditoria, logs ou respostas da API.
-- [x] Zero dependências novas em `frontend/package.json` nesta entrega; a única dependência backend adicionada é `cryptography>=42` (via `uv`), documentada em `06-arquitetura.md`.
+- [x] `uv run pytest` sem regressões: **33 testes aprovados** (18 anteriores + 15 novos em `tests/test_agendamentos.py`), cobrindo HMAC válido/inválido, skew, replay, idempotência, RBAC, reprocessamento, alerta sem correspondência no AGHUX, cripto, capacidade, conflito do mesmo paciente, remarcação/cancelamento com devolução de vaga, sugestão ordenada, busca sem PHI e não exposição de endereço.
+- [x] Nenhuma mutação de tela sem registro correspondente no histórico simulado; as mutações da integração e da agenda são gravadas em `audit_logs` com estado anterior/posterior, IP de origem e categoria (`NEGOCIO_CLINICO` para agendamentos, `CONFIGURACAO` para vagas).
+- [x] Nenhum CPF/CNS inventado nos mocks ou nos provedores: o export AGHUX não contém esses campos e um formulário sem CPF/CNS não inventa valores; quando informados, são criptografados com AES-GCM, com hash HMAC para deduplicação e máscara `***` nos últimos 4 dígitos, nunca em claro em payload, auditoria, logs ou respostas da API. O mesmo vale para o endereço do formulário, cifrado em `paciente_enderecos` e nunca devolvido pela API.
+- [x] Dependências explicitamente autorizadas e documentadas em `06-arquitetura.md`: `cryptography>=42` no backend e os cinco pacotes FullCalendar v6 no frontend. Nenhuma outra dependência foi adicionada; `httpx>=0.27` já estava no projeto.
+- [x] Agendamentos respeitam capacidade da vaga local e bloqueiam choque do mesmo paciente; toda remarcação/cancelamento exige justificativa e devolve a vaga anterior na mesma transação.
+- [x] Importador AGHUX segue gerando 576 itens → 493 solicitações sem CPF/CNS; o calendário em mocks usa `referenciaEm` apenas para demonstração, sem inventar endereço ou distância real.
