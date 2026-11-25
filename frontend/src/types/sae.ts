@@ -182,6 +182,26 @@ export interface Agendamento {
   justificativa: string | null;
 }
 
+/** Proposta da simulação no formato da fila de marcação (sem PHI ou endereço). */
+export interface PropostaAgendamentoFila {
+  agendamentoId: string;
+  solicitacaoId: string;
+  protocolo: string;
+  pacienteNome: string;
+  prontuario: string;
+  prioridade: Prioridade;
+  pontuacao: number;
+  unidadeSolicitante: string;
+  exames: string;
+  status: 'PROPOSTO';
+  statusSolicitacao: StatusSolicitacao;
+  dataHora: string;
+  unidade: string;
+  nomeExame: string;
+  recebidaEm: string;
+  tempoNaFilaHoras: number;
+}
+
 /** Horário sugerido automaticamente para uma solicitação (top 3). */
 export interface SugestaoAgendamento {
   slot: AgendaSlot;

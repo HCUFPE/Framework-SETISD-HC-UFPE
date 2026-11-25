@@ -1,5 +1,5 @@
 """
-Routers da Gestão de Agendamentos (v0.4.0)
+Routers da Gestão de Agendamentos (v0.5.0)
 ==========================================
 Todos os roteadores declaram JWT no nível do `APIRouter` (default-private) e
 reforçam RBAC no backend. O grupo `GLO-SEC-HCPE-SETISD` do usuário mock
@@ -36,7 +36,8 @@ GRUPOS_ESCRITA = {
     "ADMIN_TI",
     "GLO-SEC-HCPE-SETISD",
 }
-GRUPOS_ADMIN_AGENDA = {"AREA_GESTORA", "ADMIN_TI", "GLO-SEC-HCPE-SETISD"}
+# A chefia da central ajusta a disponibilidade de exames (vagas) na rotina diária.
+GRUPOS_ADMIN_AGENDA = {"CHEFIA", "AREA_GESTORA", "ADMIN_TI", "GLO-SEC-HCPE-SETISD"}
 
 
 def _grupos(current_user: dict) -> set[str]:
@@ -70,7 +71,7 @@ async def verificar_escrita(current_user: dict = Depends(auth_handler.decode_tok
 async def verificar_admin_agenda(
     current_user: dict = Depends(auth_handler.decode_token),
 ) -> dict:
-    """Restringe a gestão de vagas à Área Gestora, TI e admin do framework."""
+    """Permite à chefia, à Área Gestora, ao TI e ao admin ajustar as vagas."""
     if not (_grupos(current_user) & GRUPOS_ADMIN_AGENDA):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -110,7 +111,7 @@ class SlotPayload(BaseModel):
     inicio: Optional[str] = None
     fim: Optional[str] = None
     capacidade: Optional[int] = None
-    situacao: Optional[str] = None
+    situacao: Optional[str] = Field(default=None, validation_alias=AliasChoices("situacao", "status"))
 
     def como_dict(self) -> Dict[str, Any]:
         """Remove campos não informados antes da validação no controller."""
@@ -200,6 +201,16 @@ async def calendario_agendamentos(
         codigo_exame=codigoExame,
         paciente_chave=pacienteChave,
     )
+
+
+@router.get("/propostas")
+async def listar_propostas_agendamento(
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_leitura),
+):
+    """Lista propostas pendentes em formato de fila, ordenadas por prioridade."""
+    return await controller.listar_propostas(db, provider)
 
 
 @router.get("/pacientes/buscar")

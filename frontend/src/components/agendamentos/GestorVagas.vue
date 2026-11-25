@@ -1,6 +1,6 @@
 <template>
   <Modal :show="show" @close="emit('close')">
-    <template #header>Gestão de vagas da agenda</template>
+    <template #header>Disponibilidade de exames — gestão de vagas</template>
 
     <LoadingIndicator v-if="carregando" />
     <p v-if="erroLocal" class="mb-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ erroLocal }}</p>
@@ -12,7 +12,10 @@
         <datalist id="unidades-vaga">
           <option v-for="unidade in unidades" :key="unidade" :value="unidade" />
         </datalist>
-        <input v-model="novo.codigoExame" placeholder="Código do exame" class="campo" />
+        <input v-model="novo.codigoExame" placeholder="Código do exame" class="campo" list="exames-vaga" />
+        <datalist id="exames-vaga">
+          <option v-for="exame in exames" :key="exame.codigoExame" :value="exame.codigoExame">{{ exame.nomeExame }}</option>
+        </datalist>
         <input v-model="novo.nomeExame" placeholder="Nome do exame" class="campo" />
         <input v-model="novo.inicio" type="datetime-local" class="campo" />
         <input v-model="novo.fim" type="datetime-local" class="campo" />
@@ -26,7 +29,10 @@
     <div class="mt-4">
       <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 class="text-sm font-bold text-gray-700">Vagas cadastradas</h3>
-        <input v-model="diaFiltro" type="date" class="campo w-auto" aria-label="Filtrar vagas por data" />
+        <div class="flex flex-wrap gap-2">
+          <input v-model="diaFiltro" type="date" class="campo w-auto" aria-label="Filtrar vagas por data" />
+          <input v-model="exameFiltro" type="search" class="campo w-auto" placeholder="Filtrar exame" aria-label="Filtrar vagas por exame" />
+        </div>
       </div>
       <DataTable :headers="colunas" :items="slotsDoDia">
         <template #actions="{ item }">
@@ -47,16 +53,54 @@
               <option value="LOTADO">Lotada</option>
               <option value="ENCERRADO">Encerrada</option>
             </select>
-            <Button variant="info" :loading="salvandoItem === String(item.id)" @click="salvar(String(item.id))">Salvar</Button>
+            <Button variant="info" @click="editar(item as AgendaSlot)">Editar</Button>
+            <Button variant="secondary" :loading="salvandoItem === String(item.id)" @click="salvar(String(item.id))">Salvar</Button>
           </div>
         </template>
       </DataTable>
+    </div>
+
+    <div v-if="selecionadoId" class="mt-4 rounded-lg border border-paper-primary/40 bg-paper-primary/5 p-3">
+      <div class="mb-2 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-gray-700">Editar disponibilidade do exame</h3>
+        <button type="button" class="text-xs font-bold text-paper-primary hover:underline" @click="selecionadoId = ''">fechar</button>
+      </div>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label class="text-xs font-semibold text-gray-600">Unidade
+          <input v-model="edicao.unidade" class="campo mt-1" />
+        </label>
+        <label class="text-xs font-semibold text-gray-600">Código do exame
+          <input v-model="edicao.codigoExame" class="campo mt-1" />
+        </label>
+        <label class="text-xs font-semibold text-gray-600 sm:col-span-2">Nome do exame
+          <input v-model="edicao.nomeExame" class="campo mt-1" />
+        </label>
+        <label class="text-xs font-semibold text-gray-600">Início
+          <input v-model="edicao.inicio" type="datetime-local" class="campo mt-1" />
+        </label>
+        <label class="text-xs font-semibold text-gray-600">Fim
+          <input v-model="edicao.fim" type="datetime-local" class="campo mt-1" />
+        </label>
+        <label class="text-xs font-semibold text-gray-600">Capacidade
+          <input v-model.number="edicao.capacidade" type="number" min="1" class="campo mt-1" />
+        </label>
+        <label class="text-xs font-semibold text-gray-600">Situação
+          <select v-model="edicao.status" class="campo mt-1">
+            <option value="DISPONIVEL">Disponível</option>
+            <option value="LOTADO">Lotada</option>
+            <option value="ENCERRADO">Encerrada</option>
+          </select>
+        </label>
+      </div>
+      <div class="mt-3 flex justify-end">
+        <Button variant="primary" :loading="salvandoItem === selecionadoId" @click="salvar(selecionadoId)">Salvar alterações</Button>
+      </div>
     </div>
   </Modal>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import Button from '../Button.vue';
 import DataTable from '../DataTable.vue';
 import LoadingIndicator from '../LoadingIndicator.vue';
@@ -76,10 +120,22 @@ const salvando = ref(false);
 const salvandoItem = ref('');
 const erroLocal = ref('');
 const diaFiltro = ref(agoraIso().slice(0, 10));
+const exameFiltro = ref('');
+const selecionadoId = ref('');
 const ajustes = ref<Record<string, { capacidade: number; status: AgendaSlot['status'] }>>({});
 
 const novo = ref<DadosNovoSlot>({
   unidade: '', codigoExame: '', nomeExame: '', inicio: '', fim: '', capacidade: 3,
+});
+
+const edicao = reactive({
+  unidade: '',
+  codigoExame: '',
+  nomeExame: '',
+  inicio: '',
+  fim: '',
+  capacidade: 3,
+  status: 'DISPONIVEL' as AgendaSlot['status'],
 });
 
 const colunas = [
@@ -92,10 +148,14 @@ const colunas = [
 ];
 
 const unidades = computed(() => Array.from(new Set(slots.value.map((slot) => slot.unidade))).sort());
+const exames = computed(() => Array.from(
+  new Map(slots.value.map((slot) => [slot.codigoExame, slot] as const)).values(),
+).sort((a, b) => a.nomeExame.localeCompare(b.nomeExame)));
 const slotsDoDia = computed(() => {
-  const itens = diaFiltro.value
-    ? slots.value.filter((slot) => slot.inicio.slice(0, 10) === diaFiltro.value)
-    : slots.value;
+  const termo = exameFiltro.value.trim().toLowerCase();
+  const itens = slots.value.filter((slot) =>
+    (!diaFiltro.value || slot.inicio.slice(0, 10) === diaFiltro.value)
+    && (!termo || `${slot.codigoExame} ${slot.nomeExame}`.toLowerCase().includes(termo)));
   return itens.slice(0, 60);
 });
 
@@ -114,6 +174,7 @@ async function carregar(): Promise<void> {
   try {
     slots.value = await listarSlotsAdmin();
     ajustes.value = {};
+    selecionadoId.value = '';
   } catch (erro) {
     erroLocal.value = mensagem(erro);
   } finally {
@@ -151,6 +212,20 @@ function definirSituacao(id: string, evento: Event): void {
   };
 }
 
+/** Abre a edição completa do exame/unidade/horário de uma vaga. */
+function editar(slot: AgendaSlot): void {
+  selecionadoId.value = slot.id;
+  Object.assign(edicao, {
+    unidade: slot.unidade,
+    codigoExame: slot.codigoExame,
+    nomeExame: slot.nomeExame,
+    inicio: slot.inicio.slice(0, 16),
+    fim: slot.fim.slice(0, 16),
+    capacidade: slot.capacidade,
+    status: slot.status,
+  });
+}
+
 async function criar(): Promise<void> {
   salvando.value = true;
   erroLocal.value = '';
@@ -167,7 +242,7 @@ async function criar(): Promise<void> {
 }
 
 async function salvar(id: string): Promise<void> {
-  const ajuste = ajustes.value[id];
+  const ajuste = id === selecionadoId.value ? { ...edicao } : ajustes.value[id];
   if (!ajuste) return;
   salvandoItem.value = id;
   erroLocal.value = '';

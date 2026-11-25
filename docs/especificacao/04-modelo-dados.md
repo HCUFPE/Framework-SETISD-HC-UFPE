@@ -139,7 +139,7 @@ erDiagram
   }
 ```
 
-### Agenda local, endereço e distância (v0.4.0)
+### Agenda local, endereço e distância (v0.5.0)
 
 ```mermaid
 erDiagram
@@ -202,7 +202,7 @@ erDiagram
 | `DIVERGENCIA` | Diferença entre formulário e cadastro AGHUX. | FK para `solicitacoes.id`; `tratada`, `justificativa`, `criado_em` e `deleted_at`. Não pode ser ignorada; exige correção ou justificativa antes da validação (RN-04). |
 | `ALERTA` | Inconsistência detectada no recebimento (RF004). | FK para `solicitacoes.id`; `campo`, `mensagem`, `severidade`, `criado_em` e `deleted_at`. Orienta notificação ao paciente (RF019). |
 | `CONTATO_PACIENTE` | Registro de aceite, recusa ou sem resposta. | FK para `solicitacoes.id`; `canal`, `resultado` (`ACEITE`, `RECUSA`, `SEM_RESPOSTA`), `observacao`, `operador`, `realizado_em` e `deleted_at`. Pode ser registrado enquanto a solicitação está em `AGUARDANDO_CONTATO`, `AGUARDANDO_CONFIRMACAO` ou `AGUARDANDO_REAGENDAMENTO`; aceite é pré-condição da reserva (RN-07). |
-| `AGENDA_SLOTS` | Vaga local cadastrada pela Área Gestora/ADMIN_TI. | Unidade, exame (código/nome), `inicio`/`fim`, `capacidade`, `situacao` (`DISPONIVEL`, `LOTADO`, `ENCERRADO`), `criado_em`, `atualizado_em` e `deleted_at`. `ocupadas` é derivada dos agendamentos `ATIVO` e das propostas `PROPOSTO`, nunca armazenada, e inclui outros pacientes. |
+| `AGENDA_SLOTS` | Vaga local cadastrada pela Chefia da Central, Área Gestora ou ADMIN_TI. | Unidade, exame (código/nome), `inicio`/`fim`, `capacidade`, `situacao` (`DISPONIVEL`, `LOTADO`, `ENCERRADO`), `criado_em`, `atualizado_em` e `deleted_at`. `ocupadas` é derivada dos agendamentos `ATIVO` e das propostas `PROPOSTO`, nunca armazenada, e inclui outros pacientes. |
 | `AGENDAMENTO` | Reserva na agenda local do SAE-HC, com confirmação operacional do operador. | FK para `solicitacoes.id` e `agenda_slots.id`; `paciente_chave`, `status` (`PROPOSTO`, `ATIVO`, `CANCELADO`, `CONCLUIDO`), `autor`, `justificativa`, `criado_em`, `cancelado_em` e `deleted_at`. `PROPOSTO` reserva vaga e só vira `ATIVO` após confirmação do operador. Toda reserva exige aceite e divergências tratadas; bloqueia choque do mesmo paciente (RN-05) e não ultrapassa a capacidade (RN-09). Remarcação e cancelamento exigem justificativa e devolvem a vaga na mesma transação. |
 | `PACIENTE_ENDERECO` | Endereço informado no Forms e última distância calculada até o hospital. | `paciente_chave`; CEP, logradouro, número, complemento e bairro cifrados com AES-GCM; cidade/UF em claro; `latitude`, `longitude`, `distancia_km`, `distancia_fonte` (`OSM`, `MOCK`, `INDISPONIVEL`), `calculado_em` e `deleted_at`. Sem endereço no payload, nenhum registro é criado e nenhuma distância é inventada. |
 | `CRITERIO_PRIORIZACAO` | Regra que compõe a pontuação da fila. | Peso inteiro, ordem e situação ativa/inativa. |
@@ -210,7 +210,7 @@ erDiagram
 | `USUARIO_PERFIL` | Autorização local complementar ao AD. | Login corporativo ativo + perfil ativo; soft delete; perfis em `05-interfaces.md`. |
 | `AUDIT_LOG` | Trilha imutável de mutações. | Somente inserção; antes/depois em JSON; categorias `SEGURANCA`, `NEGOCIO_CLINICO`, `CONFIGURACAO`. |
 
-As tabelas físicas da integração são `forms_responses`, `webhook_nonces`, `solicitacoes`, `solicitacao_itens_exame`, `divergencias` e `alertas`, criadas pela migração Alembic **`c4f1a7d9e2b3`** (revises `8a2efbe37bb6`). A v0.3.0 acrescentou a migração **`e7c1a9d4b3f2`** (revises `c4f1a7d9e2b3`): cria `agenda_slots`, `agendamentos`, `contatos_paciente` e `paciente_enderecos` e adiciona `solicitacoes.paciente_chave`. A v0.4.0 **não altera o esquema físico**; apenas amplia os valores possíveis de `agendamentos.status` (`PROPOSTO`) e de `solicitacoes.status`, ambos armazenados como texto. Tabelas do framework mantidas: `REFRESH_TOKENS`, `AUDIT_LOGS` (esta última, somente inserção). Bancos novos são criados por `create_all`; a migração `e7c1a9d4b3f2` deve ser aplicada via Alembic em bancos já existentes no deploy.
+As tabelas físicas da integração são `forms_responses`, `webhook_nonces`, `solicitacoes`, `solicitacao_itens_exame`, `divergencias` e `alertas`, criadas pela migração Alembic **`c4f1a7d9e2b3`** (revises `8a2efbe37bb6`). A v0.3.0 acrescentou a migração **`e7c1a9d4b3f2`** (revises `c4f1a7d9e2b3`): cria `agenda_slots`, `agendamentos`, `contatos_paciente` e `paciente_enderecos` e adiciona `solicitacoes.paciente_chave`. A v0.4.0 **não altera o esquema físico**; apenas amplia os valores possíveis de `agendamentos.status` (`PROPOSTO`) e de `solicitacoes.status`, ambos armazenados como texto. A v0.5.0 também **não altera o esquema físico**: a fila de propostas é um DTO de leitura montado a partir de `agendamentos`, `solicitacoes` e `solicitacao_itens_exame`. Tabelas do framework mantidas: `REFRESH_TOKENS`, `AUDIT_LOGS` (esta última, somente inserção). Bancos novos são criados por `create_all`; a migração `e7c1a9d4b3f2` deve ser aplicada via Alembic em bancos já existentes no deploy.
 
 ### [SCHEMA] Esquema JSON — FormsEvento (resumo sem PHI)
 
@@ -279,7 +279,7 @@ Contrato devolvido pelos endpoints administrativos e consumido pela tela `/integ
 }
 ```
 
-### [SCHEMA] Esquema JSON — AgendaSlot e Agendamento (v0.4.0)
+### [SCHEMA] Esquema JSON — AgendaSlot, Agendamento e PropostaAgendamentoFila (v0.5.0)
 
 ```json
 {
@@ -327,9 +327,36 @@ Contrato devolvido pelos endpoints administrativos e consumido pela tela `/integ
 }
 ```
 
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PropostaAgendamentoFila",
+  "type": "object",
+  "properties": {
+    "agendamentoId": { "type": "string", "format": "uuid" },
+    "solicitacaoId": { "type": "string", "format": "uuid" },
+    "protocolo": { "type": "string" },
+    "pacienteNome": { "type": "string" },
+    "prontuario": { "type": "string" },
+    "prioridade": { "type": "string", "enum": ["ALTA", "MEDIA", "BAIXA"] },
+    "pontuacao": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "unidadeSolicitante": { "type": "string" },
+    "exames": { "type": "string" },
+    "status": { "type": "string", "enum": ["PROPOSTO"] },
+    "statusSolicitacao": { "type": "string" },
+    "dataHora": { "type": "string", "format": "date-time" },
+    "unidade": { "type": "string" },
+    "nomeExame": { "type": "string" },
+    "recebidaEm": { "type": "string", "format": "date-time" },
+    "tempoNaFilaHoras": { "type": "integer", "minimum": 0 }
+  },
+  "required": ["agendamentoId", "solicitacaoId", "prioridade", "pontuacao", "status", "tempoNaFilaHoras"]
+}
+```
+
 `SugestaoAgendamento` combina um `AgendaSlot`, `pontuacao` (`0..100`), `motivos` (texto legível), `distanciaKm` (`number|null`) e `distanciaOrigem` (`OSM`, `MOCK` ou `INDISPONIVEL`). O endereço do paciente nunca faz parte deste contrato.
 
-A simulação da agenda devolve `{ geradas, solicitacoes, dias }` — contadores operacionais, sem dados de endereço. Cada proposta gerada segue o mesmo contrato `Agendamento` com `status: "PROPOSTO"`; a confirmação do operador devolve o contrato com `status: "ATIVO"`, e a não confirmação devolve `status: "CANCELADO"` com justificativa. Nenhum desses contratos carrega `dados_anteriores`, endereço, CPF ou CNS.
+A simulação da agenda devolve `{ geradas, solicitacoes, dias, propostas }`: contadores operacionais e as linhas `PropostaAgendamentoFila` já ordenadas, sem dados de endereço. Cada proposta gerada segue o mesmo contrato `Agendamento` com `status: "PROPOSTO"`; a confirmação do operador devolve o contrato com `status: "ATIVO"`, e a não confirmação devolve `status: "CANCELADO"` com justificativa. Nenhum desses contratos carrega `dados_anteriores`, endereço, CPF ou CNS.
 
 ### [SCHEMA] Esquema JSON — CriterioPriorizacao
 

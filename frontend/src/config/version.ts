@@ -6,7 +6,7 @@
 import { ref } from 'vue';
 import api from '../services/api';
 
-export const APP_VERSION = ref('0.4.0');
+export const APP_VERSION = ref('0.5.0');
 export const APP_NAME = ref('SAE-HC');
 export const SYSTEM_TITLE = ref('Sistema de Agendamento de Exames');
 export const HOSPITAL_NAME = ref('Hospital das Clínicas da UFPE (HC-UFPE / EBSERH)');

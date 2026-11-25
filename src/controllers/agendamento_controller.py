@@ -1,5 +1,5 @@
 """
-Controller de Gestão de Agendamentos (v0.4.0)
+Controller de Gestão de Agendamentos (v0.5.0)
 ============================================
 Centraliza as regras de negócio: pré-condições (RN-04/RN-07), conflito de
 paciente (RN-05), capacidade local, cancelamento/remarcação com justificativa,
@@ -228,6 +228,54 @@ async def _agendamento_para_dict(
     }
 
 
+def _proposta_para_fila(
+    solicitacao: Solicitacao, agendamento: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Converte uma proposta em linha da fila, sem PHI nem endereço.
+
+    Os campos de prioridade e tempo na fila são os mesmos usados por `/fila`,
+    para que a simulação seja apresentada no formato da fila de marcação.
+    """
+    nomes = [
+        str(item.get("nomeExame") or item.get("nome_exame") or "").strip()
+        for item in _json_itens(solicitacao.itens_exame)
+    ]
+    exames = ", ".join(nome for nome in nomes if nome) or solicitacao.exame or ""
+    horas_na_fila = 0
+    if solicitacao.recebida_em:
+        horas_na_fila = max(
+            0, int((_agora() - para_utc_aware(solicitacao.recebida_em)).total_seconds() // 3600)
+        )
+    return {
+        "agendamentoId": agendamento["id"],
+        "solicitacaoId": solicitacao.id,
+        "protocolo": agendamento.get("protocolo") or solicitacao.protocolo,
+        "pacienteNome": agendamento.get("pacienteNome") or solicitacao.paciente_nome,
+        "prontuario": agendamento.get("prontuario") or solicitacao.prontuario,
+        "prioridade": solicitacao.prioridade or "BAIXA",
+        "pontuacao": int(solicitacao.pontuacao or 0),
+        "unidadeSolicitante": solicitacao.setor_solicitante or "",
+        "exames": exames,
+        "status": agendamento.get("status") or "PROPOSTO",
+        "statusSolicitacao": solicitacao.status,
+        "dataHora": agendamento.get("dataHora") or "",
+        "unidade": agendamento.get("unidade") or "",
+        "nomeExame": agendamento.get("exame") or "",
+        "recebidaEm": para_iso(solicitacao.recebida_em),
+        "tempoNaFilaHoras": horas_na_fila,
+    }
+
+
+def _ordenar_fila_propostas(propostas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Ordena propostas por prioridade, espera e protocolo."""
+    return sorted(
+        propostas,
+        key=lambda item: (
+            -int(item["pontuacao"]), item["recebidaEm"] or "", item["protocolo"] or ""
+        ),
+    )
+
+
 async def _auditar(
     db: AsyncSession,
     *,
@@ -327,6 +375,13 @@ async def atualizar_slot(
     anterior = await provider.obter(slot_id)
     if not anterior:
         raise _erro(status.HTTP_404_NOT_FOUND, "Vaga não encontrada.")
+    if dados.get("capacidade") is not None and int(dados["capacidade"]) < int(
+        anterior.get("ocupadas") or 0
+    ):
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A capacidade não pode ficar abaixo das vagas já ocupadas.",
+        )
     atualizado = await provider.atualizar(slot_id, dados)
     if not atualizado:
         raise _erro(status.HTTP_404_NOT_FOUND, "Vaga não encontrada.")
@@ -689,6 +744,7 @@ async def gerar_propostas(
     reservadas = set(ja_reservadas)
 
     geradas: List[Dict[str, Any]] = []
+    linhas_fila: List[Dict[str, Any]] = []
     usadas_por_dia: dict[str, set[str]] = {}
     alocadas_por_slot: dict[str, int] = {}
     for solicitacao in elegiveis:
@@ -746,6 +802,7 @@ async def gerar_propostas(
         reservadas.add(solicitacao.id)
         dto = await _agendamento_para_dict(db, proposta, provider)
         geradas.append({**dto, "statusSolicitacaoAnterior": status_anterior})
+        linhas_fila.append(_proposta_para_fila(solicitacao, dto))
         await _auditar(
             db,
             usuario=autor,
@@ -760,7 +817,30 @@ async def gerar_propostas(
         "geradas": len(geradas),
         "solicitacoes": len(elegiveis),
         "dias": horizonte_dias,
+        "propostas": _ordenar_fila_propostas(linhas_fila),
     }
+
+
+async def listar_propostas(
+    db: AsyncSession, provider: SlotProviderInterface
+) -> List[Dict[str, Any]]:
+    """Lista as propostas pendentes no formato da fila, por prioridade."""
+    linhas = (
+        await db.execute(
+            select(Agendamento, Solicitacao)
+            .join(Solicitacao, Agendamento.solicitacao_id == Solicitacao.id)
+            .where(
+                Agendamento.status == "PROPOSTO",
+                Agendamento.deleted_at.is_(None),
+                Solicitacao.deleted_at.is_(None),
+            )
+        )
+    ).all()
+    propostas = [
+        _proposta_para_fila(solicitacao, await _agendamento_para_dict(db, agendamento, provider))
+        for agendamento, solicitacao in linhas
+    ]
+    return _ordenar_fila_propostas(propostas)
 
 
 async def confirmar_proposta(

@@ -20,6 +20,7 @@ import type {
   FormsEvento,
   Indicadores,
   PacienteAgendamentos,
+  PropostaAgendamentoFila,
   Relatorio,
   ResultadoContato,
   ResultadoFila,
@@ -537,7 +538,7 @@ export async function reprocessarEventoIntegracao(responseId: string): Promise<F
 }
 
 /* -------------------------------------------------------------------------- */
-/* Agendamentos, calendário, sugestões e simulação de propostas (v0.4.0)     */
+/* Agendamentos, calendário, sugestões e simulação de propostas (v0.5.0)     */
 /* -------------------------------------------------------------------------- */
 
 export interface FiltrosCalendarioAgendamentos {
@@ -558,6 +559,11 @@ export interface DadosNovoSlot {
 }
 
 export interface AjusteSlot {
+  unidade?: string;
+  codigoExame?: string;
+  nomeExame?: string;
+  inicio?: string;
+  fim?: string;
   capacidade?: number;
   status?: AgendaSlot['status'];
 }
@@ -608,18 +614,52 @@ function gerarSlotsDeterministicos(): AgendaSlot[] {
 
 const slotsAgendaMock: AgendaSlot[] = gerarSlotsDeterministicos();
 const agendamentosMock: Agendamento[] = [];
+/** Vagas fechadas manualmente pela chefia não são reabertas pela sincronização. */
+const slotsFechadosManualmenteMock = new Set<string>();
 
-/** Ocupação sempre reflete todos os agendamentos ativos, independente do filtro do paciente. */
+/** Ocupação sempre reflete ativos e propostas, independente do filtro do paciente. */
 function sincronizarOcupacaoMock(): void {
   slotsAgendaMock.forEach((slot) => {
     const ocupadas = agendamentosMock.filter((item) =>
       item.slotId === slot.id && (item.status === 'ATIVO' || item.status === 'PROPOSTO')).length;
     slot.ocupadas = ocupadas;
     slot.livres = Math.max(0, slot.capacidade - ocupadas);
-    if (slot.status !== 'ENCERRADO') {
+    if (slot.status !== 'ENCERRADO' && !slotsFechadosManualmenteMock.has(slot.id)) {
       slot.status = slot.livres === 0 ? 'LOTADO' : 'DISPONIVEL';
     }
   });
+}
+
+/** Propostas pendentes no formato da fila, ordenadas por prioridade e espera. */
+function filaPropostasMock(): PropostaAgendamentoFila[] {
+  return agendamentosMock
+    .filter((agendamento) => agendamento.status === 'PROPOSTO')
+    .flatMap((agendamento) => {
+      const solicitacao = mockDb.solicitacoes.find((item) => item.id === agendamento.solicitacaoId);
+      if (!solicitacao) return [];
+      return [{
+        agendamentoId: agendamento.id,
+        solicitacaoId: solicitacao.id,
+        protocolo: agendamento.protocolo,
+        pacienteNome: agendamento.pacienteNome,
+        prontuario: agendamento.prontuario,
+        prioridade: classificarPrioridade(calcularPontuacao(solicitacao.atributos, mockDb.criterios)),
+        pontuacao: calcularPontuacao(solicitacao.atributos, mockDb.criterios),
+        unidadeSolicitante: solicitacao.setorSolicitante,
+        exames: solicitacao.itensExame.map((item) => item.nomeExame).filter(Boolean).join(', ')
+          || solicitacao.exame,
+        status: 'PROPOSTO' as const,
+        statusSolicitacao: solicitacao.status,
+        dataHora: agendamento.dataHora,
+        unidade: agendamento.unidade,
+        nomeExame: agendamento.exame,
+        recebidaEm: solicitacao.recebidaEm,
+        tempoNaFilaHoras: horasDesdeReferencia(solicitacao.recebidaEm),
+      }];
+    })
+    .sort((a, b) => b.pontuacao - a.pontuacao
+      || new Date(a.recebidaEm).getTime() - new Date(b.recebidaEm).getTime()
+      || a.protocolo.localeCompare(b.protocolo));
 }
 
 function chavePacienteMock(prontuario: string): string {
@@ -932,12 +972,26 @@ export interface ResultadoSimulacaoAgenda {
   geradas: number;
   solicitacoes: number;
   dias: number;
+  /** Linhas da fila de propostas, já ordenadas por prioridade. */
+  propostas: PropostaAgendamentoFila[];
+}
+
+/** GET /api/agendamentos/propostas */
+export async function listarPropostasAgendamento(): Promise<PropostaAgendamentoFila[]> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.get<PropostaAgendamentoFila[]>('/api/agendamentos/propostas');
+    return data;
+  }
+  await pausa();
+  return filaPropostasMock();
 }
 
 /**
  * POST /api/agendamentos/propostas/gerar (simulação local)
- * Pré-aloca solicitações com aceite nas vagas dos próximos dias. As propostas
- * ocupam a vaga, mas só viram agendamentos ATIVOS após confirmação do operador.
+ * Pré-aloca solicitações com aceite nas vagas dos próximos dias. A ocupação
+ * gerada na própria simulação é contabilizada a cada proposta — inclusive o
+ * bloqueio de outro horário do mesmo paciente — antes de escolher a vaga
+ * seguinte. As propostas só viram ATIVOS após confirmação do operador.
  */
 export async function gerarPropostasAgendamento(
   dias = 30,
@@ -965,21 +1019,40 @@ export async function gerarPropostasAgendamento(
     .sort((a, b) => b.pontuacao - a.pontuacao
       || new Date(a.recebidaEm).getTime() - new Date(b.recebidaEm).getTime());
 
+  const ocupacaoAdicional = new Map<string, number>();
+  const pacientesNoDia = new Set<string>();
+  agendamentosMock
+    .filter((agendamento) => agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO')
+    .forEach((agendamento) => pacientesNoDia.add(
+      `${agendamento.pacienteChave}|${agendamento.dataHora.slice(0, 10)}`,
+    ));
+
   let geradas = 0;
   elegiveis.forEach((solicitacao) => {
-    const codigo = solicitacao.itensExame[0]?.codigoExame ?? '';
+    const codigos = new Set(solicitacao.itensExame
+      .map((item) => item.codigoExame.trim().toUpperCase()).filter(Boolean));
     const chave = chavePacienteMock(solicitacao.prontuario);
+    const restante = (slot: AgendaSlot): number =>
+      slot.livres - (ocupacaoAdicional.get(slot.id) ?? 0);
     const slot = slotsAgendaMock
-      .filter((candidato) => candidato.codigoExame === codigo
+      .filter((candidato) => (codigos.size === 0 || codigos.has(candidato.codigoExame.trim().toUpperCase()))
         && candidato.inicio >= inicio
         && candidato.inicio.slice(0, 10) <= limite
         && candidato.status !== 'ENCERRADO'
-        && candidato.livres > 0)
-      .sort((a, b) => a.inicio.localeCompare(b.inicio))
-      .find((candidato) => !agendamentosMock.some((agendamento) =>
-        agendamento.pacienteChave === chave
-        && (agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO')
-        && agendamento.dataHora.slice(0, 10) === candidato.inicio.slice(0, 10)));
+        && !slotsFechadosManualmenteMock.has(candidato.id)
+        && restante(candidato) > 0
+        && !pacientesNoDia.has(`${chave}|${candidato.inicio.slice(0, 10)}`))
+      .sort((a, b) => a.inicio.localeCompare(b.inicio)
+        || (restante(b) / Math.max(1, b.capacidade)) - (restante(a) / Math.max(1, a.capacidade))
+        || a.id.localeCompare(b.id))
+      .find((candidato) => !agendamentosMock.some((agendamento) => {
+        if ((agendamento.status !== 'ATIVO' && agendamento.status !== 'PROPOSTO')
+          || agendamento.pacienteChave !== chave) return false;
+        const fim = slotsAgendaMock.find((item) => item.id === agendamento.slotId)?.fim
+          ?? agendamento.dataHora;
+        return new Date(candidato.inicio).getTime() < new Date(fim).getTime()
+          && new Date(agendamento.dataHora).getTime() < new Date(candidato.fim).getTime();
+      }));
     if (!slot) return;
 
     const proposta: Agendamento = {
@@ -999,6 +1072,8 @@ export async function gerarPropostasAgendamento(
       justificativa: null,
     };
     agendamentosMock.push(proposta);
+    ocupacaoAdicional.set(slot.id, (ocupacaoAdicional.get(slot.id) ?? 0) + 1);
+    pacientesNoDia.add(`${chave}|${slot.inicio.slice(0, 10)}`);
     solicitacao.status = 'AGUARDANDO_CONFIRMACAO';
     solicitacao.historico.push({
       id: `hist-${crypto.randomUUID()}`,
@@ -1014,7 +1089,9 @@ export async function gerarPropostasAgendamento(
   sincronizarOcupacaoMock();
   registrar('Simulação de agenda', autor, 'NEGOCIO_CLINICO',
     `${geradas} proposta(s) gerada(s) para os próximos ${dias} dias.`);
-  return { geradas, solicitacoes: elegiveis.length, dias };
+  return {
+    geradas, solicitacoes: elegiveis.length, dias, propostas: filaPropostasMock(),
+  };
 }
 
 /** POST /api/agendamentos/{id}/confirmar — confirma a proposta em um clique. */
@@ -1177,11 +1254,41 @@ export async function atualizarSlotAdmin(
     }
     slot.capacidade = capacidade;
   }
+  if (ajuste.unidade !== undefined) {
+    if (!ajuste.unidade.trim()) throw new Error('A unidade da vaga não pode ficar vazia.');
+    slot.unidade = ajuste.unidade.trim();
+  }
+  if (ajuste.codigoExame !== undefined) {
+    if (!ajuste.codigoExame.trim()) throw new Error('O código do exame não pode ficar vazio.');
+    slot.codigoExame = ajuste.codigoExame.trim();
+  }
+  if (ajuste.nomeExame !== undefined) {
+    if (!ajuste.nomeExame.trim()) throw new Error('O nome do exame não pode ficar vazio.');
+    slot.nomeExame = ajuste.nomeExame.trim();
+  }
+  if (ajuste.inicio !== undefined) {
+    if (!ajuste.inicio) throw new Error('Informe o início da vaga.');
+    slot.inicio = normalizarIsoMock(ajuste.inicio);
+  }
+  if (ajuste.fim !== undefined) {
+    if (!ajuste.fim) throw new Error('Informe o fim da vaga.');
+    slot.fim = normalizarIsoMock(ajuste.fim);
+  }
+  if (new Date(slot.fim).getTime() <= new Date(slot.inicio).getTime()) {
+    throw new Error('O fim da vaga deve ser posterior ao início.');
+  }
+  if (slotsAgendaMock.some((item) => item.id !== slot.id
+    && item.unidade === slot.unidade && item.codigoExame === slot.codigoExame
+    && item.inicio === slot.inicio)) {
+    throw new Error('Já existe uma vaga com estes unidade, exame e horário.');
+  }
   if (ajuste.status !== undefined) {
     if (!['DISPONIVEL', 'LOTADO', 'ENCERRADO'].includes(ajuste.status)) {
       throw new Error('Situação de vaga inválida.');
     }
     slot.status = ajuste.status;
+    if (ajuste.status === 'LOTADO') slotsFechadosManualmenteMock.add(slot.id);
+    else slotsFechadosManualmenteMock.delete(slot.id);
   }
   registrar('Vaga atualizada', autor, 'CONFIGURACAO',
     `${slot.unidade} · ${slot.nomeExame} · capacidade ${slot.capacidade}, situação ${slot.status}.`);

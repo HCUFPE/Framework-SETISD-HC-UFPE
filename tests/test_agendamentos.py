@@ -1,5 +1,5 @@
 # tests/test_agendamentos.py
-"""Testes da gestão de agendamentos (v0.4.0)."""
+"""Testes da gestão de agendamentos (v0.5.0)."""
 
 import json
 import sqlite3
@@ -20,6 +20,7 @@ from src.main import app
 FIXTURE = Path(__file__).resolve().parents[1] / "frontend" / "src" / "mocks" / "dadosAghux.json"
 ADMIN = ["GLO-SEC-HCPE-SETISD", "Users"]
 OPERADOR = ["OPERADOR"]
+CHEFIA = ["CHEFIA"]
 GESTOR = ["AREA_GESTORA"]
 COORDENACAO = ["COORDENACAO"]
 
@@ -804,3 +805,139 @@ def test_nao_confirmacao_exige_justificativa(cliente):
     assert resposta.status_code == 422
     assert _status_solicitacao(caminho, sid) == "AGUARDANDO_CONFIRMACAO"
     assert _slot_no_calendario(_calendario(cliente), slot["id"])["livres"] == 0
+
+
+def test_simulacao_ordena_por_prioridade_e_distribui_entre_dias(cliente):
+    cliente, caminho = cliente
+    primeiro = _criar_slot(cliente, minutos=60, capacidade=1, unidade="IMAGEM-A")
+    segundo = _criar_slot(
+        cliente, minutos=60 + 24 * 60, capacidade=1, unidade="IMAGEM-B"
+    )
+    sid_alta, _ = _inserir_solicitacao(
+        caminho, prontuario="90000001", protocolo="PROTO-ALTA", pontuacao=90
+    )
+    sid_media, _ = _inserir_solicitacao(
+        caminho, prontuario="90000002", protocolo="PROTO-MEDIA", pontuacao=50
+    )
+
+    simulacao = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia"},
+        headers=_headers(CHEFIA),
+    )
+    assert simulacao.status_code == 201, simulacao.text
+    dados = simulacao.json()
+    assert dados["geradas"] == 2
+    assert [item["protocolo"] for item in dados["propostas"]] == [
+        "PROTO-ALTA", "PROTO-MEDIA"
+    ]
+    assert [item["prioridade"] for item in dados["propostas"]] == ["ALTA", "MEDIA"]
+    assert dados["propostas"][0]["dataHora"] == primeiro["inicio"]
+    assert dados["propostas"][1]["dataHora"] == segundo["inicio"]
+    assert dados["propostas"][0]["dataHora"][:10] != dados["propostas"][1]["dataHora"][:10]
+    assert all(
+        set(item) == {
+            "agendamentoId", "solicitacaoId", "protocolo", "pacienteNome", "prontuario",
+            "prioridade", "pontuacao", "unidadeSolicitante", "exames", "status",
+            "statusSolicitacao", "dataHora", "unidade", "nomeExame", "recebidaEm",
+            "tempoNaFilaHoras",
+        }
+        for item in dados["propostas"]
+    )
+
+    fila = cliente.get(
+        "/api/agendamentos/propostas", headers=_headers(OPERADOR)
+    )
+    assert fila.status_code == 200, fila.text
+    assert [item["protocolo"] for item in fila.json()] == ["PROTO-ALTA", "PROTO-MEDIA"]
+    calendario = _calendario(cliente)
+    assert _slot_no_calendario(calendario, primeiro["id"])["ocupadas"] == 1
+    assert _slot_no_calendario(calendario, primeiro["id"])["livres"] == 0
+    assert _slot_no_calendario(calendario, segundo["id"])["ocupadas"] == 1
+    assert _slot_no_calendario(calendario, segundo["id"])["livres"] == 0
+
+    # Uma nova execução não pode ignorar as reservas feitas pela anterior.
+    _inserir_solicitacao(
+        caminho, prontuario="90000003", protocolo="PROTO-TERCEIRO", pontuacao=70
+    )
+    segunda_simulacao = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia"},
+        headers=_headers(CHEFIA),
+    )
+    assert segunda_simulacao.status_code == 201, segunda_simulacao.text
+    assert segunda_simulacao.json()["geradas"] == 0
+    assert len(cliente.get(
+        "/api/agendamentos/propostas", headers=_headers(OPERADOR)
+    ).json()) == 2
+    assert _status_solicitacao(caminho, sid_alta) == "AGUARDANDO_CONFIRMACAO"
+    assert _status_solicitacao(caminho, sid_media) == "AGUARDANDO_CONFIRMACAO"
+
+
+def test_chefia_pode_editar_disponibilidade_de_vagas(cliente):
+    cliente, caminho = cliente
+    slot = _criar_slot(cliente, capacidade=3)
+
+    assert cliente.get(
+        "/api/admin/agenda/slots", headers=_headers(CHEFIA)
+    ).status_code == 200
+
+    novo = cliente.post(
+        "/api/admin/agenda/slots",
+        json={
+            "unidade": "IMAGEM",
+            "codigoExame": "CMDIP",
+            "nomeExame": "Cintilografia",
+            "inicio": _iso(_agora() + timedelta(minutes=120)),
+            "fim": _iso(_agora() + timedelta(minutes=150)),
+            "capacidade": 2,
+            "situacao": "DISPONIVEL",
+        },
+        headers=_headers(CHEFIA),
+    )
+    assert novo.status_code == 201, novo.text
+
+    alterado = cliente.patch(
+        f"/api/admin/agenda/slots/{slot['id']}",
+        json={
+            "unidade": "IMAGEM-CENTRAL",
+            "codigoExame": "CMDIP",
+            "nomeExame": "Cintilografia do miocárdio",
+            "capacidade": 5,
+            "status": "ENCERRADO",
+        },
+        headers=_headers(CHEFIA),
+    )
+    assert alterado.status_code == 200, alterado.text
+    assert alterado.json()["unidade"] == "IMAGEM-CENTRAL"
+    assert alterado.json()["capacidade"] == 5
+    assert alterado.json()["status"] == "ENCERRADO"
+
+    with _conexao(caminho) as conn:
+        acoes = {
+            linha["acao"]
+            for linha in conn.execute(
+                "SELECT acao FROM audit_logs WHERE categoria='CONFIGURACAO'"
+            ).fetchall()
+        }
+    assert {"CRIAR_SLOT_AGENDA", "ATUALIZAR_SLOT_AGENDA"} <= acoes
+
+
+def test_capacidade_da_vaga_nao_pode_cair_abaixo_das_ocupadas(cliente):
+    cliente, caminho = cliente
+    sid_a, _ = _inserir_solicitacao(caminho, prontuario="90000004", protocolo="PROTO-OCUPADA")
+    sid_b, _ = _inserir_solicitacao(
+        caminho, prontuario="90000005", protocolo="PROTO-OCUPADA-2"
+    )
+    slot = _criar_slot(cliente, capacidade=3)
+    assert _agendar(cliente, sid_a, slot["id"]).status_code == 201
+    assert _agendar(cliente, sid_b, slot["id"]).status_code == 201
+
+    resposta = cliente.patch(
+        f"/api/admin/agenda/slots/{slot['id']}",
+        json={"capacidade": 1},
+        headers=_headers(GESTOR),
+    )
+    assert resposta.status_code == 422
+    assert "ocupadas" in resposta.json()["detail"]
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["capacidade"] == 3

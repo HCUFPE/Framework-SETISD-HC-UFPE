@@ -9,7 +9,7 @@
 | `/relatorios` | Relatórios | Catálogo de relatórios, formulário de filtros, prévia tabular e botão "Exportar CSV". |
 | `/criterios` | Critérios de Priorização | Grade com peso/ordem/atividade por critério, campo de justificativa, botão "Salvar nova versão" e histórico de versões. |
 | `/equipe` | Equipe e Perfis | Lista de usuários locais, campo de login com botão "Consultar AD", perfil, lotação, situação ativo/inativo e histórico de alterações. |
-| `/agendamentos` | Calendário de Agendamentos (v0.4.0) | Visão mês/semana do FullCalendar, cores por ocupação (`livre`, `parcial`, `lotado`) e por status (`PROPOSTO`, `ATIVO`, `CANCELADO`, `CONCLUIDO`); filtros de unidade e **exame específico (código/nome)**; nenhuma solicitação é listada na abertura — a busca ocorre sob demanda; clique no dia abre popup com horários e marcação direta; painel de propostas da simulação dos próximos 30 dias com confirmar/não confirmar/remarcar/cancelar; painel lateral do paciente; aba "Gestão de vagas" para Área Gestora/Admin TI. Aviso de demonstração quando `VITE_USE_MOCKS=true`: a agenda começa em `referenciaEm` e nenhum endereço é usado. |
+| `/agendamentos` | Calendário de Agendamentos (v0.5.0) | Visão mês/semana do FullCalendar, cores por ocupação (`livre`, `parcial`, `lotado`) e por status (`PROPOSTO`, `ATIVO`, `CANCELADO`, `CONCLUIDO`); filtros de unidade e **exame específico (código/nome)**; nenhuma solicitação é listada na abertura — a busca ocorre sob demanda; clique no dia abre popup com horários e marcação direta; **fila de propostas da simulação dos próximos 30 dias**, ordenada por prioridade, com confirmar/não confirmar/remarcar/cancelar; painel lateral do paciente; aba "Disponibilidade de exames — gestão de vagas" para Chefia/Área Gestora/Admin TI. Aviso de demonstração quando `VITE_USE_MOCKS=true`: a agenda começa em `referenciaEm` e nenhum endereço é usado. |
 | `/integracoes` | Integrações (Forms → AGHUX) | Lista de eventos com Response ID, formulário, status, tentativas, recebido/processado, último erro e contadores de divergências/alertas; botões "Atualizar eventos" e "Reprocessar" (habilitado para `ERRO`/`DUPLICADA`). |
 | `/acesso-negado` | Acesso negado | Explicação do perfil insuficiente e link para o início. |
 
@@ -25,17 +25,17 @@ O menu lateral agrupa **Operação** (Fila, Agendamentos), **Gestão** (Painel, 
 
 Regras de exibição/ação: a seção de divergências desaparece quando todas foram tratadas; aceite muda o status para **Aguardando confirmação**, enquanto recusa ou sem resposta muda para **Aguardando reagendamento**; o operador não vê controles de alteração de prioridade. "Efetuar marcação" apenas encaminha para a fila de agendamento — a reserva depende das pré-condições validadas no backend e nunca bypassa capacidade/confito.
 
-### 2.1 Calendário, popup do dia e propostas (v0.4.0)
+### 2.1 Calendário, popup do dia e propostas (v0.5.0)
 
 - **Busca sob demanda:** a tela abre sem listar solicitações. A lista aparece somente quando o operador busca por paciente/prontuário/protocolo ou chega de "Efetuar marcação" com os parâmetros preenchidos.
 - **Exame específico:** os filtros e as vagas usam `codigoExame`/`nomeExame` do exame solicitado. O código é filtro duro em vagas, sugestões e simulação — nunca se oferece outro exame como alternativa.
 - **Cores e legenda:** verde para vagas livres, âmbar para últimas vagas, vermelho para vaga esgotada ou encerrada; eventos coloridos por status (`PROPOSTO`, `ATIVO`, `CANCELADO`, `CONCLUIDO`).
 - **Ocupação:** `ocupadas/livres` vêm do backend e contam `ATIVO` e `PROPOSTO`. Ao filtrar por `pacienteChave`, somente a lista de agendamentos é filtrada; a ocupação continua global.
 - **Clique no dia:** abre popup com os horários disponíveis para o exame selecionado. Se já houver solicitação selecionada, ela vem preenchida; caso contrário, o popup oferece busca embutida ("Ambos"). A escolha de horário chama `POST /api/agendamentos`, com as mesmas pré-condições da marcação direta.
-- **Propostas da simulação:** "Simular próximos 30 dias" chama `POST /api/agendamentos/propostas/gerar`; cada proposta `PROPOSTO` reserva vaga. O painel oferece "Confirmar" (`POST /api/agendamentos/{id}/confirmar`, um clique, vira `ATIVO`/`AGENDADA`), "Não confirmado" (justificativa obrigatória, volta a `AGUARDANDO_REAGENDAMENTO`), "Remarcar" e "Cancelar".
+- **Propostas da simulação:** "Simular próximos 30 dias" chama `POST /api/agendamentos/propostas/gerar`; cada proposta `PROPOSTO` reserva vaga. A simulação contabiliza a ocupação gerada a cada iteração, evita concentrar pacientes no mesmo dia/slot e distribui as linhas por prioridade, espera e protocolo. O painel de propostas usa o formato da fila (`#`, `Prioridade`, `Paciente / Prontuário`, `Unidade solicitante`, `Exame(s)`, `Status`, `Tempo na fila`, horário proposto) e oferece "Confirmar" (`POST /api/agendamentos/{id}/confirmar`, um clique, vira `ATIVO`/`AGENDADA`), "Não confirmado" (justificativa obrigatória, volta a `AGUARDANDO_REAGENDAMENTO`), "Remarcar" e "Cancelar". `GET /api/agendamentos/propostas` recupera a fila pendente já ordenada.
 - **Remarcação:** arrastar um evento ou usar o botão abre modal de justificativa obrigatória; `POST /api/agendamentos/{id}/remarcar` devolve a vaga anterior na mesma transação. `409` indica vaga esgotada ou choque do mesmo paciente e `422` indica pré-condição não satisfeita.
 - **Sugestões:** o modal mostra até três horários com pontuação, motivos, vagas restantes e distância (`km` + origem). "Usar este horário" pré-seleciona a vaga e abre a remarcação/agendamento, sem salvar automaticamente.
-- **Gestão de vagas:** visível apenas para `AREA_GESTORA`/`ADMIN_TI`/`GLO-SEC-HCPE-SETISD`; cria e ajusta `unidade`, exame, início, fim, capacidade e situação.
+- **Gestão de vagas:** visível para `CHEFIA`/`AREA_GESTORA`/`ADMIN_TI`/`GLO-SEC-HCPE-SETISD`; cria e ajusta `unidade`, código/nome do exame, início, fim, capacidade e situação da vaga. A edição completa da disponibilidade do exame fica no formulário "Editar disponibilidade do exame".
 - **Privacidade:** a tela exibe cidade/UF e distância em km; CEP, logradouro, número, complemento e bairro nunca são exibidos nem enviados pelo frontend.
 
 ## 3. Máquina de estados da solicitação
@@ -68,7 +68,7 @@ stateDiagram-v2
 | `COORDENACAO` | Não | Não | Não | Não | Sim (somente leitura) |
 | `ADMIN_TI` | Não | Não | Não | Sim | Sim |
 
-Para a agenda (v0.4.0): leitura para `OPERADOR`, `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI`, `COORDENACAO` e `GLO-SEC-HCPE-SETISD`; escrita — incluindo gerar/confirmar/cancelar propostas — para todos exceto `COORDENACAO`; administração de vagas apenas para `AREA_GESTORA`, `ADMIN_TI` e `GLO-SEC-HCPE-SETISD`. Esses perfis são validados no backend; `meta.roles` no frontend apenas esconde controles.
+Para a agenda (v0.5.0): leitura para `OPERADOR`, `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI`, `COORDENACAO` e `GLO-SEC-HCPE-SETISD`; escrita — incluindo gerar/confirmar/cancelar propostas — para todos exceto `COORDENACAO`; administração de vagas para `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI` e `GLO-SEC-HCPE-SETISD`. Esses perfis são validados no backend; `meta.roles` no frontend apenas esconde controles.
 
 ## 5. Contratos de API
 
@@ -138,7 +138,7 @@ As rotas abaixo permanecem documentadas para entregas seguintes; o backend impla
 | `PATCH` | `/api/admin/equipe/{id}` | Área Gestora, Admin TI | Altera perfil ou situação (soft delete). |
 | `GET` | `/api/admin/ad-user-search/{username}` | Área Gestora, Admin TI | Consulta prévia no AD (endpoint do framework). |
 
-### 5.3 Gestão de agendamentos, propostas e distância (implementado em v0.4.0)
+### 5.3 Gestão de agendamentos, propostas e distância (implementado em v0.5.0)
 
 Todos os endpoints abaixo exigem JWT no `APIRouter` e RBAC no backend. Grupos/perfis: `OPERADOR`, `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI`, `COORDENACAO` (somente nos `GET`) e `GLO-SEC-HCPE-SETISD` (equiparado a `ADMIN_TI`, presente no login mock do framework). Erros seguem `{"detail": "..."}`: `401` sem token, `403` perfil insuficiente, `404` recurso inexistente, `409` conflito de paciente ou vaga esgotada e `422` pré-condição não satisfeita.
 
@@ -149,14 +149,15 @@ Todos os endpoints abaixo exigem JWT no `APIRouter` e RBAC no backend. Grupos/pe
 | `GET` | `/api/agendamentos/pacientes/buscar?q=` | Leitura | `Array<{ pacienteChave, pacienteNome, prontuario, agendamentosAtivos }>`; busca por prontuário, nome ou protocolo, sem CPF/CNS nem endereço. |
 | `GET` | `/api/agendamentos/sugestoes/{solicitacaoId}?limite=3` | Leitura | `SugestaoAgendamento[]`; `limite` entre `1` e `20`; exame da solicitação como filtro duro. |
 | `POST` | `/api/agendamentos` | Escrita | Corpo `{ solicitacaoId, slotId, autor }`; `201` com o agendamento `ATIVO`. |
-| `POST` | `/api/agendamentos/propostas/gerar` | Escrita | Corpo `{ dias = 30, autor }` (limite `1..90`); `201` com `{ geradas, solicitacoes, dias }`. Cria propostas `PROPOSTO` que reservam vaga e não enviam nada ao AGHUX. |
+| `GET` | `/api/agendamentos/propostas` | Leitura | `PropostaAgendamentoFila[]` pendente, ordenada por prioridade, espera e protocolo. |
+| `POST` | `/api/agendamentos/propostas/gerar` | Escrita | Corpo `{ dias = 30, autor }` (limite `1..90`); `201` com `{ geradas, solicitacoes, dias, propostas: PropostaAgendamentoFila[] }`. Cada proposta reserva vaga na própria execução e não envia nada ao AGHUX. |
 | `POST` | `/api/agendamentos/{id}/confirmar` | Escrita | Corpo `{ autor }`; `200` com a proposta confirmada (`ATIVO`) e a solicitação `AGENDADA`. Só aceita `PROPOSTO`. |
 | `POST` | `/api/agendamentos/{id}/nao-confirmado` | Escrita | Corpo `{ justificativa, autor }`; justificativa obrigatória; `200` com agendamento `CANCELADO` e solicitação `AGUARDANDO_REAGENDAMENTO`. |
 | `POST` | `/api/agendamentos/{id}/remarcar` | Escrita | Corpo `{ slotId, justificativa, autor }`; justificativa obrigatória; aceita `ATIVO` ou `PROPOSTO`; devolve a vaga anterior na mesma transação. |
 | `POST` | `/api/agendamentos/{id}/cancelar` | Escrita | Corpo `{ justificativa, autor }`; justificativa obrigatória; aceita `ATIVO` ou `PROPOSTO`; proposta cancelada devolve a solicitação para `AGUARDANDO_REAGENDAMENTO`, agendamento ativo cancelado para `CANCELADA`. |
 | `POST` | `/api/solicitacoes/{id}/validacao` | Escrita | Corpo `{ justificativas?: Record<string,string> }`; trata divergências ativas e muda o status para `AGUARDANDO_CONTATO`. |
 | `POST` | `/api/solicitacoes/{id}/contatos` | Escrita | Corpo `{ canal, resultado, observacao?, operador }`; `resultado` em `ACEITE`, `RECUSA` ou `SEM_RESPOSTA`; `201`. |
-| `GET` | `/api/admin/agenda/slots?de=&ate=&unidade=&codigoExame=` | `AREA_GESTORA` / `ADMIN_TI` / `GLO-SEC-HCPE-SETISD` | Lista vagas locais para gestão. |
+| `GET` | `/api/admin/agenda/slots?de=&ate=&unidade=&codigoExame=` | `CHEFIA` / `AREA_GESTORA` / `ADMIN_TI` / `GLO-SEC-HCPE-SETISD` | Lista vagas locais para gestão. |
 | `POST` | `/api/admin/agenda/slots` | Idem | Cria vaga local; `201`; auditoria `CONFIGURACAO`. |
 | `PATCH` | `/api/admin/agenda/slots/{id}` | Idem | Ajusta capacidade, situação, horário, unidade ou exame; auditoria `CONFIGURACAO`. |
 
@@ -206,9 +207,10 @@ interface FormsEvento {
 
 Os tipos vivem em `frontend/src/types/sae.ts`, o estado em `frontend/src/stores/integracoes.ts` e as chamadas em `frontend/src/services/sae.ts`, sempre pelo interceptor de `frontend/src/services/api.ts`.
 
-### [SCHEMA] Contratos TypeScript da agenda (implementados em v0.4.0)
+### [SCHEMA] Contratos TypeScript da agenda (implementados em v0.5.0)
 
 ```typescript
+type Prioridade = 'ALTA' | 'MEDIA' | 'BAIXA';
 type StatusSolicitacao =
   | 'RECEBIDA' | 'PENDENTE_CORRECAO' | 'AGUARDANDO_CONTATO'
   | 'AGUARDANDO_CONFIRMACAO' | 'AGUARDANDO_REAGENDAMENTO'
@@ -233,8 +235,17 @@ interface Agendamento {
   status: 'PROPOSTO' | 'ATIVO' | 'CANCELADO' | 'CONCLUIDO';
   confirmadoPor: string; criadoEm: string; justificativa: string | null;
 }
+interface PropostaAgendamentoFila {
+  agendamentoId: string; solicitacaoId: string; protocolo: string;
+  pacienteNome: string; prontuario: string; prioridade: Prioridade;
+  pontuacao: number; unidadeSolicitante: string; exames: string;
+  status: 'PROPOSTO'; statusSolicitacao: StatusSolicitacao;
+  dataHora: string; unidade: string; nomeExame: string;
+  recebidaEm: string; tempoNaFilaHoras: number;
+}
 interface ResultadoSimulacaoAgenda {
   geradas: number; solicitacoes: number; dias: number;
+  propostas: PropostaAgendamentoFila[];
 }
 interface SugestaoAgendamento {
   slot: AgendaSlot; pontuacao: number; motivos: string[];
@@ -283,5 +294,5 @@ interface IExternalFormApi {
 ## 6. Hardware e integrações
 - Impressoras térmicas e leitores de código de barras: **fora de escopo** nesta entrega.
 - Integração Forms → AGHUX: **implementada em v0.2.0** pela abordagem híbrida da Seção 5.1 (Power Automate → webhook assinado), com cruzamento contra a fixture real do AGHUX e geração de divergências/alertas antes da entrada na fila.
-- Calendário, vagas locais, remarcação, sugestão, busca sob demanda, popup do dia, simulação de propostas e distância: **implementados em v0.4.0** pela Seção 5.3. A distância usa Nominatim (geocoding) e OSRM (rota) com cache de sucessos, timeout e `User-Agent` configuráveis; falhas são sinalizadas como `INDISPONIVEL`, sem valores inventados e sem ficar em cache.
-- Consulta real ao AGHU, confirmação efetiva da marcação no AGHUX, notificações ao paciente e pull por `forms.office.com/formapi`: **não implementados**; permanecem para entrega futura. A confirmação da v0.4.0 é operacional, apenas no sistema local. As telas operacionais continuam lendo o adaptador de mocks (`VITE_USE_MOCKS`).
+- Calendário, vagas locais, remarcação, sugestão, busca sob demanda, popup do dia, simulação de propostas e distância: **implementados em v0.4.0 e refinados em v0.5.0** pela Seção 5.3 (fila de propostas ordenada, ocupação respeitada na simulação e gestão de vagas pela Chefia). A distância usa Nominatim (geocoding) e OSRM (rota) com cache de sucessos, timeout e `User-Agent` configuráveis; falhas são sinalizadas como `INDISPONIVEL`, sem valores inventados e sem ficar em cache.
+- Consulta real ao AGHU, confirmação efetiva da marcação no AGHUX, notificações ao paciente e pull por `forms.office.com/formapi`: **não implementados**; permanecem para entrega futura. A confirmação da v0.5.0 é operacional, apenas no sistema local. As telas operacionais continuam lendo o adaptador de mocks (`VITE_USE_MOCKS`).

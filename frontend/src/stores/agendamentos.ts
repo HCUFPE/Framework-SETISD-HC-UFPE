@@ -12,6 +12,7 @@ import {
   listarAgendamentosPaciente,
   listarCalendarioAgendamentos,
   listarFila,
+  listarPropostasAgendamento,
   listarSugestoesAgendamento,
   obterSolicitacao,
   registrarNaoConfirmacaoAgendamento,
@@ -23,6 +24,7 @@ import type {
   Agendamento,
   CalendarioAgendamentos,
   PacienteAgendamentos,
+  PropostaAgendamentoFila,
   Solicitacao,
   SugestaoAgendamento,
 } from '../types/sae';
@@ -78,6 +80,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
   const solicitacoes = ref<Solicitacao[]>([]);
   const solicitacao = ref<Solicitacao | null>(null);
   const sugestoes = ref<SugestaoAgendamento[]>([]);
+  const propostas = ref<PropostaAgendamentoFila[]>([]);
   const modalSugestoes = ref(false);
   const modalAcao = ref(false);
   const modalDia = ref(false);
@@ -88,8 +91,9 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
 
   const podeEditar = computed(() => !auth.temPerfil('COORDENACAO'));
   const podeGerirVagas = computed(() => USAR_MOCKS
-    ? auth.temPerfil('AREA_GESTORA', 'ADMIN_TI')
-    : auth.isAdmin || auth.temPerfil('AREA_GESTORA', 'ADMIN_TI'));
+    ? auth.temPerfil('CHEFIA', 'AREA_GESTORA', 'ADMIN_TI')
+    : auth.isAdmin || auth.temPerfil('CHEFIA', 'AREA_GESTORA', 'ADMIN_TI')
+      || (auth.user?.groups?.includes('CHEFIA') ?? false));
 
   const unidades = computed(() => Array.from(
     new Set(calendario.value?.slots.map((slot) => slot.unidade) ?? []),
@@ -123,13 +127,19 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     carregando.value = true;
     limparErro();
     try {
-      calendario.value = await listarCalendarioAgendamentos({
-        de: periodo.value.de,
-        ate: periodo.value.ate,
-        unidade: filtros.value.unidade,
-        codigoExame: filtros.value.codigoExame,
-        pacienteChave: filtros.value.pacienteChave,
-      });
+      const [calendarioResultado, propostasResultado] = await Promise.allSettled([
+        listarCalendarioAgendamentos({
+          de: periodo.value.de,
+          ate: periodo.value.ate,
+          unidade: filtros.value.unidade,
+          codigoExame: filtros.value.codigoExame,
+          pacienteChave: filtros.value.pacienteChave,
+        }),
+        listarPropostasAgendamento(),
+      ]);
+      if (calendarioResultado.status === 'rejected') throw calendarioResultado.reason;
+      calendario.value = calendarioResultado.value;
+      propostas.value = propostasResultado.status === 'fulfilled' ? propostasResultado.value : [];
       if (diaSelecionado.value) selecionarDia(diaSelecionado.value);
     } catch (candidato) {
       registrarErro(candidato, 'Não foi possível carregar o calendário de agendamentos.');
@@ -307,6 +317,32 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     else iniciarAgendamento(slot);
   }
 
+  /**
+   * Recupera o agendamento de uma linha da fila. A fila é global, mas o
+   * calendário pode estar filtrado por paciente/unidade/exame; nesse caso a
+   * linha da fila já traz os campos necessários para remarcar ou cancelar.
+   */
+  function agendamentoDaProposta(proposta: PropostaAgendamentoFila): Agendamento {
+    const existente = agendamentos.value.find((item) => item.id === proposta.agendamentoId);
+    if (existente) return existente;
+    return {
+      id: proposta.agendamentoId,
+      solicitacaoId: proposta.solicitacaoId,
+      protocolo: proposta.protocolo,
+      pacienteChave: proposta.prontuario,
+      pacienteNome: proposta.pacienteNome,
+      prontuario: proposta.prontuario,
+      unidade: proposta.unidade,
+      exame: proposta.nomeExame,
+      slotId: '',
+      dataHora: proposta.dataHora,
+      status: 'PROPOSTO',
+      confirmadoPor: '',
+      criadoEm: proposta.recebidaEm,
+      justificativa: null,
+    };
+  }
+
   async function gerarPropostas(dias = 30): Promise<ResultadoSimulacaoAgenda | null> {
     if (!podeEditar.value) return null;
     salvando.value = true;
@@ -323,12 +359,12 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     }
   }
 
-  async function confirmarProposta(agendamento: Agendamento): Promise<boolean> {
-    if (!podeEditar.value || agendamento.status !== 'PROPOSTO') return false;
+  async function confirmarProposta(proposta: PropostaAgendamentoFila): Promise<boolean> {
+    if (!podeEditar.value || proposta.status !== 'PROPOSTO') return false;
     salvando.value = true;
     limparErro();
     try {
-      await confirmarPropostaAgendamento(agendamento.id, autor());
+      await confirmarPropostaAgendamento(proposta.agendamentoId, autor());
       await recarregarTudo();
       return true;
     } catch (candidato) {
@@ -340,13 +376,13 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
   }
 
   async function registrarNaoConfirmacao(
-    agendamento: Agendamento, justificativa: string,
+    proposta: PropostaAgendamentoFila, justificativa: string,
   ): Promise<boolean> {
     if (!podeEditar.value) return false;
     salvando.value = true;
     limparErro();
     try {
-      await registrarNaoConfirmacaoAgendamento(agendamento.id, justificativa, autor());
+      await registrarNaoConfirmacaoAgendamento(proposta.agendamentoId, justificativa, autor());
       await recarregarTudo();
       return true;
     } catch (candidato) {
@@ -435,6 +471,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     solicitacoes,
     solicitacao,
     sugestoes,
+    propostas,
     modalSugestoes,
     modalAcao,
     modalDia,
@@ -467,6 +504,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     iniciarRemarcacao,
     iniciarCancelamento,
     usarSugestao,
+    agendamentoDaProposta,
     gerarPropostas,
     confirmarProposta,
     registrarNaoConfirmacao,

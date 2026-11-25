@@ -121,7 +121,7 @@
 
         <div class="space-y-5">
           <PainelPropostas
-            :propostas="propostasPendentes"
+            :propostas="store.propostas"
             :pode-editar="store.podeEditar"
             :ocupado="store.salvando"
             @gerar="gerarPropostas"
@@ -259,7 +259,7 @@ import PainelPropostas from '../components/agendamentos/PainelPropostas.vue';
 import { USAR_MOCKS } from '../config/mocks';
 import { REFERENCIA_EM } from '../config/tempo';
 import { useAgendamentosStore } from '../stores/agendamentos';
-import type { AgendaSlot, Agendamento } from '../types/sae';
+import type { AgendaSlot, Agendamento, PropostaAgendamentoFila } from '../types/sae';
 import { formatarDataHora } from '../utils/format';
 
 const store = useAgendamentosStore();
@@ -271,9 +271,6 @@ const buscaFeita = ref(false);
 
 const pacienteSelecionado = computed(() =>
   store.pacientes.find((item) => item.pacienteChave === store.pacienteChave));
-
-const propostasPendentes = computed(() =>
-  store.agendamentos.filter((item) => item.status === 'PROPOSTO'));
 
 onMounted(() => {
   void store.carregar();
@@ -318,12 +315,12 @@ async function gerarPropostas(): Promise<void> {
   else toast.error(store.erro || 'Não foi possível simular a agenda.');
 }
 
-async function confirmarProposta(proposta: Agendamento): Promise<void> {
+async function confirmarProposta(proposta: PropostaAgendamentoFila): Promise<void> {
   if (await store.confirmarProposta(proposta)) toast.success('Proposta confirmada e agendamento efetivado.');
   else toast.error(store.erro || 'Não foi possível confirmar a proposta.');
 }
 
-async function naoConfirmarProposta(proposta: Agendamento): Promise<void> {
+async function naoConfirmarProposta(proposta: PropostaAgendamentoFila): Promise<void> {
   const justificativa = window.prompt(
     'Motivo da não confirmação pelo paciente:',
     'Paciente não confirmou o horário proposto',
@@ -336,13 +333,13 @@ async function naoConfirmarProposta(proposta: Agendamento): Promise<void> {
   }
 }
 
-async function remarcarProposta(proposta: Agendamento): Promise<void> {
+async function remarcarProposta(proposta: PropostaAgendamentoFila): Promise<void> {
   await store.selecionarSolicitacao(proposta.solicitacaoId);
-  store.abrirDia(proposta.dataHora, 'remarcar', proposta);
+  store.abrirDia(proposta.dataHora, 'remarcar', store.agendamentoDaProposta(proposta));
 }
 
-function cancelarProposta(proposta: Agendamento): void {
-  store.iniciarCancelamento(proposta);
+function cancelarProposta(proposta: PropostaAgendamentoFila): void {
+  store.iniciarCancelamento(store.agendamentoDaProposta(proposta));
 }
 
 function selecionarSolicitacao(id: string): void {
