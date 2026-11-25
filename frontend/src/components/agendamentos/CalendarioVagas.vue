@@ -12,8 +12,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import type { CalendarOptions, EventInput } from '@fullcalendar/core';
 import type { DateClickArg } from '@fullcalendar/interaction';
-import { REFERENCIA_EM } from '../../config/tempo';
-import { USAR_MOCKS } from '../../config/mocks';
+import { agoraIso } from '../../config/tempo';
 import type { AgendaSlot } from '../../types/sae';
 
 const props = defineProps<{
@@ -53,7 +52,8 @@ const opcoes = computed<CalendarOptions>(() => ({
   locales: [ptBrLocale],
   locale: 'pt-br',
   initialView: 'dayGridMonth',
-  initialDate: props.dataSelecionada || (USAR_MOCKS ? REFERENCIA_EM.slice(0, 10) : undefined),
+  initialDate: props.dataSelecionada || agoraIso().slice(0, 10),
+  now: agoraIso(),
   firstDay: 1,
   height: 'auto',
   headerToolbar: {

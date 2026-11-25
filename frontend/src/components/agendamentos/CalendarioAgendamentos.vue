@@ -35,8 +35,7 @@ import type {
   EventInput,
 } from '@fullcalendar/core';
 import type { DateClickArg } from '@fullcalendar/interaction';
-import { REFERENCIA_EM, paraIsoLocal } from '../../config/tempo';
-import { USAR_MOCKS } from '../../config/mocks';
+import { agoraIso, paraIsoLocal } from '../../config/tempo';
 import type { AgendaSlot, Agendamento } from '../../types/sae';
 
 const props = defineProps<{
@@ -97,8 +96,8 @@ const opcoes = computed<CalendarOptions>(() => ({
   locales: [ptBrLocale],
   locale: 'pt-br',
   initialView: 'dayGridMonth',
-  initialDate: USAR_MOCKS ? REFERENCIA_EM.slice(0, 10) : undefined,
-  now: USAR_MOCKS ? REFERENCIA_EM : new Date().toISOString(),
+  initialDate: agoraIso().slice(0, 10),
+  now: agoraIso(),
   firstDay: 1,
   height: 'auto',
   editable: !props.readonly,
