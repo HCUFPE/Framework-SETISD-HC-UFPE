@@ -2,50 +2,61 @@
   <div class="space-y-6">
     <Card>
       <template #header>
-        <div class="flex items-center space-x-3">
-          <HomeIcon class="h-7 w-7 text-paper-text" />
-          <h1 class="text-2xl font-bold text-paper-text">Página Inicial</h1>
+        <div>
+          <h1 class="text-2xl font-bold text-paper-text">Sistema de Agendamento de Exames</h1>
+          <p class="mt-1 text-sm text-gray-500">Central de Marcação de Exames · HC-UFPE / EBSERH</p>
         </div>
       </template>
-      <div class="space-y-4">
-        <p class="text-gray-700 leading-relaxed">
-          Bem-vindo ao **Framework-SETISD-HC-UFPE**! Esta é a página inicial padrão do seu novo sistema.
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-          <!-- Card Clicável Componentes -->
-          <router-link to="/componentes" class="p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md transition-all duration-200 group block">
-            <h3 class="font-bold text-gray-800 group-hover:text-paper-text flex items-center gap-2">
-              <CubeIcon class="h-5 w-5 text-gray-600 group-hover:text-paper-text transition-colors" />
-              Componentes
-            </h3>
-            <p class="text-xs text-gray-500">Acesse o menu <strong>Componentes</strong> para visualizar botões, modais, cards e formulários reusáveis.</p>
-          </router-link>
-
-          <!-- Card Clicável Exemplo -->
-          <router-link to="/exemplo" class="p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md transition-all duration-200 group block">
-            <h3 class="font-bold text-gray-800 group-hover:text-paper-text flex items-center gap-2">
-              <DocumentTextIcon class="h-5 w-5 text-gray-600 group-hover:text-paper-text transition-colors" />
-              Exemplo
-            </h3>
-            <p class="text-xs text-gray-500">Acesse o menu <strong>Exemplo</strong> para ver uma demonstração de consulta de dados via PostgreSQL ou CSV.</p>
-          </router-link>
-
-          <!-- Card Clicável Configurações -->
-          <router-link to="/configuracoes" class="p-4 bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl space-y-1 hover:shadow-md transition-all duration-200 group block">
-            <h3 class="font-bold text-gray-800 group-hover:text-paper-text flex items-center gap-2">
-              <Cog6ToothIcon class="h-5 w-5 text-gray-600 group-hover:text-paper-text transition-colors" />
-              Configurações
-            </h3>
-            <p class="text-xs text-gray-500">Acesse <strong>Configurações</strong> para gerenciar o perfil do usuário, grupos de acesso e informações do sistema.</p>
-          </router-link>
-        </div>
-      </div>
+      <p class="text-gray-700 leading-relaxed">
+        Esta é a versão de telas do SAE-HC. Os dados de solicitações vêm do export do AGHUX (576 itens agrupados em 493 solicitações), com data de referência em 28/09/2026 16:05; prazos e filtros usam essa data, não o relógio do computador. A integração com o formulário externo, o AGHUX e o backend de domínio será feita na próxima entrega.
+      </p>
     </Card>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <router-link
+        v-for="item in atalhos"
+        :key="item.rota"
+        :to="item.rota"
+        class="block rounded-xl border border-gray-200 bg-white p-5 shadow-paper transition hover:border-paper-primary hover:shadow-md"
+      >
+        <component :is="item.icone" class="h-7 w-7 text-paper-primary" />
+        <h3 class="mt-3 font-bold text-gray-800">{{ item.titulo }}</h3>
+        <p class="mt-1 text-xs text-gray-500">{{ item.descricao }}</p>
+      </router-link>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, type Component } from 'vue';
+import {
+  ChartBarIcon,
+  DocumentTextIcon,
+  TableCellsIcon,
+  AdjustmentsHorizontalIcon,
+  UsersIcon,
+} from '@heroicons/vue/24/outline';
 import Card from '../components/Card.vue';
-import { HomeIcon, CubeIcon, DocumentTextIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline';
+import { useAuthStore } from '../stores/auth';
+import type { Perfil } from '../types/sae';
+
+interface Atalho {
+  rota: string;
+  titulo: string;
+  descricao: string;
+  icone: Component;
+  perfis: Perfil[];
+}
+
+const auth = useAuthStore();
+
+const todos: Atalho[] = [
+  { rota: '/fila', titulo: 'Fila de Marcação', descricao: 'Fila priorizada com conferência e registro de contato.', icone: TableCellsIcon, perfis: ['OPERADOR', 'CHEFIA', 'AREA_GESTORA'] },
+  { rota: '/painel', titulo: 'Painel de Gestão', descricao: 'Indicadores operacionais e gargalos da fila.', icone: ChartBarIcon, perfis: ['CHEFIA', 'AREA_GESTORA', 'COORDENACAO', 'ADMIN_TI'] },
+  { rota: '/relatorios', titulo: 'Relatórios', descricao: 'Consolidações filtráveis com exportação CSV.', icone: DocumentTextIcon, perfis: ['CHEFIA', 'AREA_GESTORA', 'COORDENACAO', 'ADMIN_TI'] },
+  { rota: '/criterios', titulo: 'Critérios de Priorização', descricao: 'Pesos e versões que definem a ordem da fila.', icone: AdjustmentsHorizontalIcon, perfis: ['AREA_GESTORA'] },
+  { rota: '/equipe', titulo: 'Equipe e Perfis', descricao: 'Cadastro local validado no Active Directory.', icone: UsersIcon, perfis: ['AREA_GESTORA', 'ADMIN_TI'] },
+];
+
+const atalhos = computed(() => todos.filter((item) => auth.temPerfil(...item.perfis)));
 </script>

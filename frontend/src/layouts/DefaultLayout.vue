@@ -3,23 +3,22 @@
     <!-- Mobile Menu Header -->
     <div class="bg-paper-sidebar text-gray-100 flex justify-between md:hidden shrink-0">
       <router-link to="/" class="block p-4 text-white font-bold">{{ SYSTEM_TITLE }}</router-link>
-      <button @click="sidebarOpen = !sidebarOpen" class="p-4 focus:outline-none focus:bg-paper-active-link">
+      <button @click="sidebarOpen = !sidebarOpen" class="p-4 focus:outline-none focus:bg-paper-active-link" aria-label="Abrir menu">
         <Bars3Icon class="h-6 w-6" />
       </button>
     </div>
 
     <!-- Sidebar (Expansível / Recolhível) -->
-    <aside 
+    <aside
       :class="[
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         isCollapsed ? 'md:w-20' : 'md:w-64'
-      ]" 
+      ]"
       class="bg-paper-sidebar text-gray-100 pt-7 pb-2 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition-all duration-300 ease-in-out z-20 h-full shrink-0 flex flex-col justify-between"
     >
-      <div>
-        <!-- Clique em "Nome do Sistema" recolhe/expande a barra lateral -->
-        <div 
-          @click="toggleSidebar" 
+      <div class="overflow-y-auto">
+        <div
+          @click="toggleSidebar"
           title="Clique para recolher / expandir o menu"
           class="cursor-pointer text-white flex items-center space-x-3 px-3 mb-6 hover:opacity-90 transition duration-150 group"
         >
@@ -33,50 +32,35 @@
           <div class="border-t border-white border-opacity-20"></div>
         </div>
 
-        <!-- Links de Navegação -->
-        <nav class="space-y-2">
-          <router-link 
-            to="/" 
-            :title="isCollapsed ? 'Início' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <HomeIcon class="h-6 w-6 shrink-0"/>
-            <span v-if="!isCollapsed" class="truncate">Início</span>
-          </router-link>
-
-          <router-link 
-            to="/componentes" 
-            :title="isCollapsed ? 'Componentes' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <CubeIcon class="h-6 w-6 shrink-0" />
-            <span v-if="!isCollapsed" class="truncate">Componentes</span>
-          </router-link>
-
-          <router-link 
-            v-if="authStore.isAuthenticated" 
-            to="/exemplo" 
-            :title="isCollapsed ? 'Exemplo' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <DocumentTextIcon class="h-6 w-6 shrink-0" />
-            <span v-if="!isCollapsed" class="truncate">Exemplo</span>
-          </router-link>
-          
-          <router-link 
-            v-if="authStore.isAuthenticated" 
-            to="/configuracoes" 
-            :title="isCollapsed ? 'Configurações' : ''"
-            :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
-            class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
-          >
-            <Cog6ToothIcon class="h-6 w-6 shrink-0"/>
-            <span v-if="!isCollapsed" class="truncate">Configurações</span>
-          </router-link>
+        <nav class="space-y-1">
+          <div v-for="grupo in gruposVisiveis" :key="grupo.titulo" class="pt-2">
+            <p v-if="!isCollapsed && grupo.titulo" class="px-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+              {{ grupo.titulo }}
+            </p>
+            <router-link
+              v-for="item in grupo.itens"
+              :key="item.rota"
+              :to="item.rota"
+              :title="isCollapsed ? item.nome : ''"
+              :class="[isCollapsed ? 'justify-center px-2' : 'px-4']"
+              class="flex items-center space-x-3 py-2.5 rounded transition duration-200 hover:bg-paper-active-link hover:text-white"
+            >
+              <component :is="item.icone" class="h-6 w-6 shrink-0" />
+              <span v-if="!isCollapsed" class="truncate">{{ item.nome }}</span>
+            </router-link>
+          </div>
         </nav>
+
+        <div v-if="USAR_MOCKS && !isCollapsed" class="px-3 mt-5">
+          <label for="perfil-mock" class="block text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Visualizar como (mocks)
+          </label>
+          <select id="perfil-mock" :value="perfilStore.atual" class="mt-1 w-full rounded bg-white/10 px-2 py-1 text-xs text-white" @change="definirPerfil">
+            <option v-for="perfil in PERFIS" :key="perfil" :value="perfil" class="text-gray-800">
+              {{ ROTULOS_PERFIL[perfil] }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <!-- Rodapé de Versão da Sidebar -->
@@ -117,13 +101,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, ref, watch, type Component } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   HomeIcon,
   CubeIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
+  ChartBarIcon,
+  TableCellsIcon,
+  AdjustmentsHorizontalIcon,
+  UsersIcon,
   CubeTransparentIcon,
   Bars3Icon,
   ArrowRightOnRectangleIcon,
@@ -131,19 +119,73 @@ import {
 import ProfileDropdown from '../components/ProfileDropdown.vue';
 import Button from '../components/Button.vue';
 import { useAuthStore } from '../stores/auth';
+import { usePerfilStore } from '../stores/perfil';
 import { APP_VERSION, APP_NAME, SYSTEM_TITLE } from '../config/version';
+import { USAR_MOCKS } from '../config/mocks';
+import { PERFIS, ROTULOS_PERFIL, type Perfil } from '../types/sae';
+
+interface ItemMenu {
+  rota: string;
+  nome: string;
+  icone: Component;
+  perfis: Perfil[];
+}
+
+interface GrupoMenu {
+  titulo: string;
+  itens: ItemMenu[];
+}
 
 const sidebarOpen = ref(false);
 const isCollapsed = ref(false);
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
+const perfilStore = usePerfilStore();
 
-const toggleSidebar = () => {
+const grupos: GrupoMenu[] = [
+  {
+    titulo: 'Operação',
+    itens: [
+      { rota: '/fila', nome: 'Fila de Marcação', icone: TableCellsIcon, perfis: ['OPERADOR', 'CHEFIA', 'AREA_GESTORA'] },
+    ],
+  },
+  {
+    titulo: 'Gestão',
+    itens: [
+      { rota: '/painel', nome: 'Painel de Gestão', icone: ChartBarIcon, perfis: ['CHEFIA', 'AREA_GESTORA', 'COORDENACAO', 'ADMIN_TI'] },
+      { rota: '/relatorios', nome: 'Relatórios', icone: DocumentTextIcon, perfis: ['CHEFIA', 'AREA_GESTORA', 'COORDENACAO', 'ADMIN_TI'] },
+      { rota: '/criterios', nome: 'Critérios de Priorização', icone: AdjustmentsHorizontalIcon, perfis: ['AREA_GESTORA'] },
+      { rota: '/equipe', nome: 'Equipe e Perfis', icone: UsersIcon, perfis: ['AREA_GESTORA', 'ADMIN_TI'] },
+    ],
+  },
+  {
+    titulo: 'Sistema',
+    itens: [
+      { rota: '/', nome: 'Início', icone: HomeIcon, perfis: PERFIS },
+      { rota: '/configuracoes', nome: 'Configurações', icone: Cog6ToothIcon, perfis: PERFIS },
+      { rota: '/componentes', nome: 'Componentes', icone: CubeIcon, perfis: PERFIS },
+    ],
+  },
+];
+
+const gruposVisiveis = computed(() => grupos
+  .map((grupo) => ({ ...grupo, itens: grupo.itens.filter((item) => authStore.temPerfil(...item.perfis)) }))
+  .filter((grupo) => grupo.itens.length > 0));
+
+function toggleSidebar(): void {
   isCollapsed.value = !isCollapsed.value;
-};
+}
 
-// Close mobile sidebar on route change
+function definirPerfil(evento: Event): void {
+  perfilStore.definir((evento.target as HTMLSelectElement).value as Perfil);
+  const perfis = route.meta.roles as Perfil[] | undefined;
+  if (perfis && perfis.length > 0 && !authStore.temPerfil(...perfis)) {
+    void router.push({ name: 'Início' });
+  }
+}
+
 watch(() => route.path, () => {
   sidebarOpen.value = false;
 });

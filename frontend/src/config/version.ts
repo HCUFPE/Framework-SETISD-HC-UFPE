@@ -6,9 +6,9 @@
 import { ref } from 'vue';
 import api from '../services/api';
 
-export const APP_VERSION = ref('1.0.0');
-export const APP_NAME = ref('Framework SETISD');
-export const SYSTEM_TITLE = ref('Nome do Sistema');
+export const APP_VERSION = ref('0.1.0');
+export const APP_NAME = ref('SAE-HC');
+export const SYSTEM_TITLE = ref('Sistema de Agendamento de Exames');
 export const HOSPITAL_NAME = ref('Hospital das Clínicas da UFPE (HC-UFPE / EBSERH)');
 export const DEPARTMENT_NAME = ref('Setor de Tecnologia da Informação e Saúde Digital — SETISD');
 

@@ -379,7 +379,7 @@ const saveUser = () => {
   if (!newUser.value.username || !newUser.value.nome) return;
 
   usersList.value.push({
-    id: Date.now(),
+    id: Math.max(0, ...usersList.value.map((usuario) => usuario.id)) + 1,
     username: newUser.value.username.trim().toLowerCase(),
     nome: newUser.value.nome.trim(),
     perfil: newUser.value.perfil,
