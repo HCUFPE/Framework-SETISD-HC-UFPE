@@ -2,27 +2,33 @@
 
 ## 1. Problema e Oportunidade
 
-- **O Problema**: O recebimento de pedidos de exames ocorre via Google Forms sem qualquer validação prévia de dados com o sistema central. Isso gera um volume massivo de informações incorretas, obrigando a equipe a triar visualmente todos os pedidos em planilhas improvisadas.
-- **Impacto**: Ocorre uma enorme sobrecarga de trabalho, pois a equipe perde horas buscando números de solicitação inexistentes no sistema legado (AGHU). Além disso, há uma grave subotimização das filas e perda de vagas urgentes por depender exclusivamente de pessoas para aplicar regras de prioridade clínica e restrições logísticas de distância (tempo de deslocamento do paciente).
-- **Solução Proposta**: Um Portal Web que substitui os formulários e planilhas atuais. O sistema cruza e valida os dados inseridos pelos pacientes de forma instantânea através do banco de dados de leitura do AGHU, apresentando à equipe da Central de Marcação um painel com a fila de espera já filtrada, validada e automaticamente organizada por prioridade clínica e viabilidade geográfica.
+- **O Problema**: O recebimento e controle de marcação de exames ambulatoriais ocorre hoje por meio de Google Forms, planilhas manuais no Google Drive e comunicação informal via WhatsApp, sem integração de leitura com o sistema hospitalar (AGHU). Isso gera grande volume de dados incorretos, pedidos duplicados e obriga a equipe a triar e priorizar manualmente toda a fila.
+- **Impacto**: A equipe da Central de Marcação sofre sobrecarga operacional pesquisando solicitações inválidas no AGHU e mantendo controles visuais manuais ("pintar linhas de verde"). Além disso, há subotimização da fila, risco de falha humana na aplicação de prioridades clínicas complexas, dificuldade para aproveitar vagas urgentes de última hora (por falta de filtro rápido de localidade) e ausência de alertas automatizados para conflitos entre exames, preparos e datas de retorno.
+- **Solução Proposta**: Uma **aplicação web estritamente interna** (sistema satélite) para a Central de Marcação do HC-UFPE, construída sobre o `Framework-SETISD-HC-UFPE`. O sistema consulta as solicitações oficiais diretamente na base somente-leitura do AGHU, aplica um motor de priorização clínica **configurável**, fornece filtros operacionais (incluindo município/região para urgências), alerta sobre incompatibilidades/janelas de retorno e centraliza o controle de status e indicadores em banco local auditável.
 
 ## 2. Partes Interessadas (Stakeholders)
 
-- **Usuários Finais**: Equipe da Central de Marcação de Exames (operadores que farão a gestão da fila e o agendamento final no AGHU).
-- **Patrocinadores**: Gestão Médica, Coordenação Superior do Hospital das Clínicas (HC-UFPE) e Setor de TI (SETISD).
-- **Pacientes / Usuários**: Cidadãos que necessitam enviar seus pedidos de exames médicos de forma digital e acompanhar o status do agendamento.
+- **Usuários Finais**: Equipe da Central de Marcação de Exames (operadores que gerenciam a fila, aplicam filtros/alertas, efetivam o agendamento no AGHU e registram o status interno de atendimento/contato).
+- **Patrocinadores**: Gestão Médica, Coordenação da Central de Marcação, Superintendência do HC-UFPE e Setor de TI e Saúde Digital (SETISD).
+- **Beneficiários Indiretos (Pacientes)**: Cidadãos atendidos no HC-UFPE que se beneficiam de uma fila mais justa, ágil e com menos erros/remarcações — **sem acesso direto a este sistema** (a interação com pacientes será provida por aplicativo próprio em contratação pela sede da EBSERH).
 
 ## 3. Escopo do Produto
 
 - **Funcionalidades principais**:
-  - Portal web de entrada para os pacientes com validação em tempo real do número de solicitação junto ao banco de dados do AGHU.
-  - Painel de gestão (Dashboard) para a equipe alterar os status (Aguardando, Agendado, Cancelado) e visualizar indicadores.
-  - Mecanismo de sincronização apenas de leitura para extrair dados do AGHU para o banco de dados local.
-- **Limites do projeto**: O sistema **não** fará a gravação, alteração ou agendamento direto no banco de dados do AGHU (impedimento de escrita arquitetural). O ato final de confirmar o exame continuará sendo executado manualmente por um funcionário na tela do sistema legado. O sistema também não fará a gestão de filas externas do SUS.
+  - Importação/leitura da planilha do Google Forms (sem alterar o arquivo original) e **cruzamento/higienização automática** com a base somente-leitura do AGHU (PostgreSQL em produção / CSV espelho em desenvolvimento), identificando pacientes por **prontuário** e **número da solicitação**, detectando erros de exame, duplicidades e exames já realizados.
+  - Painel interno da fila de marcação com **priorização clínica automática, determinística e configurável** (Oncologia → Transplante → Nefrologia/Hemodiálise → Vulneráveis → Rotina, considerando afinidade com a clínica solicitante e data de retorno).
+  - **Filtros operacionais** por exame, unidade executora, especialidade, status e **município/região** (para aproveitamento de vagas de última hora, sem alterar a prioridade clínica).
+  - **Cadastro editável de regras de exames e prioridades**: pesos de prioridade, matriz de incompatibilidades (preparo e mesmo dia), antecedência mínima, orientações de preparo e janelas vinculadas à data de retorno (ex: espirometria até 10 dias antes; INR até 72h).
+  - **Monitoramento de confirmação em 24 horas** (antes da marcação oficial no AGHU, conforme alinhamento de 06/11) e controle de status do fluxo interno (`Na Fila`, `Aguardando Confirmação 24h`, `Confirmado / Agendado no AGHU`, `Sem Resposta / Cancelado`) com **trilha de auditoria imutável (`audit_logs`)**.
+  - Painel gerencial (Dashboard) com indicadores operacionais (KPIs).
+- **Limites do projeto (Fora de Escopo)**:
+  - **Sem escrita no AGHU:** O sistema **não** grava, altera ou agenda exames diretamente no banco do AGHU, nem altera o ticket impresso emitido pelo sistema legado. A efetivação final permanece manual no AGHU.
+  - **Sem portal para o paciente e sem disparo automático de WhatsApp/SMS:** O Google Forms oficial continua sendo a porta de entrada dos pacientes; o sistema é estritamente interno (AD/LDAP + RBAC).
+  - **Exclusões operacionais alinhadas em 06/11:** Atendimentos presenciais diretos na Central, fluxos de remarcação/faltas, exceções de códigos de solicitação em lote no AGHU e gestão da fila estadual do SUS (CMCE).
 
 ## 4. Metas e Objetivos de Negócio
 
-- **Erradicação de Dados Inválidos**: Reduzir o índice de pedidos que chegam à equipe com chaves ou números de solicitação incorretos.
-- **Redução do Tempo de Espera**: Diminuir o tempo médio de espera por especialidade através de um preenchimento mais ágil das vagas ociosas ou de desistências de última hora.
-- **Otimização Logística**: Impedir o agendamento de vagas de urgência (para o dia seguinte) a pacientes cujo município de residência impossibilite a chegada em tempo útil ao hospital, diminuindo as taxas de falta.
-- **Rastreabilidade e Governança**: Substituir o rastreio visual e informal ("pintar a linha de verde" no Excel) por um histórico digital inviolável que contabiliza o fluxo de trabalho diário da equipe de marcação.
+- **Redução de Retrabalho e Erros Operacionais**: Eliminar a conferência manual de planilhas soltas, bloqueando/sinalizando solicitações duplicadas e utilizando diretamente os dados oficiais do AGHU.
+- **Equidade e Transparência na Priorização**: Garantir que critérios clínicos prioritários sejam aplicados de forma consistente e auditável, com flexibilidade para a gestão atualizar pesos e regras de preparo/retorno sem depender de alterações em código.
+- **Otimização de Vagas e Redução do Tempo de Espera**: Agilizar o preenchimento de vagas ociosas e desistências de última hora por meio do filtro geográfico operacional e dos alertas de conflito/preparo.
+- **Rastreabilidade e Gestão Orientada por Dados**: Substituir o controle informal em planilhas por histórico auditável e indicadores gerenciais (tempo de espera, ocupação, absenteísmo, remarcações e TFD).
