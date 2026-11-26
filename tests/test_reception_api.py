@@ -71,7 +71,7 @@ def test_api_mantem_carga_ap_completa_e_recepcionista_consulta_devolucoes(demo_c
     devolucoes = demo_client.get("/api/ap/devolucoes", headers=headers)
 
     assert casos.status_code == 200 and len(casos.json()) == 19
-    assert pendentes.status_code == 200 and len(pendentes.json()) == 6
+    assert pendentes.status_code == 200 and len(pendentes.json()) == 11
     assert rejeicao.status_code == 200 and rejeicao.json()["tipo"] == "DEVOLVIDA"
     assert devolucoes.status_code == 200 and len(devolucoes.json()) == 3
 
@@ -139,7 +139,7 @@ def test_tipo_divergente_retorna_detail_e_nao_persiste(client):
     assert resposta.status_code == 422
     assert resposta.json()["detail"]
     assert client.get("/api/ap/casos", headers=headers).json() == []
-    assert client.get("/api/ap/solicitacoes/pendentes/contagem", headers=headers).json() == 5
+    assert client.get("/api/ap/solicitacoes/pendentes/contagem", headers=headers).json() == 7
 
 
 def test_nao_conformidade_cria_devolucao_e_atualiza_solicitacao_atomicamente(client):
@@ -262,7 +262,94 @@ def test_indisponibilidade_mock_afeta_listagem_leitura_mas_nao_contagem(client, 
     leitura = client.get("/api/ap/solicitacoes/7712301", headers=headers)
     assert leitura.status_code == 503
     assert leitura.json()["detail"]
-    assert client.get("/api/ap/solicitacoes/pendentes/contagem", headers=headers).json() == 5
+    assert client.get("/api/ap/solicitacoes/pendentes/contagem", headers=headers).json() == 7
+
+
+# ---------------------------------------------------------------------------
+# Testes de leitura de código de barras AGHU de 10 dígitos
+# ---------------------------------------------------------------------------
+
+
+def test_leitura_10_digitos_decompoe_e_retorna_pendente_com_metadados(client):
+    """Código contínuo de 10 dígitos: 7712301 + amostra 001 → solicitação PENDENTE com amostraBipada."""
+    headers = token(client, "recepcionista")
+    # Amostra "1" pertence ao grupo HP da solicitação 7712301
+    leitura = client.get("/api/ap/solicitacoes/7712301001", headers=headers).json()
+    assert leitura["tipo"] == "PENDENTE"
+    assert leitura["codigoSolicitacao"] == "7712301"
+    assert leitura["amostraBipada"] == "001"
+    assert leitura["grupoSelecionadoId"] == "7712301:HP"
+    assert len(leitura["examesFiltrados"]) == 1
+    assert leitura["examesFiltrados"][0]["id"] == "7712301:HP"
+    # Todos os exames pendentes continuam na resposta (retrocompatibilidade)
+    assert len(leitura["exames"]) == 2
+
+
+def test_leitura_10_digitos_tolerante_zeros_a_esquerda(client):
+    """Amostra "002" na etiqueta corresponde à amostra "2" do grupo CG."""
+    headers = token(client, "recepcionista")
+    leitura = client.get("/api/ap/solicitacoes/7712301002", headers=headers).json()
+    assert leitura["tipo"] == "PENDENTE"
+    assert leitura["amostraBipada"] == "002"
+    assert leitura["grupoSelecionadoId"] == "7712301:CG"
+    assert leitura["examesFiltrados"][0]["id"] == "7712301:CG"
+
+
+def test_leitura_10_digitos_amostra_inexistente_retorna_pendente_sem_filtro(client):
+    """Amostra "099" inexistente: solicitação encontrada, mas sem filtro de grupo."""
+    headers = token(client, "recepcionista")
+    leitura = client.get("/api/ap/solicitacoes/7712301099", headers=headers).json()
+    assert leitura["tipo"] == "PENDENTE"
+    assert leitura["amostraBipada"] == "099"
+    assert leitura["grupoSelecionadoId"] is None
+    assert leitura["examesFiltrados"] == []
+
+
+def test_leitura_10_digitos_codigo_inexistente_retorna_nao_encontrada(client):
+    """10 dígitos cujos primeiros 7 não existem: retorna NAO_ENCONTRADA."""
+    headers = token(client, "recepcionista")
+    leitura = client.get("/api/ap/solicitacoes/9999999001", headers=headers).json()
+    assert leitura["tipo"] == "NAO_ENCONTRADA"
+
+
+def test_leitura_10_digitos_amostra_ja_recebida_com_outro_pendente(client):
+    """Bipa amostra "1" (HP) já recebida; grupo CG continua pendente → PENDENTE + amostraBipadaSituacao."""
+    headers = token(client, "recepcionista")
+    # Receber HP (amostra 1) primeiro
+    receber(client, "7712301:HP", "HP")
+
+    leitura = client.get("/api/ap/solicitacoes/7712301001", headers=headers).json()
+    assert leitura["tipo"] == "PENDENTE"
+    assert leitura["amostraBipada"] == "001"
+    # O grupo HP já foi recebido, logo grupoSelecionadoId é None
+    assert leitura["grupoSelecionadoId"] is None
+    assert leitura["examesFiltrados"] == []
+    assert leitura["amostraBipadaSituacao"] is not None
+    assert leitura["amostraBipadaSituacao"]["situacaoRecepcao"] == "RECEBIDA"
+    assert leitura["amostraBipadaSituacao"]["tipoExame"] == "HP"
+    # O grupo CG pendente permanece em exames
+    assert len(leitura["exames"]) == 1
+    assert leitura["exames"][0]["id"] == "7712301:CG"
+
+
+def test_leitura_codigo_puro_e_hifen_continuam_funcionando(client):
+    """Retrocompatibilidade: código puro e código-amostra preservam comportamento existente."""
+    headers = token(client, "recepcionista")
+    # Código puro (7 dígitos)
+    puro = client.get("/api/ap/solicitacoes/7712301", headers=headers).json()
+    assert puro["tipo"] == "PENDENTE"
+    assert "amostraBipada" not in puro
+
+    # Formato código-amostra com hífen
+    hifen = client.get("/api/ap/solicitacoes/7712301-1", headers=headers).json()
+    assert hifen["tipo"] == "PENDENTE"
+    assert hifen["amostraBipada"] == "1"
+    assert hifen["grupoSelecionadoId"] == "7712301:HP"
+
+    # Formato chave de grupo com :TIPO
+    chave = client.get("/api/ap/solicitacoes/7712301:HP", headers=headers).json()
+    assert chave["tipo"] == "PENDENTE"
+    assert "amostraBipada" not in chave
 
 
 def test_recebimento_concorrente_nao_gera_numero_interno_duplicado(client):
@@ -277,7 +364,7 @@ def test_recebimento_concorrente_nao_gera_numero_interno_duplicado(client):
 
     assert sorted(resposta.status_code for resposta in respostas) == [201, 409]
     assert len(client.get("/api/ap/casos", headers=headers).json()) == 1
-    assert client.get("/api/ap/solicitacoes/pendentes/contagem", headers=headers).json() == 5
+    assert client.get("/api/ap/solicitacoes/pendentes/contagem", headers=headers).json() == 7
 
 
 def test_seed_de_solicitacoes_e_idempotente_e_preserva_estado_local(tmp_path):
@@ -299,7 +386,7 @@ def test_seed_de_solicitacoes_e_idempotente_e_preserva_estado_local(tmp_path):
                 fixture = solicitacoes_ficticias()
                 await provider.seed_solicitacoes(fixture)
                 await provider.seed_solicitacoes(fixture)
-                assert await provider.contar_solicitacoes_pendentes() == 5
+                assert await provider.contar_solicitacoes_pendentes() == 7
 
                 solicitacao = await provider.buscar_solicitacao(fixture[0]["id"])
                 solicitacao["situacaoRecepcao"] = "RECEBIDA"
@@ -335,7 +422,7 @@ def test_seed_demo_reaproveita_carga_ap_existente_e_migra_placeholders(tmp_path)
                 await provider.seed_demo_state(estado)
 
                 assert len(await provider.listar_casos()) == len(estado["casos"]) == 19
-                assert await provider.contar_solicitacoes_pendentes() == 6
+                assert await provider.contar_solicitacoes_pendentes() == 8
                 assert len(await provider.listar_devolucoes()) == 3
                 solicitacao = await provider.buscar_solicitacao("7712301:HP")
                 assert not solicitacao["nomePaciente"].startswith("PACIENTE FICTÍCIO")
@@ -383,7 +470,7 @@ def test_falha_de_auditoria_reverte_mutacao_e_historico(tmp_path):
                         "192.0.2.10",
                     )
 
-                assert await provider.contar_solicitacoes_pendentes() == 5
+                assert await provider.contar_solicitacoes_pendentes() == 7
                 assert await provider.listar_casos() == []
                 event.remove(session.sync_session, "before_commit", falhar_ao_confirmar_auditoria)
         finally:

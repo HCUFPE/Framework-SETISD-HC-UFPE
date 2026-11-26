@@ -32,8 +32,19 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="amostra in amostras" :key="amostra.numeroAmostra">
-            <th scope="row" class="whitespace-nowrap font-bold text-gray-900 tabular-nums">Amostra {{ amostra.numeroAmostra }}</th>
+          <tr
+            v-for="amostra in amostras"
+            :key="amostra.numeroAmostra"
+            :class="mesmaAmostra(amostra.numeroAmostra, props.amostraBipada) ? 'bg-paper-primary-soft/60' : ''"
+          >
+            <th scope="row" class="whitespace-nowrap font-bold text-gray-900 tabular-nums">
+              <span class="inline-flex items-center gap-1.5">
+                Amostra {{ amostra.numeroAmostra }}
+                <Badge v-if="mesmaAmostra(amostra.numeroAmostra, props.amostraBipada)" variant="primary" size="sm">
+                  Bipada
+                </Badge>
+              </span>
+            </th>
             <td>
               <span class="flex items-start gap-1.5">
                 <Badge :variant="amostra.tipoExame === 'CO' ? 'danger' : 'primary'" size="sm" :title="TIPOS_EXAME[amostra.tipoExame].nome">
@@ -74,7 +85,7 @@ import { BeakerIcon, ClipboardDocumentListIcon, LockClosedIcon } from '@heroicon
 import Badge from '../Badge.vue';
 import { NAO_INFORMADO, TIPOS_EXAME, rotuloOrigem, statusItemAghu } from '../../constants/ap';
 import { calcularIdade, formatarData } from '../../helpers/formato';
-import { amostrasDosGrupos, rotuloQuantidadeAmostras } from '../../helpers/aghu';
+import { amostrasDosGrupos, mesmaAmostra, rotuloQuantidadeAmostras } from '../../helpers/aghu';
 import type { SolicitacaoAghu } from '../../types/ap';
 
 /**
@@ -89,8 +100,10 @@ const props = withDefaults(
     exames?: SolicitacaoAghu[];
     /** Título da tabela de amostras. */
     titulo?: string;
+    /** Número da amostra bipada para destaque visual na tabela. */
+    amostraBipada?: string | null;
   }>(),
-  { exames: undefined, titulo: undefined },
+  { exames: undefined, titulo: undefined, amostraBipada: null },
 );
 
 /** Amostras de todos os grupos exibidos, em ordem de número, com o tipo de exame de cada uma. */

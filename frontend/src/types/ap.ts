@@ -408,11 +408,39 @@ export interface RegistrarNaoConformidadeInput {
 /** Resultado da leitura de uma solicitação na recepção. */
 export type LeituraSolicitacao =
   /** A solicitação tem tipos de exame aguardando recebimento: abre a conferência da solicitação. */
-  | { tipo: 'PENDENTE'; codigoSolicitacao: string; exames: SolicitacaoAghu[] }
+  | {
+      tipo: 'PENDENTE';
+      codigoSolicitacao: string;
+      exames: SolicitacaoAghu[];
+      /** Número da amostra bipada (quando extraído de código de 10 dígitos ou formato código-amostra). */
+      amostraBipada?: string | null;
+      /** ID do grupo pendente correspondente à amostra bipada. */
+      grupoSelecionadoId?: string | null;
+      /** Lista com o grupo pendente correspondente à amostra bipada (ou vazia). */
+      examesFiltrados?: SolicitacaoAghu[];
+      /** Metadados quando a amostra bipada pertence a grupo já recebido/devolvido. */
+      amostraBipadaSituacao?: AmostraBipadaSituacao | null;
+    }
   /** Todos os exames da solicitação já foram recebidos. */
-  | { tipo: 'RECEBIDA'; solicitacao: SolicitacaoAghu; recebimentos: RecebimentoExame[] }
-  | { tipo: 'DEVOLVIDA'; solicitacao: SolicitacaoAghu; devolvidaEm: string; tipoNaoConformidade: TipoNaoConformidadeCodigo }
+  | { tipo: 'RECEBIDA'; solicitacao: SolicitacaoAghu; recebimentos: RecebimentoExame[]; amostraBipada?: string | null }
+  | {
+      tipo: 'DEVOLVIDA';
+      solicitacao: SolicitacaoAghu;
+      devolvidaEm: string;
+      tipoNaoConformidade: TipoNaoConformidadeCodigo;
+      amostraBipada?: string | null;
+    }
   | { tipo: 'NAO_ENCONTRADA' };
+
+/** Situação da amostra bipada que pertence a um grupo já tratado (recebido/devolvido). */
+export interface AmostraBipadaSituacao {
+  grupoId: string;
+  tipoExame: TipoExame;
+  situacaoRecepcao: SituacaoRecepcaoSolicitacao;
+  casoNumero?: string;
+  ihqCodigo?: string;
+  devolucaoId?: number;
+}
 
 /** Exame já recebido e o caso (ou IHQ) que gerou. */
 export interface RecebimentoExame {

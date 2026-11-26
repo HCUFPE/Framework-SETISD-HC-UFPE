@@ -1,10 +1,37 @@
 <template>
-  <div v-if="recepcao.solicitacao" class="grid gap-6 lg:grid-cols-3">
+  <div v-if="recepcao.solicitacao" class="space-y-4">
+    <Alert
+      v-if="recepcao.amostraBipadaSituacao"
+      variant="warning"
+      :title="`Amostra ${recepcao.amostraBipada} já ${recepcao.amostraBipadaSituacao.situacaoRecepcao === 'DEVOLVIDA' ? 'devolvida' : 'recebida'}`"
+    >
+      <template v-if="recepcao.amostraBipadaSituacao.situacaoRecepcao === 'RECEBIDA'">
+        O grupo <strong>{{ recepcao.amostraBipadaSituacao.tipoExame }}</strong> desta amostra já foi recebido
+        <template v-if="recepcao.amostraBipadaSituacao.casoNumero">
+          (caso <strong>{{ recepcao.amostraBipadaSituacao.casoNumero }}</strong>)
+        </template>
+        <template v-else-if="recepcao.amostraBipadaSituacao.ihqCodigo">
+          (<strong>{{ recepcao.amostraBipadaSituacao.ihqCodigo }}</strong>)
+        </template>.
+      </template>
+      <template v-else>
+        O grupo <strong>{{ recepcao.amostraBipadaSituacao.tipoExame }}</strong> desta amostra já foi devolvido por não conformidade.
+      </template>
+      Os demais exames pendentes desta solicitação seguem disponíveis para recebimento abaixo.
+    </Alert>
+
+    <div class="grid gap-6 lg:grid-cols-3">
     <Card class="lg:col-span-2">
       <template #header>
         <h2 class="text-lg font-bold text-gray-800">Dados da solicitação</h2>
       </template>
-      <DadosSolicitacao :solicitacao="recepcao.solicitacao" :exames="recepcao.exames" titulo="Amostras aguardando recebimento" />
+      <DadosSolicitacao
+        class="-mt-4"
+        :solicitacao="recepcao.solicitacao"
+        :exames="recepcao.exames"
+        :amostra-bipada="recepcao.amostraBipada"
+        titulo="Amostras aguardando recebimento"
+      />
       <p v-if="jaTratados.length" class="mt-3 text-xs text-gray-600">
         Outros exames desta solicitação:
         <template v-for="(e, i) in jaTratados" :key="e.id">
@@ -27,7 +54,7 @@
           </div>
         </template>
 
-        <form id="form-conferencia" novalidate class="space-y-4" @submit.prevent="enviar">
+        <form id="form-conferencia" novalidate class="-mt-4 space-y-4" @submit.prevent="enviar">
           <!-- Resumo de erros -->
           <div v-if="tentouConfirmar && listaErros.length" ref="resumo" tabindex="-1" class="focus:outline-none">
             <Alert
@@ -48,7 +75,7 @@
           <!-- Urgência: vale para a solicitação (todos os casos gerados nesta conferência) -->
           <fieldset v-if="principaisSelecionados.length" id="campo-urgente" tabindex="-1" class="focus:outline-none">
             <legend class="form-label">Caso urgente? <span class="text-paper-danger">*</span></legend>
-            <div class="flex gap-2" role="radiogroup" aria-describedby="nota-urgencia">
+            <div class="flex gap-2" role="radiogroup">
               <label
                 v-for="opcao in opcoesUrgencia"
                 :key="opcao.valor"
@@ -64,10 +91,6 @@
                 {{ opcao.rotulo }}
               </label>
             </div>
-            <p id="nota-urgencia" class="mt-1 text-xs text-gray-500">
-              <template v-if="congelacaoSelecionada"><strong>Automático para solicitação com Congelação.</strong> </template>
-              Válido para {{ principaisSelecionados.length === 1 ? 'o exame gerado' : 'todos os exames gerados' }} nesta solicitação.
-            </p>
             <p v-if="tentouConfirmar && erroUrgente" class="mt-1 text-sm text-paper-danger-strong">{{ erroUrgente }}</p>
           </fieldset>
 
@@ -75,7 +98,14 @@
           <section
             v-for="grupo in recepcao.exames"
             :key="grupo.id"
-            :class="estado[grupo.id].receber ? 'border-gray-200 bg-white' : 'border-dashed border-gray-300 bg-gray-50'"
+            :class="[
+              estado[grupo.id].receber ? 'bg-white' : 'border-dashed border-gray-300 bg-gray-50',
+              grupo.id === recepcao.grupoSelecionadoId
+                ? 'border-paper-primary ring-2 ring-paper-primary/25'
+                : estado[grupo.id].receber
+                  ? 'border-gray-200'
+                  : '',
+            ]"
             class="rounded-lg border p-3"
             :aria-label="`Tipo de exame ${grupo.tipoExameSugerido}`"
           >
@@ -93,10 +123,12 @@
                 <p class="flex flex-wrap items-center gap-1.5">
                   <Badge :variant="grupo.tipoExameSugerido === 'CO' ? 'danger' : 'primary'" size="sm">{{ grupo.tipoExameSugerido }}</Badge>
                   <span class="font-bold text-gray-900">{{ TIPOS_EXAME[grupo.tipoExameSugerido].nome }}</span>
+                  <Badge v-if="grupo.id === recepcao.grupoSelecionadoId" variant="info" size="sm">
+                    Amostra bipada
+                  </Badge>
                 </p>
                 <p class="mt-0.5 text-xs text-gray-600">
-                  {{ rotuloNumerosAmostras(grupo.amostras) }} · {{ grupo.siglaExame }}
-                  <template v-if="multiplos && !estado[grupo.id].receber"> · fica pendente para receber depois</template>
+                  {{ rotuloAmostrasCapitalizado(grupo.amostras) }} · {{ grupo.siglaExame }}
                 </p>
               </div>
             </header>
@@ -172,9 +204,7 @@
             <textarea id="campo-observacoes" v-model="observacoes" rows="2" class="form-control resize-none"></textarea>
           </div>
 
-          <p class="text-xs text-gray-500">Entrada e responsável registrados automaticamente na confirmação.</p>
-
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-2 pt-2">
             <Button type="submit" :loading="salvando" :disabled="ncAberta" title="Atalho: Ctrl+Enter">
               <CheckCircleIcon class="h-5 w-5 mr-2" aria-hidden="true" /> Confirmar conferência
             </Button>
@@ -202,6 +232,7 @@
           </button>
         </div>
       </Card>
+    </div>
     </div>
   </div>
 </template>
@@ -268,15 +299,25 @@ const rotulosCampo: Record<CampoGrupo, string> = {
 };
 
 const ehCongelacao = (grupo: SolicitacaoAghu) => grupo.tipoExameSugerido === 'CO';
+const rotuloAmostrasCapitalizado = (amostras: SolicitacaoAghu['amostras']) =>
+  rotuloNumerosAmostras(amostras).replace(/^a/, 'A');
+
+/** Quando a bipagem identificou uma amostra específica em solicitação mista, pré-marca apenas seu grupo. */
+const temFiltroAmostra = computed(
+  () =>
+    !!recepcao.grupoSelecionadoId &&
+    recepcao.exames.length > 1 &&
+    recepcao.exames.some((g) => g.id === recepcao.grupoSelecionadoId),
+);
 const multiplos = computed(() => recepcao.exames.length > 1);
 
-/** Estado inicial por tipo: todos marcados para receber. */
+/** Estado inicial por tipo: se houver amostra bipada em solicitação mista, pré-marca só o grupo correspondente. */
 const estado = reactive<Record<string, EstadoGrupo>>(
   Object.fromEntries(
     recepcao.exames.map((g) => [
       g.id,
       {
-        receber: true,
+        receber: !temFiltroAmostra.value || g.id === recepcao.grupoSelecionadoId,
         procedimento: '',
         origemModo: 'CONFERENCIA',
         casoOrigem: null,

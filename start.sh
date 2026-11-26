@@ -11,13 +11,17 @@ echo -e "${BLUE}==================================================${NC}"
 echo -e "${BLUE}   🚀 Iniciando Aplicação                         ${NC}"
 echo -e "${BLUE}==================================================${NC}"
 
-# 0. Limpeza de processos anteriores
+# 0. Limpeza de processos anteriores (Linux/macOS e Windows)
 echo -e "${YELLOW}🧹 Limpando processos anteriores...${NC}"
-pkill -f "uvicorn src.main:app" || true
+if command -v pkill &> /dev/null; then
+    pkill -f "uvicorn src.main:app" 2>/dev/null || true
+elif command -v powershell.exe &> /dev/null; then
+    powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -like '*uvicorn src.main:app*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" 2>/dev/null || true
+fi
 
 # 1. Verificação das ferramentas necessárias
 echo -e "\n${YELLOW}[1/6] Verificando ferramentas do sistema...${NC}"
-tools=("node" "python3" "pip" "uv" "npm")
+tools=("node" "npm" "uv")
 for tool in "${tools[@]}"; do
     if ! command -v "$tool" &> /dev/null; then
         echo -e "${RED}❌ Erro: '$tool' não foi encontrado.${NC}"
@@ -25,9 +29,23 @@ for tool in "${tools[@]}"; do
         exit 1
     else
         version=$($tool --version 2>&1 | head -n 1)
-        echo -e "  ✅ $tool: ${GREEN}$version${NC}"
+        echo -e "  ✅ $tool:${GREEN}$version${NC}"
     fi
 done
+
+# Detecta Python válido (ignora o atalho falso da Microsoft Store no Windows)
+PYTHON_BIN=""
+for candidate in ".venv/Scripts/python.exe" ".venv/bin/python" "python3" "python"; do
+    if version=$($candidate --version 2>/dev/null | head -n 1); then
+        PYTHON_BIN="$candidate"
+        echo -e "  ✅ python ($candidate):${GREEN}$version${NC}"
+        break
+    fi
+done
+
+if [ -z "$PYTHON_BIN" ]; then
+    echo -e "  ⚠️  Python global não encontrado; o ${GREEN}uv${NC} gerenciará o interpretador."
+fi
 
 # 2. Criação do venv e 3. Instalação de pacotes Python (via uv)
 echo -e "\n${YELLOW}[2-3/6] Sincronizando ambiente Python (uv)...${NC}"
@@ -35,7 +53,6 @@ if [ ! -d ".venv" ]; then
     echo -e "  ⚙️  Criando novo ambiente virtual (.venv)..."
 fi
 
-# uv sync já lida com criação de venv e instalação de dependências de forma otimizada
 if uv sync; then
     echo -e "  ✅ Dependências Python sincronizadas."
 else
@@ -79,3 +96,6 @@ fi
 
 # Execução da aplicação em foreground
 IP="0.0.0.0"
+PORT="${PORT:-8000}"
+echo -e "\n${GREEN}✅ Aplicação disponível em http://localhost:${PORT}${NC}"
+exec uv run uvicorn src.main:app --host "$IP" --port "$PORT"

@@ -94,6 +94,7 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import StatusCasoBadge from './StatusCasoBadge.vue';
+import { extrairCodigoEamostra } from '../../helpers/aghu';
 import { rotaDoCaso } from '../../helpers/rotas';
 import { aghuService, mensagemDeErro } from '../../services/ap';
 import { useCasosStore } from '../../stores/casos';
@@ -143,8 +144,9 @@ const buscar = async (): Promise<void> => {
   try {
     const encontrado = await casosStore.buscar(texto, LIMITE_RESULTADOS);
     let pendente: string | null = null;
-    if (encontrado.total === 0 && /^\d+$/.test(texto)) {
-      const exames = await aghuService.listarExamesDaSolicitacao(texto).catch(() => []);
+    if (encontrado.total === 0 && /^[\d:-]+$/.test(texto)) {
+      const { codigoSolicitacao } = extrairCodigoEamostra(texto);
+      const exames = await aghuService.listarExamesDaSolicitacao(codigoSolicitacao).catch(() => []);
       if (exames.some((e) => e.situacaoRecepcao === 'AGUARDANDO_RECEBIMENTO')) pendente = texto;
     }
     if (id !== ultimaBusca) return;

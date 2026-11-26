@@ -13,6 +13,7 @@ import type {
   ResultadoRecepcao,
   SolicitacaoAghu,
   VincularIhqInput,
+  AmostraBipadaSituacao,
 } from '../types/ap';
 
 /** Passos da recepção (índice base 0 do `Stepper`). */
@@ -73,6 +74,12 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
   const contagemPendentes = ref(0);
   /** Incrementado a cada reinício, para a tela reagir mesmo quando já está no passo 1. */
   const reinicios = ref(0);
+  /** Número da amostra bipada, quando extraído da leitura (10 dígitos ou código-amostra). */
+  const amostraBipada = ref<string | null>(null);
+  /** ID do grupo pendente correspondente à amostra bipada (ou null). */
+  const grupoSelecionadoId = ref<string | null>(null);
+  /** Metadados quando a amostra bipada pertence a um grupo já recebido/devolvido. */
+  const amostraBipadaSituacao = ref<AmostraBipadaSituacao | null>(null);
 
   /** Dados de cabeçalho da solicitação em conferência (paciente, origem etc.). */
   const solicitacao = computed<SolicitacaoAghu | null>(() => exames.value[0] ?? examesDaSolicitacao.value[0] ?? null);
@@ -130,6 +137,23 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     examesDaSolicitacao.value = [...exames.value];
     resultados.value = [];
     mensagemLeitura.value = null;
+    amostraBipada.value = null;
+    grupoSelecionadoId.value = null;
+    amostraBipadaSituacao.value = null;
+    passo.value = 1;
+    const codigo = gruposPendentes[0]?.codigoSolicitacao;
+    if (codigo) void carregarExamesDaSolicitacao(codigo);
+  }
+
+  /**
+   * Abre a conferência preservando metadados da amostra bipada
+   * (já definidos antes da chamada, em `lerCodigo`).
+   */
+  function iniciarConferenciaComMetadados(gruposPendentes: SolicitacaoAghu[]): void {
+    exames.value = ordenarGrupos(gruposPendentes);
+    examesDaSolicitacao.value = [...exames.value];
+    resultados.value = [];
+    mensagemLeitura.value = null;
     passo.value = 1;
     const codigo = gruposPendentes[0]?.codigoSolicitacao;
     if (codigo) void carregarExamesDaSolicitacao(codigo);
@@ -168,8 +192,17 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     lendo.value = true;
     try {
       const leitura = await aghuService.lerSolicitacao(codigo);
-      if (leitura.tipo === 'PENDENTE') iniciarConferencia(leitura.exames);
-      else mensagemLeitura.value = mensagemPara(leitura, codigo);
+      if (leitura.tipo === 'PENDENTE') {
+        amostraBipada.value = leitura.amostraBipada ?? null;
+        grupoSelecionadoId.value = leitura.grupoSelecionadoId ?? null;
+        amostraBipadaSituacao.value = leitura.amostraBipadaSituacao ?? null;
+        iniciarConferenciaComMetadados(leitura.exames);
+      } else {
+        amostraBipada.value = null;
+        grupoSelecionadoId.value = null;
+        amostraBipadaSituacao.value = null;
+        mensagemLeitura.value = mensagemPara(leitura, codigo);
+      }
       return leitura;
     } catch (erro) {
       if (erro instanceof ServiceError && erro.status === 503) {
@@ -238,6 +271,9 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     examesDaSolicitacao.value = [];
     resultados.value = [];
     mensagemLeitura.value = null;
+    amostraBipada.value = null;
+    grupoSelecionadoId.value = null;
+    amostraBipadaSituacao.value = null;
     reinicios.value += 1;
   }
 
@@ -256,6 +292,9 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     aghuIndisponivel,
     contagemPendentes,
     reinicios,
+    amostraBipada,
+    grupoSelecionadoId,
+    amostraBipadaSituacao,
     atualizarContagem,
     carregarPendentes,
     iniciarConferencia,

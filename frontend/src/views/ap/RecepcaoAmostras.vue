@@ -1,7 +1,5 @@
 <template>
   <div class="space-y-6">
-    <p class="text-sm text-gray-600">Leia a etiqueta do AGHU no frasco, confira o material e confirme a entrada.</p>
-
     <Card v-if="recepcao.passo > 0">
       <Stepper :steps="passos" :current="recepcao.passo" />
     </Card>

@@ -22,7 +22,7 @@ No passo 1, o usuário SHALL informar o código da solicitação AGHU por leitor
 - **THEN** nada é carregado e o sistema pede que informe o número da solicitação
 
 ### Requirement: Grupos de exame e recebimento parcial
-As amostras SHALL ser agrupadas pela chave `<codigoSolicitacao>:<tipoExame>`. O passo "Conferir" SHALL permitir selecionar grupos inteiros para recebimento, todos selecionados por padrão quando a leitura não especificar amostra. Quando a leitura identificar uma amostra específica pertencente a um grupo pendente em solicitação com múltiplos grupos, o passo "Conferir" SHALL pré-marcar e destacar apenas o grupo correspondente à amostra bipada, mantendo opção explícita para exibir e marcar os demais grupos pendentes da solicitação. Grupos desmarcados permanecem pendentes; amostras de um mesmo grupo não podem ser recebidas parcialmente.
+As amostras SHALL ser agrupadas pela chave `<codigoSolicitacao>:<tipoExame>`. O passo "Conferir" SHALL exibir todos os grupos pendentes da solicitação e permitir selecionar grupos inteiros para recebimento, todos selecionados por padrão quando a leitura não especificar amostra. Quando a leitura identificar uma amostra específica pertencente a um grupo pendente em solicitação com múltiplos grupos, o passo "Conferir" SHALL exibir todos os grupos pendentes por padrão, pré-marcando e destacando apenas o grupo correspondente à amostra bipada e mantendo os demais visíveis e desmarcados para seleção direta. Grupos desmarcados permanecem pendentes; amostras de um mesmo grupo não podem ser recebidas parcialmente.
 
 #### Scenario: Recebimento parcial por tipo
 - **WHEN** uma solicitação possui grupos HP e CO e o usuário seleciona apenas CO
@@ -30,7 +30,7 @@ As amostras SHALL ser agrupadas pela chave `<codigoSolicitacao>:<tipoExame>`. O 
 
 #### Scenario: Solicitação mista bipada por etiqueta de 10 dígitos
 - **WHEN** a solicitação `7712340` possui grupos `CO` (amostra `1`) e `HP` (amostra `2`) pendentes e o usuário bipa `"7712340002"`
-- **THEN** a conferência exibe o grupo `HP` pré-marcado e destacado pela amostra bipada, oferecendo opção explícita para exibir/marcar também o grupo `CO`
+- **THEN** a conferência exibe ambos os grupos pendentes (`CO` e `HP`), com apenas o grupo `HP` pré-marcado e destacado pela amostra bipada e o grupo `CO` visível e desmarcado para seleção direta
 
 #### Scenario: Nenhum grupo selecionado
 - **WHEN** o usuário desmarca todos os grupos e confirma

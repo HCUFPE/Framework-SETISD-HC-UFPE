@@ -38,22 +38,22 @@
       class="mt-4 text-left"
     >
       <p>A cirurgia está em andamento. Avise o patologista de plantão agora e registre o acionamento.</p>
-      <Button
-        v-if="authStore.hasPermission('recepcao:acionar_plantao')"
-        class="mt-3"
-        variant="danger"
-        size="sm"
-        :loading="registrandoPlantao"
-        :disabled="!!resultado.caso.plantaoAcionadoEm"
-        @click="registrarPlantao"
-      >
-        <BellAlertIcon class="h-4 w-4 mr-1.5" aria-hidden="true" />
-        {{
-          resultado.caso.plantaoAcionadoEm
-            ? `Plantão acionado às ${horario(resultado.caso.plantaoAcionadoEm)}`
-            : 'Registrar acionamento do plantão'
-        }}
-      </Button>
+      <div v-if="authStore.hasPermission('recepcao:acionar_plantao')" class="mt-3 flex justify-center">
+        <Button
+          variant="danger"
+          size="sm"
+          :loading="registrandoPlantao"
+          :disabled="!!resultado.caso.plantaoAcionadoEm"
+          @click="registrarPlantao"
+        >
+          <BellAlertIcon class="h-4 w-4 mr-1.5" aria-hidden="true" />
+          {{
+            resultado.caso.plantaoAcionadoEm
+              ? `Plantão acionado às ${horario(resultado.caso.plantaoAcionadoEm)}`
+              : 'Registrar acionamento do plantão'
+          }}
+        </Button>
+      </div>
     </Alert>
 
     <div class="mt-4 flex flex-wrap justify-center gap-2">

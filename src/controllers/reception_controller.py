@@ -68,6 +68,70 @@ def normalizar_codigo(valor: str) -> str:
     return valor.strip().upper()
 
 
+def _extrair_codigo_e_amostra(codigo: str) -> tuple[str, str | None]:
+    """Decompõe leitura de etiqueta em (codigo_solicitacao, numero_amostra | None).
+
+    Formatos aceitos, nesta ordem de precedência:
+    1. ``<solicitação>:<tipo>``  → amostra = None
+    2. ``<solicitação>-<amostra>``  (sufixo numérico)
+    3. Código contínuo de exatamente 10 dígitos → primeiros 7 = solicitação, últimos 3 = amostra
+    4. Qualquer outro valor → amostra = None
+    """
+    leitura = normalizar_codigo(codigo)
+    if ":" in leitura:
+        return leitura.split(":", 1)[0], None
+    partes = leitura.rsplit("-", 1)
+    if len(partes) == 2 and partes[1].isdigit():
+        return partes[0], partes[1]
+    if leitura.isdigit() and len(leitura) == 10:
+        return leitura[:7], leitura[7:]
+    return leitura, None
+
+
+def _normalizar_numero_amostra(valor: str) -> str:
+    """Remove zeros à esquerda de números puros para comparação tolerante."""
+    return str(int(valor)) if valor.isdigit() else valor.strip().upper()
+
+
+def _resolver_amostra_bipada(
+    numero_amostra: str,
+    exames: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Localiza o grupo de exame dono da amostra bipada.
+
+    Retorna dicionário com:
+    - ``amostraBipada``: número original da amostra
+    - ``grupoSelecionadoId``: ID do grupo pendente correspondente (ou None)
+    - ``examesFiltrados``: lista com o grupo pendente (ou vazia)
+    - ``amostraBipadaSituacao``: metadados quando a amostra foi encontrada em grupo
+      já recebido/devolvido (ou None)
+    """
+    normalizado = _normalizar_numero_amostra(numero_amostra)
+    resultado: dict[str, Any] = {
+        "amostraBipada": numero_amostra,
+        "grupoSelecionadoId": None,
+        "examesFiltrados": [],
+        "amostraBipadaSituacao": None,
+    }
+    for exame in exames:
+        for amostra in exame.get("amostras", []):
+            if _normalizar_numero_amostra(amostra["numeroAmostra"]) == normalizado:
+                if exame["situacaoRecepcao"] == "AGUARDANDO_RECEBIMENTO":
+                    resultado["grupoSelecionadoId"] = exame["id"]
+                    resultado["examesFiltrados"] = [exame]
+                else:
+                    resultado["amostraBipadaSituacao"] = {
+                        "grupoId": exame["id"],
+                        "tipoExame": exame.get("tipoExameSugerido"),
+                        "situacaoRecepcao": exame["situacaoRecepcao"],
+                        "casoNumero": exame.get("casoNumero"),
+                        "ihqCodigo": exame.get("ihqCodigo"),
+                        "devolucaoId": exame.get("devolucaoId"),
+                    }
+                return resultado
+    return resultado
+
+
 def normalizar_texto(valor: str) -> str:
     """Normaliza busca textual removendo acentos e ignorando caixa."""
     sem_acentos = unicodedata.normalize("NFD", valor)
@@ -198,18 +262,22 @@ class ReceptionController:
     async def ler_solicitacao(self, codigo: str) -> dict[str, Any]:
         """Classifica a solicitação inteira a partir do código, amostra ou chave de grupo."""
         self._exigir_fonte_disponivel()
-        leitura = normalizar_codigo(codigo)
-        codigo_solicitacao = leitura.split(":", 1)[0]
-        # Etiquetas podem conter código-amostra; o sufixo só é removido quando numérico.
-        partes = codigo_solicitacao.rsplit("-", 1)
-        if len(partes) == 2 and partes[1].isdigit():
-            codigo_solicitacao = partes[0]
+        codigo_solicitacao, numero_amostra = _extrair_codigo_e_amostra(codigo)
         exames = await self.provider.listar_exames_da_solicitacao(codigo_solicitacao)
         if not exames:
             return {"tipo": "NAO_ENCONTRADA"}
+
+        # Resolver metadados da amostra bipada (se houver).
+        meta_amostra: dict[str, Any] = {}
+        if numero_amostra is not None:
+            meta_amostra = _resolver_amostra_bipada(numero_amostra, exames)
+
         pendentes = [exame for exame in exames if exame["situacaoRecepcao"] == "AGUARDANDO_RECEBIMENTO"]
         if pendentes:
-            return {"tipo": "PENDENTE", "codigoSolicitacao": codigo_solicitacao, "exames": pendentes}
+            resultado: dict[str, Any] = {"tipo": "PENDENTE", "codigoSolicitacao": codigo_solicitacao, "exames": pendentes}
+            if meta_amostra:
+                resultado.update(meta_amostra)
+            return resultado
 
         recebidos = [exame for exame in exames if exame["situacaoRecepcao"] == "RECEBIDA"]
         if recebidos:
@@ -222,7 +290,10 @@ class ReceptionController:
                 }
                 for exame in recebidos
             ]
-            return {"tipo": "RECEBIDA", "solicitacao": recebidos[0], "recebimentos": recebimentos}
+            resultado = {"tipo": "RECEBIDA", "solicitacao": recebidos[0], "recebimentos": recebimentos}
+            if meta_amostra:
+                resultado["amostraBipada"] = meta_amostra.get("amostraBipada")
+            return resultado
 
         solicitacao = exames[0]
         if solicitacao["situacaoRecepcao"] == "DEVOLVIDA":
@@ -231,12 +302,15 @@ class ReceptionController:
                 None,
             )
             tipo = devolucao["naoConformidade"]["tipo"] if devolucao else "OUTROS"
-            return {
+            resultado = {
                 "tipo": "DEVOLVIDA",
                 "solicitacao": solicitacao,
                 "devolvidaEm": devolucao["devolvidaEm"] if devolucao else "",
                 "tipoNaoConformidade": tipo,
             }
+            if meta_amostra:
+                resultado["amostraBipada"] = meta_amostra.get("amostraBipada")
+            return resultado
         return {"tipo": "NAO_ENCONTRADA"}
 
     async def listar_exames_da_solicitacao(self, codigo: str) -> list[dict[str, Any]]:

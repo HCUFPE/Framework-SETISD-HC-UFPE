@@ -8,11 +8,8 @@ import { db } from '../../../mocks/ap/db';
 import type { LeituraSolicitacao, RecebimentoExame, SolicitacaoAghu } from '../../../types/ap';
 import type { AghuService } from '../types';
 import { aguardarCargaSolicitacoes } from '../http/cargaSolicitacoes';
-import { ordenarGrupos } from '../../../helpers/aghu';
+import { extrairCodigoEamostra, mesmaAmostra, ordenarGrupos } from '../../../helpers/aghu';
 import { copia, exigirAghuDisponivel, latencia, normalizarCodigo } from './util';
-
-/** Separador do código lido com o número da amostra (ex.: "1479377-2"). */
-const SEPARADOR_AMOSTRA = '-';
 
 /** Grupos de tipos de exame (todas as situações) de uma solicitação do AGHU. */
 export function examesDaSolicitacao(codigoSolicitacao: string): SolicitacaoAghu[] {
@@ -53,35 +50,58 @@ function classificarSemPendentes(exames: SolicitacaoAghu[]): LeituraSolicitacao 
 }
 
 /** Classifica a solicitação: com tipos pendentes abre a conferência de todos eles. */
-function classificarExames(codigoSolicitacao: string, exames: SolicitacaoAghu[]): LeituraSolicitacao {
+function classificarExames(codigoSolicitacao: string, exames: SolicitacaoAghu[], numeroAmostra: string | null = null): LeituraSolicitacao {
   if (exames.length === 0) return { tipo: 'NAO_ENCONTRADA' };
+  let grupoSelecionadoId: string | null = null;
+  let examesFiltrados: SolicitacaoAghu[] = [];
+  let amostraBipadaSituacao: Extract<LeituraSolicitacao, { tipo: 'PENDENTE' }>['amostraBipadaSituacao'] = null;
+
+  if (numeroAmostra !== null) {
+    const dono = exames.find((e) => e.amostras.some((a) => mesmaAmostra(a.numeroAmostra, numeroAmostra)));
+    if (dono) {
+      if (dono.situacaoRecepcao === 'AGUARDANDO_RECEBIMENTO') {
+        grupoSelecionadoId = dono.id;
+        examesFiltrados = [copia(dono)];
+      } else {
+        amostraBipadaSituacao = {
+          grupoId: dono.id,
+          tipoExame: dono.tipoExameSugerido,
+          situacaoRecepcao: dono.situacaoRecepcao,
+          casoNumero: dono.casoNumero,
+          ihqCodigo: dono.ihqCodigo,
+          devolucaoId: dono.devolucaoId,
+        };
+      }
+    }
+  }
+
   const pendentes = exames.filter((e) => e.situacaoRecepcao === 'AGUARDANDO_RECEBIMENTO');
-  if (pendentes.length > 0) return { tipo: 'PENDENTE', codigoSolicitacao, exames: copia(pendentes) };
-  return classificarSemPendentes(exames);
+  if (pendentes.length > 0) {
+    return {
+      tipo: 'PENDENTE',
+      codigoSolicitacao,
+      exames: copia(pendentes),
+      ...(numeroAmostra !== null
+        ? { amostraBipada: numeroAmostra, grupoSelecionadoId, examesFiltrados, amostraBipadaSituacao }
+        : {}),
+    };
+  }
+  const semPendentes = classificarSemPendentes(exames);
+  if (numeroAmostra !== null && (semPendentes.tipo === 'RECEBIDA' || semPendentes.tipo === 'DEVOLVIDA')) {
+    return { ...semPendentes, amostraBipada: numeroAmostra };
+  }
+  return semPendentes;
 }
 
 /**
  * Classifica o código lido para a recepção. Aceita o código da solicitação ("1479377"), o código
- * com a amostra ("1479377-2") ou a chave do grupo ("1479377:HP"): todos abrem a solicitação inteira.
- * Não verifica a disponibilidade do AGHU.
+ * com a amostra ("1479377-2"), o código de barras contínuo de 10 dígitos do AGHU ("7712301001")
+ * ou a chave do grupo ("1479377:HP"). Não verifica a disponibilidade do AGHU.
  */
 export function classificarSolicitacao(codigoLido: string): LeituraSolicitacao {
-  const alvo = normalizarCodigo(codigoLido);
-
-  const porChave = exameInterno(alvo);
-  if (porChave) return classificarExames(porChave.codigoSolicitacao, examesDaSolicitacao(porChave.codigoSolicitacao));
-
-  const exames = examesDaSolicitacao(alvo);
-  if (exames.length > 0) return classificarExames(alvo, exames);
-
-  const posicao = alvo.lastIndexOf(SEPARADOR_AMOSTRA);
-  if (posicao > 0) {
-    const codigo = alvo.slice(0, posicao).trim();
-    const numero = alvo.slice(posicao + 1).trim();
-    const daSolicitacao = examesDaSolicitacao(codigo);
-    if (daSolicitacao.some((e) => e.amostras.some((a) => a.numeroAmostra === numero))) return classificarExames(codigo, daSolicitacao);
-  }
-  return { tipo: 'NAO_ENCONTRADA' };
+  const { codigoSolicitacao, numeroAmostra } = extrairCodigoEamostra(codigoLido);
+  const exames = examesDaSolicitacao(codigoSolicitacao);
+  return classificarExames(codigoSolicitacao, exames, numeroAmostra);
 }
 
 /** Exames pendentes, Congelação primeiro e depois do mais antigo para o mais novo. */
