@@ -1,5 +1,5 @@
 """
-Modelos da Gestão de Agendamentos (v0.6.0)
+Modelos da Gestão de Agendamentos (v0.7.0)
 =========================================
 Vagas são configuração local (SQLite), com soft delete. Agendamentos, contatos
 e endereços de pacientes complementam as entidades da integração Forms → AGHUX.

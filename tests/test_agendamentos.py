@@ -1,5 +1,5 @@
 # tests/test_agendamentos.py
-"""Testes da gestão de agendamentos (v0.6.0)."""
+"""Testes da gestão de agendamentos (v0.7.0)."""
 
 import json
 import sqlite3
@@ -199,6 +199,22 @@ def _calendario(cliente, **params):
 
 def _slot_no_calendario(calendario, slot_id):
     return next(slot for slot in calendario["slots"] if slot["id"] == slot_id)
+
+
+def _gerar_proposta(cliente):
+    """Executa a simulação e devolve a proposta pendente criada."""
+    resposta = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert resposta.status_code == 201, resposta.text
+    return cliente.get(
+        "/api/agendamentos/calendario",
+        params={"de": _iso(_agora() - timedelta(days=1)),
+                "ate": _iso(_agora() + timedelta(days=31))},
+        headers=_headers(OPERADOR),
+    ).json()["agendamentos"][0]
 
 
 # ---------------------------------------------------------------------------
@@ -704,6 +720,95 @@ def test_simulacao_gera_proposta_confirmavel_que_ocupa_vaga(cliente):
             for linha in conn.execute("SELECT acao FROM audit_logs").fetchall()
         }
     assert {"GERAR_PROPOSTA_AGENDA", "CONFIRMAR_PROPOSTA_AGENDA"} <= acoes
+
+
+def test_mover_proposta_ajusta_horario_sem_confirmar(cliente):
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho, prontuario="88888890")
+    primeiro = _criar_slot(cliente, minutos=60, capacidade=2)
+    segundo = _criar_slot(cliente, minutos=120, capacidade=2)
+    proposta = _gerar_proposta(cliente)
+    assert proposta["slotId"] == primeiro["id"]
+
+    resposta = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/mover",
+        json={"slotId": segundo["id"], "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert resposta.status_code == 200, resposta.text
+    movida = resposta.json()
+    assert movida["status"] == "PROPOSTO"
+    assert movida["slotId"] == segundo["id"]
+    assert movida["dataHora"] == segundo["inicio"]
+    assert _status_solicitacao(caminho, sid) == "AGUARDANDO_CONFIRMACAO"
+
+    calendario = _calendario(cliente)
+    assert _slot_no_calendario(calendario, primeiro["id"])["ocupadas"] == 0
+    assert _slot_no_calendario(calendario, primeiro["id"])["livres"] == 2
+    assert _slot_no_calendario(calendario, segundo["id"])["ocupadas"] == 1
+    assert _slot_no_calendario(calendario, segundo["id"])["livres"] == 1
+
+    with _conexao(caminho) as conn:
+        acoes = {
+            linha["acao"]
+            for linha in conn.execute("SELECT acao FROM audit_logs").fetchall()
+        }
+    assert "MOVER_PROPOSTA_AGENDA" in acoes
+
+    mesma_vaga = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/mover",
+        json={"slotId": segundo["id"], "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert mesma_vaga.status_code == 422
+
+
+def test_mover_proposta_rejeita_destino_invalido_e_respeita_rbac(cliente):
+    cliente, caminho = cliente
+    _inserir_solicitacao(caminho, prontuario="88888891")
+    _criar_slot(cliente, minutos=60, capacidade=2)
+    outro_exame = _criar_slot(cliente, minutos=120, capacidade=2, codigo="RX", nome="Raio-X")
+    proposta = _gerar_proposta(cliente)
+
+    # Coordenação é somente leitura.
+    assert cliente.post(
+        f"/api/agendamentos/{proposta['id']}/mover",
+        json={"slotId": outro_exame["id"], "autor": "coordenacao"},
+        headers=_headers(COORDENACAO),
+    ).status_code == 403
+
+    # A vaga de destino precisa corresponder ao exame solicitado.
+    incompativel = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/mover",
+        json={"slotId": outro_exame["id"], "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert incompativel.status_code == 422
+
+    # Vaga de destino esgotada por um agendamento ativo de outro paciente.
+    cheia = _criar_slot(cliente, minutos=180, capacidade=1)
+    outro_sid, _ = _inserir_solicitacao(caminho, prontuario="88888892")
+    assert _agendar(cliente, outro_sid, cheia["id"]).status_code == 201
+    esgotada = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/mover",
+        json={"slotId": cheia["id"], "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert esgotada.status_code == 409
+
+    # Somente propostas pendentes podem ser movidas.
+    confirmada = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/confirmar",
+        json={"autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert confirmada.status_code == 200, confirmada.text
+    ativo = cliente.post(
+        f"/api/agendamentos/{proposta['id']}/mover",
+        json={"slotId": outro_exame["id"], "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert ativo.status_code == 422
 
 
 def test_nao_confirmacao_devolve_vaga_e_vai_para_reagendamento(cliente):

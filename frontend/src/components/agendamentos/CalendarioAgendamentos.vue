@@ -26,6 +26,7 @@ import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import type { DateClickArg } from '@fullcalendar/interaction';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import type {
   CalendarOptions,
@@ -34,13 +35,13 @@ import type {
   EventDropArg,
   EventInput,
 } from '@fullcalendar/core';
-import type { DateClickArg } from '@fullcalendar/interaction';
 import { agoraIso, paraIsoLocal } from '../../config/tempo';
-import type { AgendaSlot, Agendamento } from '../../types/sae';
+import type { AgendaSlot, Agendamento, PropostaAgendamentoFila } from '../../types/sae';
 
 const props = defineProps<{
   slots: AgendaSlot[];
   agendamentos: Agendamento[];
+  propostas: PropostaAgendamentoFila[];
   readonly?: boolean;
 }>();
 
@@ -50,6 +51,7 @@ const emit = defineEmits<{
   'slot-selecionado': [slot: AgendaSlot];
   'agendamento-selecionado': [agendamento: Agendamento];
   remarcar: [agendamento: Agendamento, slot: AgendaSlot];
+  'proposta-movida': [proposta: PropostaAgendamentoFila, slot: AgendaSlot];
   'erro-slot': [mensagem: string];
 }>();
 
@@ -79,15 +81,28 @@ const eventos = computed<EventInput[]>(() => [
     borderColor: 'transparent',
     extendedProps: { tipo: 'slot', slot },
   })),
-  ...props.agendamentos.map((agendamento) => ({
-    id: `agendamento-${agendamento.id}`,
-    title: `${agendamento.pacienteNome} · ${agendamento.exame}`,
-    start: agendamento.dataHora,
-    backgroundColor: corStatus(agendamento.status),
-    borderColor: corStatus(agendamento.status),
+  ...props.agendamentos
+    // Propostas são renderizadas como cards próprios (arrastáveis) abaixo.
+    .filter((agendamento) => agendamento.status !== 'PROPOSTO')
+    .map((agendamento) => ({
+      id: `agendamento-${agendamento.id}`,
+      title: `${agendamento.pacienteNome} · ${agendamento.exame}`,
+      start: agendamento.dataHora,
+      backgroundColor: corStatus(agendamento.status),
+      borderColor: corStatus(agendamento.status),
+      textColor: '#ffffff',
+      classNames: ['agendamento-evento'],
+      extendedProps: { tipo: 'agendamento', agendamento },
+    })),
+  ...props.propostas.map((proposta) => ({
+    id: `proposta-${proposta.agendamentoId}`,
+    title: `${proposta.pacienteNome} · ${proposta.nomeExame}`,
+    start: proposta.dataHora,
+    backgroundColor: corStatus('PROPOSTO'),
+    borderColor: corStatus('PROPOSTO'),
     textColor: '#ffffff',
-    classNames: ['agendamento-evento'],
-    extendedProps: { tipo: 'agendamento', agendamento },
+    classNames: ['proposta-evento'],
+    extendedProps: { tipo: 'proposta', proposta },
   })),
 ]);
 
@@ -140,18 +155,24 @@ const opcoes = computed<CalendarOptions>(() => ({
     const agendamento = info.event.extendedProps.agendamento as Agendamento | undefined;
     if (agendamento) {
       info.el.title = `${agendamento.pacienteNome} · ${agendamento.protocolo} · ${agendamento.status}`;
+      return;
     }
+    const proposta = info.event.extendedProps.proposta as PropostaAgendamentoFila | undefined;
+    if (proposta) {
+      info.el.title = `${proposta.pacienteNome} · ${proposta.nomeExame} · ${proposta.dataHora} · ${proposta.statusSolicitacao}`;
+    }
+  },
+  eventAllow: (_dropInfo, draggedEvent) => {
+    if (props.readonly) return false;
+    const tipo = draggedEvent?.extendedProps.tipo as string | undefined;
+    return tipo === 'agendamento' || tipo === 'proposta';
   },
   eventDrop: (info: EventDropArg) => {
     if (props.readonly) {
       info.revert();
       return;
     }
-    const agendamento = info.event.extendedProps.agendamento as Agendamento | undefined;
-    if (!agendamento) {
-      info.revert();
-      return;
-    }
+    const tipo = info.event.extendedProps.tipo as string | undefined;
     const destino = paraIsoLocal(info.event.start?.getTime() ?? 0).slice(0, 16);
     const slot = props.slots.find((item) =>
       item.inicio.slice(0, 16) === destino && item.status !== 'ENCERRADO');
@@ -160,9 +181,17 @@ const opcoes = computed<CalendarOptions>(() => ({
       emit('erro-slot', 'Não há vaga cadastrada para o horário de destino.');
       return;
     }
-    // Volta à posição original: a API só é chamada após a justificativa ser confirmada.
     info.revert();
-    emit('remarcar', agendamento, slot);
+    if (tipo === 'agendamento') {
+      // Arraste de agendamento ATIVO/PROPOSTO via calendário: usar o fluxo de
+      // remarcação com justificativa, que só salva após confirmação.
+      const agendamento = info.event.extendedProps.agendamento as Agendamento | undefined;
+      if (agendamento) emit('remarcar', agendamento, slot);
+      return;
+    }
+    if (tipo !== 'proposta') return;
+    const proposta = info.event.extendedProps.proposta as PropostaAgendamentoFila | undefined;
+    if (proposta) emit('proposta-movida', proposta, slot);
   },
 }));
 </script>

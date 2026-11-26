@@ -108,12 +108,14 @@
             <CalendarioAgendamentos
               :slots="store.slots"
               :agendamentos="store.agendamentos"
+              :propostas="store.propostas"
               :readonly="!store.podeEditar"
               @periodo-alterado="store.definirPeriodo"
               @dia-selecionado="abrirDia"
               @slot-selecionado="store.selecionarSlot"
               @agendamento-selecionado="store.abrirAgendamento"
               @remarcar="aoRemarcar"
+              @proposta-movida="moverProposta"
               @erro-slot="toast.error"
             />
           </div>
@@ -346,6 +348,14 @@ function selecionarSolicitacao(id: string): void {
   void store.selecionarSolicitacao(id).then(() => {
     if (!store.erro) toast.info('Solicitação selecionada. Escolha uma vaga ou veja as sugestões.');
   });
+}
+
+async function moverProposta(proposta: PropostaAgendamentoFila, slot: AgendaSlot): Promise<void> {
+  if (await store.moverProposta(proposta, slot)) {
+    toast.success('Proposta movida para o novo horário.');
+  } else {
+    toast.error(store.erro || 'Não foi possível mover a proposta.');
+  }
 }
 
 function aoRemarcar(agendamento: Agendamento, slot: AgendaSlot): void {

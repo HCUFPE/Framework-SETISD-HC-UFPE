@@ -14,6 +14,7 @@ import {
   listarFila,
   listarPropostasAgendamento,
   listarSugestoesAgendamento,
+  moverPropostaAgendamento,
   obterSolicitacao,
   registrarNaoConfirmacaoAgendamento,
   remarcarAgendamento,
@@ -375,6 +376,25 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     }
   }
 
+  /** Move uma proposta de horário via arrastar e soltar no calendário. */
+  async function moverProposta(
+    proposta: PropostaAgendamentoFila, slot: AgendaSlot,
+  ): Promise<boolean> {
+    if (!podeEditar.value || proposta.status !== 'PROPOSTO') return false;
+    salvando.value = true;
+    limparErro();
+    try {
+      await moverPropostaAgendamento(proposta.agendamentoId, slot.id, autor());
+      await recarregarTudo();
+      return true;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível mover a proposta.');
+      return false;
+    } finally {
+      salvando.value = false;
+    }
+  }
+
   async function registrarNaoConfirmacao(
     proposta: PropostaAgendamentoFila, justificativa: string,
   ): Promise<boolean> {
@@ -507,6 +527,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     agendamentoDaProposta,
     gerarPropostas,
     confirmarProposta,
+    moverProposta,
     registrarNaoConfirmacao,
     confirmarAcao,
     limparErro,

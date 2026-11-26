@@ -538,7 +538,7 @@ export async function reprocessarEventoIntegracao(responseId: string): Promise<F
 }
 
 /* -------------------------------------------------------------------------- */
-/* Agendamentos, calendário, propostas e gestão de vagas (v0.6.0)           */
+/* Agendamentos, calendário, propostas e gestão de vagas (v0.7.0)           */
 /* -------------------------------------------------------------------------- */
 
 export interface FiltrosCalendarioAgendamentos {
@@ -1071,6 +1071,10 @@ export async function gerarPropostasAgendamento(
       }));
     if (!slot) return;
 
+    // Garante que a vaga ainda tem espaço considerando ocupação existente +
+    // reservas já feitas nesta mesma execução da simulação.
+    if (slot.livres <= (ocupacaoAdicional.get(slot.id) ?? 0)) return;
+
     const proposta: Agendamento = {
       id: `ag-${crypto.randomUUID()}`,
       solicitacaoId: solicitacao.id,
@@ -1403,6 +1407,48 @@ export async function copiarSemanaAdmin(
     `${origem} → ${destino}: ${criadas.length} vaga(s) criada(s), ${ignoradas} já existiam.`);
   sincronizarOcupacaoMock();
   return { origem, destino, codigoExame: filtroExame, criadas, ignoradas, total: candidatas.length };
+}
+
+/** POST /api/agendamentos/{id}/mover — move uma proposta para outro horário (drag & drop). */
+export async function moverPropostaAgendamento(
+  id: string,
+  slotId: string,
+  autor: string,
+): Promise<Agendamento> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Agendamento>(
+      `/api/agendamentos/${encodeURIComponent(id)}/mover`, { slotId, autor },
+    );
+    return data;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const agendamento = agendamentosMock.find((item) => item.id === id);
+  if (!agendamento) throw new Error('Proposta não encontrada.');
+  if (agendamento.status !== 'PROPOSTO') throw new Error('Somente propostas podem ser movidas.');
+  const slot = slotsAgendaMock.find((item) => item.id === slotId);
+  if (!slot) throw new Error('Vaga de destino não encontrada.');
+  if (slot.id === agendamento.slotId) throw new Error('A vaga informada já é a atual.');
+  const solicitacao = encontrarSolicitacaoMock(agendamento.solicitacaoId);
+  const codigos = new Set(
+    (solicitacao?.itensExame ?? [])
+      .map((item) => item.codigoExame.trim().toUpperCase())
+      .filter(Boolean),
+  );
+  if (codigos.size > 0 && !codigos.has(slot.codigoExame.trim().toUpperCase())) {
+    throw new Error('A vaga de destino não corresponde ao exame solicitado.');
+  }
+  validarSlotMock(slot, agendamento.pacienteChave, agendamento.id);
+  const anterior = agendamento.dataHora;
+  agendamento.slotId = slot.id;
+  agendamento.dataHora = slot.inicio;
+  agendamento.unidade = slot.unidade;
+  agendamento.exame = slot.nomeExame;
+  if (solicitacao?.agendamento) solicitacao.agendamento.dataHora = slot.inicio;
+  registrar('Proposta movida (arrastar e soltar)', autor, 'NEGOCIO_CLINICO',
+    `${agendamento.protocolo}: ${anterior} → ${slot.inicio}.`);
+  sincronizarOcupacaoMock();
+  return clonar(agendamento);
 }
 
 function inicioSemanaIsoMock(valor: string, campo: string): string {

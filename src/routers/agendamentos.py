@@ -1,5 +1,5 @@
 """
-Routers da Gestão de Agendamentos (v0.6.0)
+Routers da Gestão de Agendamentos (v0.7.0)
 ==========================================
 Todos os roteadores declaram JWT no nível do `APIRouter` (default-private) e
 reforçam RBAC no backend. O grupo `GLO-SEC-HCPE-SETISD` do usuário mock
@@ -159,6 +159,13 @@ class GerarPropostasPayload(BaseModel):
 class ConfirmarPropostaPayload(BaseModel):
     """Confirmação da proposta pelo operador (um clique)."""
 
+    autor: str = Field(min_length=1)
+
+
+class MoverPropostaPayload(BaseModel):
+    """Movimento de uma proposta para outra vaga (arrastar e soltar)."""
+
+    slotId: str = Field(min_length=1)
     autor: str = Field(min_length=1)
 
 
@@ -350,6 +357,26 @@ async def remarcar_agendamento(
         agendamento_id=agendamento_id,
         slot_id=payload.slotId,
         justificativa=payload.justificativa,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@router.post("/{agendamento_id}/mover")
+async def mover_proposta(
+    agendamento_id: str,
+    payload: MoverPropostaPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_escrita),
+):
+    """Move uma proposta pendente para outra vaga, sem confirmá-la."""
+    return await controller.mover_proposta(
+        db,
+        provider,
+        agendamento_id=agendamento_id,
+        slot_id=payload.slotId,
         autor=payload.autor,
         ip=_ip(request),
     )

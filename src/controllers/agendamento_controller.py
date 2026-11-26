@@ -1,11 +1,12 @@
 """
-Controller de Gestão de Agendamentos (v0.6.0)
+Controller de Gestão de Agendamentos (v0.7.0)
 ============================================
 Centraliza as regras de negócio: pré-condições (RN-04/RN-07), conflito de
 paciente (RN-05), capacidade local, cancelamento/remarcação com justificativa,
 busca segura de pacientes, sugestão automática de vagas, simulação de propostas
-pendentes de confirmação e administração de vagas (inclusive remoção e cópia
-semanal) com auditoria `CONFIGURACAO`.
+pendentes de confirmação, movimento de propostas por arrastar e soltar e
+administração de vagas (inclusive remoção e cópia semanal) com auditoria
+`CONFIGURACAO`.
 
 A pontuação da sugestão é 0..100 com pesos configuráveis. A distância é apenas
 desempate (10 pontos no máximo) e nunca supera a prioridade clínica (35 pontos).
@@ -1022,6 +1023,78 @@ async def confirmar_proposta(
         recurso=f"agendamento:{agendamento_id}",
         anteriores={**anterior, "statusSolicitacao": status_anterior},
         novos={**atualizado, "statusSolicitacao": STATUS_AGENDADA},
+        ip=ip,
+    )
+    return atualizado
+
+
+async def mover_proposta(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    agendamento_id: str,
+    slot_id: str,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Move uma proposta para outra vaga sem confirmá-la (arrastar e soltar).
+
+    Somente propostas `PROPOSTO` podem ser movidas. A vaga de destino precisa
+    existir, estar disponível e ser compatível com o exame solicitado; além
+    disso, não pode sobrepor outro agendamento/proposta do mesmo paciente.
+    O status da solicitação permanece aguardando confirmação e o movimento é
+    auditado como `NEGOCIO_CLINICO`.
+    """
+    agendamento = await _buscar_agendamento(db, agendamento_id)
+    if agendamento.status != "PROPOSTO":
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente propostas pendentes podem ser movidas.",
+        )
+    if slot_id == agendamento.slot_id:
+        raise _erro(status.HTTP_422_UNPROCESSABLE_ENTITY, "A vaga informada já é a atual.")
+
+    solicitacao = await _buscar_solicitacao(db, agendamento.solicitacao_id)
+    await _verificar_precondicoes(db, solicitacao)
+    slot = await _slot_disponivel(provider, slot_id)
+
+    codigos = {
+        str(item.get("codigoExame") or "").strip().upper()
+        for item in _json_itens(solicitacao.itens_exame)
+        if item.get("codigoExame")
+    }
+    codigo_slot = str(slot.get("codigoExame") or "").strip().upper()
+    if codigos and codigo_slot not in codigos:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "A vaga de destino não corresponde ao exame solicitado.",
+        )
+
+    if await _conflito_paciente(
+        db,
+        agendamento.paciente_chave or solicitacao.paciente_chave or "",
+        parse_datetime(slot["inicio"]),
+        parse_datetime(slot["fim"]),
+        ignorar_agendamento_id=agendamento_id,
+    ):
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            "Já existe agendamento ativo para este paciente neste intervalo.",
+        )
+
+    anterior = await _agendamento_para_dict(db, agendamento, provider)
+    agendamento.slot_id = slot_id
+    agendamento.autor = autor
+    await db.flush()
+    atualizado = await _agendamento_para_dict(db, agendamento, provider)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="MOVER_PROPOSTA_AGENDA",
+        recurso=f"agendamento:{agendamento_id}",
+        anteriores=anterior,
+        novos=atualizado,
         ip=ip,
     )
     return atualizado

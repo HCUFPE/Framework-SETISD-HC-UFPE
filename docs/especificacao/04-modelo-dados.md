@@ -139,7 +139,7 @@ erDiagram
   }
 ```
 
-### Agenda local, endereço e distância (v0.6.0)
+### Agenda local, endereço e distância (v0.7.0)
 
 ```mermaid
 erDiagram
@@ -210,7 +210,7 @@ erDiagram
 | `USUARIO_PERFIL` | Autorização local complementar ao AD. | Login corporativo ativo + perfil ativo; soft delete; perfis em `05-interfaces.md`. |
 | `AUDIT_LOG` | Trilha imutável de mutações. | Somente inserção; antes/depois em JSON; categorias `SEGURANCA`, `NEGOCIO_CLINICO`, `CONFIGURACAO`. |
 
-As tabelas físicas da integração são `forms_responses`, `webhook_nonces`, `solicitacoes`, `solicitacao_itens_exame`, `divergencias` e `alertas`, criadas pela migração Alembic **`c4f1a7d9e2b3`** (revises `8a2efbe37bb6`). A v0.3.0 acrescentou a migração **`e7c1a9d4b3f2`** (revises `c4f1a7d9e2b3`): cria `agenda_slots`, `agendamentos`, `contatos_paciente` e `paciente_enderecos` e adiciona `solicitacoes.paciente_chave`. A v0.4.0 **não altera o esquema físico**; apenas amplia os valores possíveis de `agendamentos.status` (`PROPOSTO`) e de `solicitacoes.status`, ambos armazenados como texto. A v0.5.0 também **não altera o esquema físico**: a fila de propostas é um DTO de leitura montado a partir de `agendamentos`, `solicitacoes` e `solicitacao_itens_exame`. A v0.6.0 **também não altera o esquema**: remoção usa o `deleted_at` existente em `agenda_slots` e a cópia semanal apenas insere novas linhas com o mesmo contrato de `AgendaSlot`. Tabelas do framework mantidas: `REFRESH_TOKENS`, `AUDIT_LOGS` (esta última, somente inserção). Bancos novos são criados por `create_all`; a migração `e7c1a9d4b3f2` deve ser aplicada via Alembic em bancos já existentes no deploy.
+As tabelas físicas da integração são `forms_responses`, `webhook_nonces`, `solicitacoes`, `solicitacao_itens_exame`, `divergencias` e `alertas`, criadas pela migração Alembic **`c4f1a7d9e2b3`** (revises `8a2efbe37bb6`). A v0.3.0 acrescentou a migração **`e7c1a9d4b3f2`** (revises `c4f1a7d9e2b3`): cria `agenda_slots`, `agendamentos`, `contatos_paciente` e `paciente_enderecos` e adiciona `solicitacoes.paciente_chave`. A v0.4.0 **não altera o esquema físico**; apenas amplia os valores possíveis de `agendamentos.status` (`PROPOSTO`) e de `solicitacoes.status`, ambos armazenados como texto. A v0.5.0 também **não altera o esquema físico**: a fila de propostas é um DTO de leitura montado a partir de `agendamentos`, `solicitacoes` e `solicitacao_itens_exame`. A v0.6.0 **também não altera o esquema**: remoção usa o `deleted_at` existente em `agenda_slots` e a cópia semanal apenas insere novas linhas com o mesmo contrato de `AgendaSlot`. A v0.7.0 **também não altera o esquema**: o movimento de propostas via drag-and-drop apenas atualiza `slot_id` e `data_hora` em `agendamentos`. Tabelas do framework mantidas: `REFRESH_TOKENS`, `AUDIT_LOGS` (esta última, somente inserção). Bancos novos são criados por `create_all`; a migração `e7c1a9d4b3f2` deve ser aplicada via Alembic em bancos já existentes no deploy.
 
 ### [SCHEMA] Esquema JSON — FormsEvento (resumo sem PHI)
 
@@ -279,7 +279,7 @@ Contrato devolvido pelos endpoints administrativos e consumido pela tela `/integ
 }
 ```
 
-### [SCHEMA] Esquema JSON — AgendaSlot, Agendamento e PropostaAgendamentoFila (v0.6.0)
+### [SCHEMA] Esquema JSON — AgendaSlot, Agendamento e PropostaAgendamentoFila (v0.7.0)
 
 ```json
 {
