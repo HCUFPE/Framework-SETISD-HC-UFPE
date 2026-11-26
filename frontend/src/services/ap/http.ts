@@ -50,6 +50,8 @@ export const aghuServiceHttp: AghuService = {
   lerSolicitacao: (codigo) => requisicao(() => api.get(`/api/ap/solicitacoes/${encodeURIComponent(codigo)}`)),
   listarExamesDaSolicitacao: (codigo) =>
     requisicao(() => api.get(`/api/ap/solicitacoes/${encodeURIComponent(codigo)}/exames`)),
+  cancelarExame: (solicitacaoId, motivo) =>
+    requisicao(() => api.post('/api/ap/solicitacoes/cancelamento', { solicitacaoId, motivo })),
 };
 
 export const casoServiceHttp: CasoService = {

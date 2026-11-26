@@ -37,6 +37,11 @@ class CancelarCasoInput(PayloadRecepcao):
     motivo: str
 
 
+class CancelarExameSolicitacaoInput(PayloadRecepcao):
+    solicitacao_id: str = Field(min_length=1)
+    motivo: str
+
+
 class AcionarPlantaoInput(PayloadRecepcao):
     numero_interno: str = Field(min_length=1)
 

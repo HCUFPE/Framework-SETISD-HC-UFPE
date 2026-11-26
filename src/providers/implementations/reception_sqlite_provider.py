@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -207,6 +207,27 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
         registro.devolucao_id = payload.get("devolucaoId")
         registro.payload = _dump(payload)
         await self.session.flush()
+
+    async def cancelar_solicitacao(self, grupo_id: str, cancelamento: dict[str, Any]) -> dict[str, Any] | None:
+        """Marca somente grupo ainda pendente; atualização condicional evita corrida de estado."""
+        registro = await self.session.get(ApSolicitacao, grupo_id.strip().upper())
+        if registro is None or registro.situacao_recepcao != "AGUARDANDO_RECEBIMENTO":
+            return None
+        payload = _load(registro.payload)
+        payload["situacaoRecepcao"] = "CANCELADA"
+        payload["cancelamento"] = cancelamento
+        resultado = await self.session.execute(
+            update(ApSolicitacao)
+            .where(
+                ApSolicitacao.id == registro.id,
+                ApSolicitacao.situacao_recepcao == "AGUARDANDO_RECEBIMENTO",
+            )
+            .values(situacao_recepcao="CANCELADA", payload=_dump(payload))
+        )
+        if resultado.rowcount != 1:
+            return None
+        await self.session.refresh(registro)
+        return self._solicitacao_payload(registro)
 
     async def listar_casos(self) -> list[dict[str, Any]]:
         """Lista agregados persistidos por data de entrada decrescente."""

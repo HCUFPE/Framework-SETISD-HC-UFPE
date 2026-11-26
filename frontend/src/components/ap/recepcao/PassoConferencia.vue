@@ -3,7 +3,7 @@
     <Alert
       v-if="recepcao.amostraBipadaSituacao"
       variant="warning"
-      :title="`Amostra ${recepcao.amostraBipada} já ${recepcao.amostraBipadaSituacao.situacaoRecepcao === 'DEVOLVIDA' ? 'devolvida' : 'recebida'}`"
+      :title="`Amostra ${recepcao.amostraBipada} já ${recepcao.amostraBipadaSituacao.situacaoRecepcao === 'DEVOLVIDA' ? 'devolvida' : recepcao.amostraBipadaSituacao.situacaoRecepcao === 'CANCELADA' ? 'cancelada' : 'recebida'}`"
     >
       <template v-if="recepcao.amostraBipadaSituacao.situacaoRecepcao === 'RECEBIDA'">
         O grupo <strong>{{ recepcao.amostraBipadaSituacao.tipoExame }}</strong> desta amostra já foi recebido
@@ -14,8 +14,12 @@
           (<strong>{{ recepcao.amostraBipadaSituacao.ihqCodigo }}</strong>)
         </template>.
       </template>
-      <template v-else>
+      <template v-else-if="recepcao.amostraBipadaSituacao.situacaoRecepcao === 'DEVOLVIDA'">
         O grupo <strong>{{ recepcao.amostraBipadaSituacao.tipoExame }}</strong> desta amostra já foi devolvido por não conformidade.
+      </template>
+      <template v-else>
+        O grupo <strong>{{ recepcao.amostraBipadaSituacao.tipoExame }}</strong> desta amostra foi cancelado
+        <template v-if="recepcao.amostraBipadaSituacao.cancelamento?.motivo"> pelo motivo: {{ recepcao.amostraBipadaSituacao.cancelamento.motivo }}</template>.
       </template>
       Os demais exames pendentes desta solicitação seguem disponíveis para recebimento abaixo.
     </Alert>
@@ -131,7 +135,24 @@
                   {{ rotuloAmostrasCapitalizado(grupo.amostras) }} · {{ grupo.siglaExame }}
                 </p>
               </div>
+              <Button
+                v-if="authStore.hasPermission('casos:cancelar')"
+                type="button"
+                variant="danger"
+                class="ml-auto shrink-0"
+                :disabled="salvando || cancelandoId !== null"
+                @click="abrirCancelamento(grupo.id)"
+              >Cancelar exame</Button>
             </header>
+
+            <div v-if="cancelandoId === grupo.id" class="mt-3 rounded-md border border-paper-danger/30 bg-paper-danger-soft p-3" role="dialog" aria-modal="true" :aria-label="`Cancelar exame ${grupo.tipoExameSugerido}`">
+              <label :for="`motivo-cancelamento-${grupo.id}`" class="form-label">Motivo do cancelamento <span class="text-paper-danger">*</span></label>
+              <textarea :id="`motivo-cancelamento-${grupo.id}`" v-model="motivoCancelamento" rows="3" class="form-control" required maxlength="1000" />
+              <div class="mt-2 flex justify-end gap-2">
+                <Button type="button" variant="secondary" :disabled="cancelando" @click="fecharCancelamento">Voltar</Button>
+                <Button type="button" variant="danger" :loading="cancelando" :disabled="!motivoCancelamento.trim()" @click="confirmarCancelamento(grupo.id)">Confirmar cancelamento</Button>
+              </div>
+            </div>
 
             <div v-if="estado[grupo.id].receber" class="mt-3 space-y-3">
               <!-- Caso principal -->
@@ -254,6 +275,7 @@ import { rotuloNumerosAmostras } from '../../../helpers/aghu';
 import { mensagemDeErro } from '../../../services/ap';
 import { useCasosStore } from '../../../stores/casos';
 import { useRecepcaoStore, type EntradaConferencia } from '../../../stores/recepcao';
+import { useAuthStore } from '../../../stores/auth';
 import type { CasoElegivelIhq, SolicitacaoAghu, TipoCasoPrincipal } from '../../../types/ap';
 
 /** `devolvido`: a não conformidade foi registrada e a recepção deve voltar ao passo 1. */
@@ -273,6 +295,7 @@ interface EstadoGrupo {
 const toast = useToast();
 const recepcao = useRecepcaoStore();
 const casosStore = useCasosStore();
+const authStore = useAuthStore();
 
 /** Modal de não conformidade e devolução aberto. */
 const ncAberta = ref(false);
@@ -286,6 +309,37 @@ const salvando = ref(false);
 const tentouConfirmar = ref(false);
 const resumo = ref<HTMLElement | null>(null);
 const observacoes = ref('');
+const cancelandoId = ref<string | null>(null);
+const motivoCancelamento = ref('');
+const cancelando = ref(false);
+
+const abrirCancelamento = (id: string) => {
+  cancelandoId.value = id;
+  motivoCancelamento.value = '';
+};
+const fecharCancelamento = () => {
+  cancelandoId.value = null;
+  motivoCancelamento.value = '';
+};
+const confirmarCancelamento = async (id: string) => {
+  const motivo = motivoCancelamento.value.trim();
+  if (!motivo || cancelando.value) return;
+  cancelando.value = true;
+  try {
+    const todosCancelados = await recepcao.cancelarExame(id, motivo);
+    fecharCancelamento();
+    if (todosCancelados) {
+      toast.success('Todos os exames pendentes da solicitação foram cancelados.');
+      emit('devolvido');
+    } else {
+      toast.success('Exame cancelado. Os demais exames continuam disponíveis para recebimento.');
+    }
+  } catch (erro) {
+    toast.error(mensagemDeErro(erro, 'Não foi possível cancelar o exame.'));
+  } finally {
+    cancelando.value = false;
+  }
+};
 
 const opcoesProcedimento = PROCEDIMENTOS.map((p) => ({ valor: p, rotulo: p }));
 const opcoesUrgencia = [

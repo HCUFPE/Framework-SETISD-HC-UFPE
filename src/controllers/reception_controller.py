@@ -127,6 +127,7 @@ def _resolver_amostra_bipada(
                         "casoNumero": exame.get("casoNumero"),
                         "ihqCodigo": exame.get("ihqCodigo"),
                         "devolucaoId": exame.get("devolucaoId"),
+                        "cancelamento": exame.get("cancelamento"),
                     }
                 return resultado
     return resultado
@@ -202,6 +203,39 @@ class ReceptionController:
     def __init__(self, provider: ReceptionProviderInterface, session: AsyncSession):
         self.provider = provider
         self.session = session
+
+    async def cancelar_exame_solicitacao(
+        self, grupo_id: str, motivo: str, usuario: dict[str, Any], ip: str | None
+    ) -> dict[str, Any]:
+        """Cancela um grupo pendente e audita a mutação na mesma sessão."""
+        identificador = normalizar_codigo(grupo_id)
+        solicitacao = await self.provider.buscar_solicitacao(identificador)
+        if solicitacao is None:
+            raise HTTPException(status_code=404, detail=f"Exame {identificador} não encontrado.")
+        if solicitacao["situacaoRecepcao"] != "AGUARDANDO_RECEBIMENTO":
+            raise HTTPException(status_code=409, detail=f"O exame {identificador} não está aguardando recebimento.")
+        motivo_limpo = motivo.strip()
+        if not motivo_limpo:
+            raise HTTPException(status_code=400, detail="Informe o motivo do cancelamento.")
+
+        cancelamento = {
+            "motivo": motivo_limpo,
+            "canceladoPor": responsavel_autenticado(usuario),
+            "canceladoEm": agora_iso(),
+        }
+        novo = await self.provider.cancelar_solicitacao(identificador, cancelamento)
+        if novo is None:
+            raise HTTPException(status_code=409, detail=f"O exame {identificador} não está aguardando recebimento.")
+        await _auditar(
+            self.session,
+            usuario,
+            ip,
+            "SOLICITACAO_EXAME_CANCELADA",
+            f"solicitacao_exame:{identificador}",
+            {"situacaoRecepcao": solicitacao["situacaoRecepcao"]},
+            {"situacaoRecepcao": "CANCELADA", "cancelamento": cancelamento},
+        )
+        return novo
 
     async def listar_pendentes(self) -> list[dict[str, Any]]:
         """Lista solicitações pendentes; consulta AGHU mock pode estar indisponível."""
@@ -307,6 +341,16 @@ class ReceptionController:
                 "solicitacao": solicitacao,
                 "devolvidaEm": devolucao["devolvidaEm"] if devolucao else "",
                 "tipoNaoConformidade": tipo,
+            }
+            if meta_amostra:
+                resultado["amostraBipada"] = meta_amostra.get("amostraBipada")
+            return resultado
+        cancelados = [exame for exame in exames if exame["situacaoRecepcao"] == "CANCELADA"]
+        if cancelados and len(cancelados) == len(exames):
+            resultado = {
+                "tipo": "CANCELADA",
+                "solicitacao": solicitacao,
+                "cancelamentos": [exame.get("cancelamento") for exame in cancelados],
             }
             if meta_amostra:
                 resultado["amostraBipada"] = meta_amostra.get("amostraBipada")

@@ -46,6 +46,10 @@ function classificarSemPendentes(exames: SolicitacaoAghu[]): LeituraSolicitacao 
       tipoNaoConformidade: naoConformidade?.tipo ?? 'OUTROS',
     };
   }
+  const cancelados = exames.filter((e) => e.situacaoRecepcao === 'CANCELADA');
+  if (cancelados.length === exames.length && cancelados.length > 0) {
+    return { tipo: 'CANCELADA', solicitacao: copia(cancelados[0]), cancelamentos: cancelados.map((item) => item.cancelamento) };
+  }
   return { tipo: 'RECEBIDA', solicitacao: copia(exames[0]), recebimentos: recebimentos(exames) };
 }
 
@@ -70,6 +74,7 @@ function classificarExames(codigoSolicitacao: string, exames: SolicitacaoAghu[],
           casoNumero: dono.casoNumero,
           ihqCodigo: dono.ihqCodigo,
           devolucaoId: dono.devolucaoId,
+          cancelamento: dono.cancelamento,
         };
       }
     }
@@ -135,5 +140,20 @@ export const aghuServiceMock: AghuService = {
     await aguardarCargaSolicitacoes();
     await latencia(50);
     return copia(examesDaSolicitacao(normalizarCodigo(codigoSolicitacao)));
+  },
+
+  async cancelarExame(solicitacaoId: string, motivo: string): Promise<SolicitacaoAghu> {
+    await latencia();
+    const exame = db.solicitacoes.find((item) => item.id === normalizarCodigo(solicitacaoId));
+    if (!exame) throw new Error(`Exame ${solicitacaoId} não encontrado.`);
+    if (exame.situacaoRecepcao !== 'AGUARDANDO_RECEBIMENTO') throw new Error('O exame não está aguardando recebimento.');
+    if (!motivo.trim()) throw new Error('Informe o motivo do cancelamento.');
+    exame.situacaoRecepcao = 'CANCELADA';
+    exame.cancelamento = {
+      motivo: motivo.trim(),
+      canceladoPor: { login: 'mock', nome: 'Usuário de desenvolvimento' },
+      canceladoEm: new Date().toISOString(),
+    };
+    return copia(exame);
   },
 };

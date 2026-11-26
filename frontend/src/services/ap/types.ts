@@ -54,6 +54,8 @@ export interface AghuService {
   lerSolicitacao(codigo: string): Promise<LeituraSolicitacao>;
   /** Todos os grupos de tipo de exame (qualquer situação) de uma solicitação do AGHU. */
   listarExamesDaSolicitacao(codigoSolicitacao: string): Promise<SolicitacaoAghu[]>;
+  /** Cancela um grupo pendente com motivo obrigatório. */
+  cancelarExame(solicitacaoId: string, motivo: string): Promise<SolicitacaoAghu>;
 }
 
 /** Casos de anatomia patológica e ações da recepção sobre eles. */

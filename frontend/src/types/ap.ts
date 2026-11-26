@@ -51,7 +51,7 @@ export type OrigemAtendimento = 'AMBULATORIO' | 'INTERNACAO' | 'CIRURGIA' | 'EXT
 export type CodStatusItemAghu = 'LI' | 'AC' | 'EX' | 'AE' | 'CA' | 'CO' | 'EC' | 'PE';
 
 /** Situação local da solicitação AGHU diante da recepção do SAP. */
-export type SituacaoRecepcaoSolicitacao = 'AGUARDANDO_RECEBIMENTO' | 'RECEBIDA' | 'DEVOLVIDA';
+export type SituacaoRecepcaoSolicitacao = 'AGUARDANDO_RECEBIMENTO' | 'RECEBIDA' | 'DEVOLVIDA' | 'CANCELADA';
 
 /** Resultado da conferência (`conferencia_recebimento.resultado`). */
 export type ResultadoConferencia = 'ACEITA' | 'REJEITADA' | 'PENDENTE';
@@ -174,6 +174,7 @@ export interface SolicitacaoAghu {
   /** Amostras do exame, em ordem de número. */
   amostras: AmostraAghu[];
   situacaoRecepcao: SituacaoRecepcaoSolicitacao;
+  cancelamento?: CancelamentoExame;
   /** Caso criado a partir do exame (casos principais). */
   casoNumero?: string;
   /** IHQ registrada a partir do exame e o caso de origem. */
@@ -430,6 +431,7 @@ export type LeituraSolicitacao =
       tipoNaoConformidade: TipoNaoConformidadeCodigo;
       amostraBipada?: string | null;
     }
+  | { tipo: 'CANCELADA'; solicitacao: SolicitacaoAghu; cancelamentos: (CancelamentoExame | undefined)[]; amostraBipada?: string | null }
   | { tipo: 'NAO_ENCONTRADA' };
 
 /** Situação da amostra bipada que pertence a um grupo já tratado (recebido/devolvido). */
@@ -440,6 +442,14 @@ export interface AmostraBipadaSituacao {
   casoNumero?: string;
   ihqCodigo?: string;
   devolucaoId?: number;
+  cancelamento?: CancelamentoExame;
+}
+
+/** Metadados administrativos do cancelamento de um grupo de exame. */
+export interface CancelamentoExame {
+  motivo: string;
+  canceladoPor: Responsavel;
+  canceladoEm: string;
 }
 
 /** Exame já recebido e o caso (ou IHQ) que gerou. */

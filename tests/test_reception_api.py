@@ -62,6 +62,70 @@ def test_rotas_sao_privadas_e_consultas_seguem_catalogo_por_perfil(client):
     assert client.get("/api/ap/auditoria", headers=token(client, "recepcao-coordenacao")).status_code == 200
 
 
+def test_cancelamento_de_exame_preserva_grupo_irmao_e_audita(client):
+    headers = token(client, "recepcao-coordenacao")
+    resposta = client.post(
+        "/api/ap/solicitacoes/cancelamento",
+        headers=headers,
+        json={"solicitacaoId": "7712301:CG", "motivo": "Exame não necessário"},
+    )
+    assert resposta.status_code == 200, resposta.text
+    assert resposta.json()["situacaoRecepcao"] == "CANCELADA"
+    assert resposta.json()["cancelamento"]["canceladoPor"]["login"] == "recepcao-coordenacao"
+
+    leitura = client.get("/api/ap/solicitacoes/7712301002", headers=headers).json()
+    assert leitura["tipo"] == "PENDENTE"
+    assert [grupo["id"] for grupo in leitura["exames"]] == ["7712301:HP"]
+    assert leitura["amostraBipadaSituacao"]["situacaoRecepcao"] == "CANCELADA"
+
+    logs = client.get("/api/ap/auditoria", headers=headers).json()
+    log = next(item for item in logs if item["acao"] == "SOLICITACAO_EXAME_CANCELADA")
+    assert log["recurso"] == "solicitacao_exame:7712301:CG"
+    assert log["ipOrigem"]
+
+
+def test_cancelamento_total_exige_permissao_motivo_e_estado_pendente(client):
+    sem_permissao = client.post(
+        "/api/ap/solicitacoes/cancelamento",
+        headers=token(client, "recepcionista"),
+        json={"solicitacaoId": "7712301:HP", "motivo": "Não será processado"},
+    )
+    assert sem_permissao.status_code == 403
+
+    headers = token(client, "recepcao-coordenacao")
+    sem_motivo = client.post(
+        "/api/ap/solicitacoes/cancelamento",
+        headers=headers,
+        json={"solicitacaoId": "7712301:HP", "motivo": "  "},
+    )
+    assert sem_motivo.status_code == 400
+
+    for tipo in ("HP", "CG"):
+        resposta = client.post(
+            "/api/ap/solicitacoes/cancelamento",
+            headers=headers,
+            json={"solicitacaoId": f"7712301:{tipo}", "motivo": f"Cancelar {tipo}"},
+        )
+        assert resposta.status_code == 200, resposta.text
+
+    leitura = client.get("/api/ap/solicitacoes/7712301", headers=headers).json()
+    assert leitura["tipo"] == "CANCELADA"
+    assert len(leitura["cancelamentos"]) == 2
+
+    duplicado = client.post(
+        "/api/ap/solicitacoes/cancelamento",
+        headers=headers,
+        json={"solicitacaoId": "7712301:HP", "motivo": "De novo"},
+    )
+    inexistente = client.post(
+        "/api/ap/solicitacoes/cancelamento",
+        headers=headers,
+        json={"solicitacaoId": "9999999:HP", "motivo": "Não existe"},
+    )
+    assert duplicado.status_code == 409
+    assert inexistente.status_code == 404
+
+
 def test_api_mantem_carga_ap_completa_e_recepcionista_consulta_devolucoes(demo_client):
     headers = token(demo_client, "recepcionista")
 
@@ -472,6 +536,18 @@ def test_falha_de_auditoria_reverte_mutacao_e_historico(tmp_path):
 
                 assert await provider.contar_solicitacoes_pendentes() == 7
                 assert await provider.listar_casos() == []
+                event.remove(session.sync_session, "before_commit", falhar_ao_confirmar_auditoria)
+
+                event.listen(session.sync_session, "before_commit", falhar_ao_confirmar_auditoria)
+                with pytest.raises(RuntimeError, match="Falha simulada"):
+                    await controller.cancelar_exame_solicitacao(
+                        "7712301:CG",
+                        "Exame dispensado",
+                        {"username": "recepcao-coordenacao"},
+                        "192.0.2.10",
+                    )
+                assert (await provider.buscar_solicitacao("7712301:CG"))["situacaoRecepcao"] == "AGUARDANDO_RECEBIMENTO"
+                assert await provider.contar_solicitacoes_pendentes() == 7
                 event.remove(session.sync_session, "before_commit", falhar_ao_confirmar_auditoria)
         finally:
             await engine.dispose()

@@ -49,6 +49,11 @@
                 </router-link>
               </li>
             </ul>
+            <ul v-if="recepcao.mensagemLeitura.cancelamentos?.length" class="mt-2 space-y-2">
+              <li v-for="(item, index) in recepcao.mensagemLeitura.cancelamentos" :key="`${item.canceladoEm}-${index}`">
+                {{ item.motivo }} — {{ item.canceladoPor.nome }} — {{ formatarData(item.canceladoEm) }}
+              </li>
+            </ul>
           </Alert>
         </div>
 

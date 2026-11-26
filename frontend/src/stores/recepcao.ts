@@ -24,6 +24,7 @@ export interface MensagemLeitura {
   texto: string;
   /** Casos que podem ser abertos a partir da mensagem (solicitação já recebida). */
   recebimentos?: RecebimentoExame[];
+  cancelamentos?: { motivo: string; canceladoPor: { nome: string }; canceladoEm: string }[];
   /** Lembrete adicional exibido abaixo da mensagem. */
   dica?: string;
   /** Estilo do alerta (padrão: danger). */
@@ -172,6 +173,12 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
           texto: `A solicitação ${leitura.solicitacao.codigoSolicitacao} foi devolvida em ${formatarData(leitura.devolvidaEm)} por não conformidade: ${TIPOS_NAO_CONFORMIDADE[leitura.tipoNaoConformidade]}.`,
           dica: 'Aguarde a nova amostra com uma nova solicitação do AGHU.',
         };
+      case 'CANCELADA':
+        return {
+          texto: `A solicitação ${leitura.solicitacao.codigoSolicitacao} foi cancelada.`,
+          cancelamentos: leitura.cancelamentos.filter((item): item is NonNullable<typeof item> => !!item),
+          variante: 'info',
+        };
       case 'NAO_ENCONTRADA':
         return {
           texto: `Nenhuma solicitação encontrada para ${codigo}. Confira a etiqueta ou digite o número.`,
@@ -256,6 +263,20 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     }
   }
 
+  /** Cancela um grupo pendente e atualiza conferência, fila e contagem. */
+  async function cancelarExame(solicitacaoId: string, motivo: string): Promise<boolean> {
+    const cancelado = await aghuService.cancelarExame(solicitacaoId, motivo);
+    exames.value = exames.value.filter((item) => item.id !== cancelado.id);
+    examesDaSolicitacao.value = examesDaSolicitacao.value.map((item) => item.id === cancelado.id ? cancelado : item);
+    pendentes.value = pendentes.value.filter((item) => item.id !== cancelado.id);
+    await Promise.all([atualizarContagem(), carregarPendentes()]);
+    if (exames.value.length === 0) {
+      reiniciar();
+      return true;
+    }
+    return false;
+  }
+
   /** Registra o acionamento da equipe de plantão (congelação) para um caso da conferência. */
   async function registrarPlantao(numeroInterno: string): Promise<void> {
     const caso = await casoService.registrarAcionamentoPlantao(numeroInterno, responsavel.value);
@@ -300,6 +321,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     iniciarConferencia,
     lerCodigo,
     confirmarConferencia,
+    cancelarExame,
     registrarPlantao,
     reiniciar,
   };
