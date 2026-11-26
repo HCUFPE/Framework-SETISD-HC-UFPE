@@ -353,8 +353,14 @@ function abrirDia(data: string): void {
 
 async function gerarPropostas(): Promise<void> {
   const resultado = await store.gerarPropostas(30);
-  if (resultado) toast.success(`${resultado.geradas} proposta(s) gerada(s) para ${resultado.dias} dias.`);
-  else toast.error(store.erro || 'Não foi possível simular a agenda.');
+  if (resultado) {
+    toast.success(`${resultado.geradas} proposta(s) gerada(s) para ${resultado.dias} dias.`);
+    if (resultado.deFora > 0) {
+      toast.warning(`${resultado.deFora} solicitação(ões) não couberam nas vagas disponíveis.`);
+    }
+  } else {
+    toast.error(store.erro || 'Não foi possível simular a agenda.');
+  }
 }
 
 async function confirmarProposta(proposta: PropostaAgendamentoFila): Promise<void> {

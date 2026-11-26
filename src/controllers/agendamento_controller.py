@@ -865,6 +865,9 @@ async def gerar_propostas(
     A proposta reserva vaga (status PROPOSTO), mas só se torna agendamento
     ATIVO após confirmação explícita do operador. Nenhuma confirmação de
     paciente é presumida além do ACEITE já registrado no contato.
+    Uma solicitação com múltiplos exames pode gerar uma proposta por exame,
+    cada qual em vaga e dia distintos conforme disponibilidade. Solicitações
+    ou exames que não encontram vaga são contabilizados em `deFora`.
     """
     horizonte_dias = max(1, min(int(dias), 90))
     agora = _agora()
@@ -895,6 +898,7 @@ async def gerar_propostas(
     linhas_fila: List[Dict[str, Any]] = []
     usadas_por_dia: dict[str, set[str]] = {}
     alocadas_por_slot: dict[str, int] = {}
+    de_fora = 0
     for solicitacao in elegiveis:
         if solicitacao.id in reservadas:
             continue
@@ -908,63 +912,69 @@ async def gerar_propostas(
             if item.get("codigoExame")
         }
         chave = solicitacao.paciente_chave or ""
-        elegiveis_slots = [
-            slot for slot in slots
-            if slot["status"] == "DISPONIVEL"
-            and slot["livres"] - alocadas_por_slot.get(slot["id"], 0) > 0
-            and para_utc_aware(parse_datetime(slot["inicio"])) >= agora
-            and para_utc_aware(parse_datetime(slot["inicio"])) <= limite
-            and (not codigos or str(slot["codigoExame"] or "").strip().upper() in codigos)
-            and chave not in usadas_por_dia.get(slot["inicio"][:10], set())
-        ]
-        elegiveis_slots.sort(
-            key=lambda item: (
-                para_utc_aware(parse_datetime(item["inicio"])),
-                -((item["livres"] - alocadas_por_slot.get(item["id"], 0))
-                  / max(1, item["capacidade"])),
+        exames_para_tentar = list(codigos) if codigos else [None]
+        for codigo in exames_para_tentar:
+            elegiveis_slots = [
+                slot for slot in slots
+                if slot["status"] == "DISPONIVEL"
+                and slot["livres"] - alocadas_por_slot.get(slot["id"], 0) > 0
+                and para_utc_aware(parse_datetime(slot["inicio"])) >= agora
+                and para_utc_aware(parse_datetime(slot["inicio"])) <= limite
+                and (codigo is None
+                     or str(slot["codigoExame"] or "").strip().upper() == codigo)
+                and chave not in usadas_por_dia.get(slot["inicio"][:10], set())
+            ]
+            elegiveis_slots.sort(
+                key=lambda item: (
+                    para_utc_aware(parse_datetime(item["inicio"])),
+                    -((item["livres"] - alocadas_por_slot.get(item["id"], 0))
+                      / max(1, item["capacidade"])),
+                )
             )
-        )
-        if not elegiveis_slots:
-            continue
-        slot = elegiveis_slots[0]
-        if await _conflito_paciente(
-            db, chave, parse_datetime(slot["inicio"]), parse_datetime(slot["fim"])
-        ):
-            continue
-        proposta = Agendamento(
-            id=str(uuid.uuid4()),
-            solicitacao_id=solicitacao.id,
-            slot_id=slot["id"],
-            paciente_chave=chave,
-            status="PROPOSTO",
-            autor=autor,
-            criado_em=_agora(),
-        )
-        status_anterior = solicitacao.status
-        solicitacao.status = STATUS_AGUARDANDO_CONFIRMACAO
-        solicitacao.atualizado_em = _agora()
-        db.add(proposta)
-        await db.flush()
-        usadas_por_dia.setdefault(slot["inicio"][:10], set()).add(chave)
-        alocadas_por_slot[slot["id"]] = alocadas_por_slot.get(slot["id"], 0) + 1
-        reservadas.add(solicitacao.id)
-        dto = await _agendamento_para_dict(db, proposta, provider)
-        geradas.append({**dto, "statusSolicitacaoAnterior": status_anterior})
-        linhas_fila.append(_proposta_para_fila(solicitacao, dto))
-        await _auditar(
-            db,
-            usuario=autor,
-            categoria="NEGOCIO_CLINICO",
-            acao="GERAR_PROPOSTA_AGENDA",
-            recurso=f"agendamento:{proposta.id}",
-            anteriores={"statusSolicitacao": status_anterior},
-            novos={**dto, "statusSolicitacao": STATUS_AGUARDANDO_CONFIRMACAO},
-            ip=ip,
-        )
+            if not elegiveis_slots:
+                de_fora += 1
+                continue
+            slot = elegiveis_slots[0]
+            if await _conflito_paciente(
+                db, chave, parse_datetime(slot["inicio"]), parse_datetime(slot["fim"])
+            ):
+                de_fora += 1
+                continue
+            proposta = Agendamento(
+                id=str(uuid.uuid4()),
+                solicitacao_id=solicitacao.id,
+                slot_id=slot["id"],
+                paciente_chave=chave,
+                status="PROPOSTO",
+                autor=autor,
+                criado_em=_agora(),
+            )
+            status_anterior = solicitacao.status
+            solicitacao.status = STATUS_AGUARDANDO_CONFIRMACAO
+            solicitacao.atualizado_em = _agora()
+            db.add(proposta)
+            await db.flush()
+            usadas_por_dia.setdefault(slot["inicio"][:10], set()).add(chave)
+            alocadas_por_slot[slot["id"]] = alocadas_por_slot.get(slot["id"], 0) + 1
+            reservadas.add(solicitacao.id)
+            dto = await _agendamento_para_dict(db, proposta, provider)
+            geradas.append({**dto, "statusSolicitacaoAnterior": status_anterior})
+            linhas_fila.append(_proposta_para_fila(solicitacao, dto))
+            await _auditar(
+                db,
+                usuario=autor,
+                categoria="NEGOCIO_CLINICO",
+                acao="GERAR_PROPOSTA_AGENDA",
+                recurso=f"agendamento:{proposta.id}",
+                anteriores={"statusSolicitacao": status_anterior},
+                novos={**dto, "statusSolicitacao": STATUS_AGUARDANDO_CONFIRMACAO},
+                ip=ip,
+            )
     return {
         "geradas": len(geradas),
         "solicitacoes": len(elegiveis),
         "dias": horizonte_dias,
+        "deFora": de_fora,
         "propostas": _ordenar_fila_propostas(linhas_fila),
     }
 

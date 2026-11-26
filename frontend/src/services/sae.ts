@@ -988,6 +988,8 @@ export interface ResultadoSimulacaoAgenda {
   geradas: number;
   solicitacoes: number;
   dias: number;
+  /** Quantidade de exames/solicitações que não encontraram vaga disponível. */
+  deFora: number;
   /** Linhas da fila de propostas, já ordenadas por prioridade. */
   propostas: PropostaAgendamentoFila[];
 }
@@ -1044,73 +1046,81 @@ export async function gerarPropostasAgendamento(
     ));
 
   let geradas = 0;
+  let deFora = 0;
   elegiveis.forEach((solicitacao) => {
     const codigos = new Set(solicitacao.itensExame
       .map((item) => item.codigoExame.trim().toUpperCase()).filter(Boolean));
     const chave = chavePacienteMock(solicitacao.prontuario);
     const restante = (slot: AgendaSlot): number =>
       slot.livres - (ocupacaoAdicional.get(slot.id) ?? 0);
-    const slot = slotsAgendaMock
-      .filter((candidato) => (codigos.size === 0 || codigos.has(candidato.codigoExame.trim().toUpperCase()))
-        && candidato.inicio >= inicio
-        && candidato.inicio.slice(0, 10) <= limite
-        && candidato.status !== 'ENCERRADO'
-        && !slotsFechadosManualmenteMock.has(candidato.id)
-        && restante(candidato) > 0
-        && !pacientesNoDia.has(`${chave}|${candidato.inicio.slice(0, 10)}`))
-      .sort((a, b) => a.inicio.localeCompare(b.inicio)
-        || (restante(b) / Math.max(1, b.capacidade)) - (restante(a) / Math.max(1, a.capacidade))
-        || a.id.localeCompare(b.id))
-      .find((candidato) => !agendamentosMock.some((agendamento) => {
-        if ((agendamento.status !== 'ATIVO' && agendamento.status !== 'PROPOSTO')
-          || agendamento.pacienteChave !== chave) return false;
-        const fim = slotsAgendaMock.find((item) => item.id === agendamento.slotId)?.fim
-          ?? agendamento.dataHora;
-        return new Date(candidato.inicio).getTime() < new Date(fim).getTime()
-          && new Date(agendamento.dataHora).getTime() < new Date(candidato.fim).getTime();
-      }));
-    if (!slot) return;
-
-    // Garante que a vaga ainda tem espaço considerando ocupação existente +
-    // reservas já feitas nesta mesma execução da simulação.
-    if (slot.livres <= (ocupacaoAdicional.get(slot.id) ?? 0)) return;
-
-    const proposta: Agendamento = {
-      id: `ag-${crypto.randomUUID()}`,
-      solicitacaoId: solicitacao.id,
-      protocolo: solicitacao.protocolo,
-      pacienteChave: chave,
-      pacienteNome: solicitacao.pacienteNome,
-      prontuario: solicitacao.prontuario,
-      unidade: slot.unidade,
-      exame: slot.nomeExame,
-      slotId: slot.id,
-      dataHora: slot.inicio,
-      status: 'PROPOSTO',
-      confirmadoPor: autor,
-      criadoEm: agoraIso(),
-      justificativa: null,
-    };
-    agendamentosMock.push(proposta);
-    ocupacaoAdicional.set(slot.id, (ocupacaoAdicional.get(slot.id) ?? 0) + 1);
-    pacientesNoDia.add(`${chave}|${slot.inicio.slice(0, 10)}`);
-    solicitacao.status = 'AGUARDANDO_CONFIRMACAO';
-    solicitacao.historico.push({
-      id: `hist-${crypto.randomUUID()}`,
-      em: agoraIso(),
-      acao: 'Horário proposto pela simulação da agenda',
-      autor,
-      categoria: 'NEGOCIO_CLINICO',
-      detalhes: `${slot.unidade} · ${slot.inicio} · vaga reservada para confirmação.`,
-    });
-    geradas += 1;
+    const examesParaTentar = codigos.size > 0 ? Array.from(codigos) : [null];
+    for (const codigo of examesParaTentar) {
+      const slot = slotsAgendaMock
+        .filter((candidato) => (codigo === null || codigos.has(candidato.codigoExame.trim().toUpperCase()))
+          && candidato.inicio >= inicio
+          && candidato.inicio.slice(0, 10) <= limite
+          && candidato.status !== 'ENCERRADO'
+          && !slotsFechadosManualmenteMock.has(candidato.id)
+          && restante(candidato) > 0
+          && !pacientesNoDia.has(`${chave}|${candidato.inicio.slice(0, 10)}`))
+        .sort((a, b) => a.inicio.localeCompare(b.inicio)
+          || (restante(b) / Math.max(1, b.capacidade)) - (restante(a) / Math.max(1, a.capacidade))
+          || a.id.localeCompare(b.id))
+        .find((candidato) => !agendamentosMock.some((agendamento) => {
+          if ((agendamento.status !== 'ATIVO' && agendamento.status !== 'PROPOSTO')
+            || agendamento.pacienteChave !== chave) return false;
+          const fim = slotsAgendaMock.find((item) => item.id === agendamento.slotId)?.fim
+            ?? agendamento.dataHora;
+          return new Date(candidato.inicio).getTime() < new Date(fim).getTime()
+            && new Date(agendamento.dataHora).getTime() < new Date(candidato.fim).getTime();
+        }));
+      if (!slot) {
+        deFora += 1;
+        continue;
+      }
+      // Garante que a vaga ainda tem espaço considerando ocupação existente +
+      // reservas já feitas nesta mesma execução da simulação.
+      if (slot.livres <= (ocupacaoAdicional.get(slot.id) ?? 0)) {
+        deFora += 1;
+        continue;
+      }
+      const proposta: Agendamento = {
+        id: `ag-${crypto.randomUUID()}`,
+        solicitacaoId: solicitacao.id,
+        protocolo: solicitacao.protocolo,
+        pacienteChave: chave,
+        pacienteNome: solicitacao.pacienteNome,
+        prontuario: solicitacao.prontuario,
+        unidade: slot.unidade,
+        exame: slot.nomeExame,
+        slotId: slot.id,
+        dataHora: slot.inicio,
+        status: 'PROPOSTO',
+        confirmadoPor: autor,
+        criadoEm: agoraIso(),
+        justificativa: null,
+      };
+      agendamentosMock.push(proposta);
+      ocupacaoAdicional.set(slot.id, (ocupacaoAdicional.get(slot.id) ?? 0) + 1);
+      pacientesNoDia.add(`${chave}|${slot.inicio.slice(0, 10)}`);
+      solicitacao.status = 'AGUARDANDO_CONFIRMACAO';
+      solicitacao.historico.push({
+        id: `hist-${crypto.randomUUID()}`,
+        em: agoraIso(),
+        acao: 'Horário proposto pela simulação da agenda',
+        autor,
+        categoria: 'NEGOCIO_CLINICO',
+        detalhes: `${slot.unidade} · ${slot.inicio} · vaga reservada para confirmação.`,
+      });
+      geradas += 1;
+    }
   });
 
   sincronizarOcupacaoMock();
   registrar('Simulação de agenda', autor, 'NEGOCIO_CLINICO',
     `${geradas} proposta(s) gerada(s) para os próximos ${dias} dias.`);
   return {
-    geradas, solicitacoes: elegiveis.length, dias, propostas: filaPropostasMock(),
+    geradas, solicitacoes: elegiveis.length, dias, deFora, propostas: filaPropostasMock(),
   };
 }
 
