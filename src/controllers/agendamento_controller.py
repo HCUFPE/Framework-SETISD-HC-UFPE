@@ -26,6 +26,7 @@ from ..helpers.audit_helper import registrar_auditoria
 from ..helpers.crypto_helper import to_dict_seguro
 from ..helpers.string_helper import parse_datetime
 from ..models.agendamento import AgendaSlot, Agendamento, ContatoPaciente, PacienteEndereco
+from ..models.audit_log import AuditLog
 from ..models.forms_integration import Divergencia, Solicitacao
 from ..providers.interfaces.distance_provider_interface import DistanceProviderInterface
 from ..providers.interfaces.slot_provider_interface import SlotProviderInterface
@@ -44,6 +45,7 @@ STATUS_AGUARDANDO_CONFIRMACAO = "AGUARDANDO_CONFIRMACAO"
 STATUS_AGUARDANDO_REAGENDAMENTO = "AGUARDANDO_REAGENDAMENTO"
 STATUS_AGENDADA = "AGENDADA"
 STATUS_CANCELADA = "CANCELADA"
+STATUS_NAO_CONFIRMADO = "NAO_CONFIRMADO"
 # Estados que permitem criar ou remarcar uma proposta/agendamento.
 STATUS_AGENDAVEIS = {
     STATUS_AGUARDANDO_CONTATO,
@@ -52,6 +54,13 @@ STATUS_AGENDAVEIS = {
 }
 # Propostas e agendamentos ativos ocupam vaga e bloqueiam choque de paciente.
 STATUS_OCUPANTES = {"ATIVO", "PROPOSTO"}
+# Status que permitem cancelamento da fila de marcação.
+STATUS_CANCELÁVEIS = {
+    STATUS_AGUARDANDO_CONFIRMACAO,
+    STATUS_NAO_CONFIRMADO,
+    STATUS_AGUARDANDO_REAGENDAMENTO,
+    STATUS_AGENDADA,
+}
 
 
 def _agora() -> datetime:
@@ -669,6 +678,303 @@ async def registrar_contato(
         ip=ip,
     )
     return resposta
+
+
+# ---------------------------------------------------------------------------
+# Verificação automática de não confirmação (24h)
+# ---------------------------------------------------------------------------
+
+async def verificar_e_atualizar_nao_confirmados(
+    db: AsyncSession,
+    ip: Optional[str],
+) -> List[Dict[str, Any]]:
+    """Move solicitações em AGUARDANDO_CONFIRMACAO há mais de 24h para NAO_CONFIRMADO.
+
+    A verificação usa a tabela de auditoria para encontrar quando o status
+    mudou para AGUARDANDO_CONFIRMACAO. Para cada solicitação expirada, o
+    status passa para NAO_CONFIRMADO e o agendamento associado é cancelado,
+    liberando a vaga.
+    """
+    agora = _agora()
+    limite = agora - timedelta(hours=24)
+
+    # Busca solicitações em AGUARDANDO_CONFIRMACAO.
+    resultado = await db.execute(
+        select(Solicitacao).where(
+            Solicitacao.status == STATUS_AGUARDANDO_CONFIRMACAO,
+            Solicitacao.deleted_at.is_(None),
+        )
+    )
+    solicitacoes = resultado.scalars().all()
+
+    atualizadas: List[Dict[str, Any]] = []
+    for solicitacao in solicitacoes:
+        # Verifica a última mudança de status para AGUARDANDO_CONFIRMACAO na auditoria.
+        ultimo = await db.execute(
+            select(AuditLog)
+            .where(
+                AuditLog.recurso == f"solicitacao:{solicitacao.id}",
+                AuditLog.categoria == "NEGOCIO_CLINICO",
+                AuditLog.dados_novos.like(f'%"status": "{STATUS_AGUARDANDO_CONFIRMACAO}"%'),
+            )
+            .order_by(AuditLog.created_at.desc())
+            .limit(1)
+        )
+        entrada = ultimo.scalars().first()
+        if not entrada:
+            continue
+        mudanca_em = entrada.created_at
+        if mudanca_em.tzinfo is None:
+            mudanca_em = mudanca_em.replace(tzinfo=timezone.utc)
+        if mudanca_em >= limite:
+            continue
+
+        # Atualiza para NAO_CONFIRMADO.
+        status_anterior = solicitacao.status
+        solicitacao.status = STATUS_NAO_CONFIRMADO
+        solicitacao.atualizado_em = _agora()
+        await db.flush()
+
+        # Cancela o agendamento associado (libera a vaga).
+        agendamento = await db.execute(
+            select(Agendamento).where(
+                Agendamento.solicitacao_id == solicitacao.id,
+                Agendamento.status.in_(STATUS_OCUPANTES),
+                Agendamento.deleted_at.is_(None),
+            )
+        )
+        ag = agendamento.scalars().first()
+        if ag:
+            ag_status_anterior = ag.status
+            ag.status = "CANCELADO"
+            ag.justificativa = "Não confirmado pelo paciente após 24h."
+            ag.cancelado_em = _agora()
+            await db.flush()
+
+        await _auditar(
+            db,
+            usuario="Sistema",
+            categoria="NEGOCIO_CLINICO",
+            acao="MARCAR_NAO_CONFIRMADO",
+            recurso=f"solicitacao:{solicitacao.id}",
+            anteriores={"statusSolicitacao": status_anterior},
+            novos={"statusSolicitacao": STATUS_NAO_CONFIRMADO},
+            ip=ip,
+        )
+        atualizadas.append({
+            "solicitacaoId": solicitacao.id,
+            "protocolo": solicitacao.protocolo,
+            "statusAnterior": status_anterior,
+            "statusNovo": STATUS_NAO_CONFIRMADO,
+        })
+
+    return atualizadas
+
+
+# ---------------------------------------------------------------------------
+# Operações da fila de marcação
+# ---------------------------------------------------------------------------
+
+async def agendar_da_fila(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    solicitacao_id: str,
+    slot_id: str,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Efetiva o agendamento a partir da fila.
+
+    A solicitação deve estar em RECEBIDA. Cria um agendamento ATIVO no slot
+    informado e move a solicitação para AGUARDANDO_CONTATO.
+    """
+    solicitacao = await _buscar_solicitacao(db, solicitacao_id)
+    if solicitacao.status != STATUS_RECEBIDA:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente solicitações recebidas podem ser agendadas da fila.",
+        )
+    await _verificar_precondicoes(db, solicitacao)
+    slot = await _slot_disponivel(provider, slot_id)
+
+    chave = solicitacao.paciente_chave or ""
+    if await _conflito_paciente(
+        db, chave, parse_datetime(slot["inicio"]), parse_datetime(slot["fim"])
+    ):
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            "Já existe agendamento ativo para este paciente neste intervalo.",
+        )
+
+    agendamento = Agendamento(
+        id=str(uuid.uuid4()),
+        solicitacao_id=solicitacao_id,
+        slot_id=slot_id,
+        paciente_chave=chave,
+        status="ATIVO",
+        autor=autor,
+        criado_em=_agora(),
+    )
+    status_anterior = solicitacao.status
+    solicitacao.status = STATUS_AGUARDANDO_CONTATO
+    solicitacao.atualizado_em = _agora()
+    db.add(agendamento)
+    await db.flush()
+    dto = await _agendamento_para_dict(db, agendamento, provider)
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="AGENDAR_DA_FILA",
+        recurso=f"solicitacao:{solicitacao_id}",
+        anteriores={"statusSolicitacao": status_anterior},
+        novos={**dto, "statusSolicitacao": solicitacao.status},
+        ip=ip,
+    )
+    return dto
+
+
+async def cancelar_da_fila(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    solicitacao_id: str,
+    justificativa: str,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Cancela o agendamento e devolve a solicitação para RECEBIDA."""
+    if not justificativa or not justificativa.strip():
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Justificativa é obrigatória para cancelar.",
+        )
+    solicitacao = await _buscar_solicitacao(db, solicitacao_id)
+    if solicitacao.status not in STATUS_CANCELÁVEIS:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente solicitações em confirmação, não confirmadas, aguardando "
+            "reagendamento ou agendadas podem ser canceladas.",
+        )
+
+    status_anterior = solicitacao.status
+    solicitacao.status = STATUS_RECEBIDA
+    solicitacao.atualizado_em = _agora()
+
+    # Cancela o agendamento associado (libera a vaga).
+    agendamento = await db.execute(
+        select(Agendamento).where(
+            Agendamento.solicitacao_id == solicitacao_id,
+            Agendamento.status.in_(STATUS_OCUPANTES),
+            Agendamento.deleted_at.is_(None),
+        )
+    )
+    ag = agendamento.scalars().first()
+    ag_dto = None
+    if ag:
+        ag_anterior = ag.status
+        ag.status = "CANCELADO"
+        ag.justificativa = justificativa.strip()
+        ag.cancelado_em = _agora()
+        ag.autor = autor
+        await db.flush()
+        ag_dto = await _agendamento_para_dict(db, ag, provider)
+
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="CANCELAR_DA_FILA",
+        recurso=f"solicitacao:{solicitacao_id}",
+        anteriores={"statusSolicitacao": status_anterior},
+        novos={
+            "statusSolicitacao": solicitacao.status,
+            "motivo": justificativa.strip(),
+            "agendamentoCancelado": ag_dto is not None,
+        },
+        ip=ip,
+    )
+    return {
+        "solicitacaoId": solicitacao_id,
+        "status": solicitacao.status,
+        "agendamentoCancelado": ag_dto is not None,
+    }
+
+
+async def reagendar_da_fila(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    solicitacao_id: str,
+    slot_id: str,
+    justificativa: str,
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Reagenda a solicitação mantendo o status AGENDADA."""
+    if not justificativa or not justificativa.strip():
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Justificativa é obrigatória para reagendar.",
+        )
+    solicitacao = await _buscar_solicitacao(db, solicitacao_id)
+    if solicitacao.status != STATUS_AGENDADA:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Somente solicitações agendadas podem ser reagendadas.",
+        )
+    slot = await _slot_disponivel(provider, slot_id)
+
+    chave = solicitacao.paciente_chave or ""
+    if await _conflito_paciente(
+        db, chave, parse_datetime(slot["inicio"]), parse_datetime(slot["fim"])
+    ):
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            "Já existe agendamento ativo para este paciente neste intervalo.",
+        )
+
+    # Busca o agendamento atual para auditoria.
+    agendamento_atual = await db.execute(
+        select(Agendamento).where(
+            Agendamento.solicitacao_id == solicitacao_id,
+            Agendamento.status == "ATIVO",
+            Agendamento.deleted_at.is_(None),
+        )
+    )
+    ag_atual = agendamento_atual.scalars().first()
+    if not ag_atual:
+        raise _erro(
+            status.HTTP_404_NOT_FOUND,
+            "Nenhum agendamento ativo encontrado para esta solicitação.",
+        )
+
+    slot_anterior_id = ag_atual.slot_id
+    ag_atual.slot_id = slot_id
+    ag_atual.justificativa = justificativa.strip()
+    ag_atual.autor = autor
+    await db.flush()
+    dto = await _agendamento_para_dict(db, ag_atual, provider)
+
+    await _auditar(
+        db,
+        usuario=autor,
+        categoria="NEGOCIO_CLINICO",
+        acao="REAGENDAR_DA_FILA",
+        recurso=f"solicitacao:{solicitacao_id}",
+        anteriores={
+            "statusSolicitacao": solicitacao.status,
+            "slotAnterior": slot_anterior_id,
+        },
+        novos={
+            "statusSolicitacao": solicitacao.status,
+            "slotNovo": slot_id,
+            "motivo": justificativa.strip(),
+        },
+        ip=ip,
+    )
+    return dto
 
 
 # ---------------------------------------------------------------------------

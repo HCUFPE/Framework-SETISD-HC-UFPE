@@ -27,7 +27,8 @@ export type StatusSolicitacao =
   | 'AGUARDANDO_CONFIRMACAO'
   | 'AGUARDANDO_REAGENDAMENTO'
   | 'AGENDADA'
-  | 'CANCELADA';
+  | 'CANCELADA'
+  | 'NAO_CONFIRMADO';
 
 export const ROTULOS_STATUS: Record<StatusSolicitacao, string> = {
   RECEBIDA: 'Solicitação recebida',
@@ -37,6 +38,7 @@ export const ROTULOS_STATUS: Record<StatusSolicitacao, string> = {
   AGUARDANDO_REAGENDAMENTO: 'Aguardando reagendamento',
   AGENDADA: 'Agendado',
   CANCELADA: 'Cancelado',
+  NAO_CONFIRMADO: 'Não confirmado',
 };
 
 export type ResultadoContato = 'ACEITE' | 'RECUSA' | 'SEM_RESPOSTA';
@@ -180,6 +182,7 @@ export interface Agendamento {
   confirmadoPor: string;
   criadoEm: string;
   justificativa: string | null;
+  canceladoEm?: string;
 }
 
 /** Proposta da simulação no formato da fila de marcação (sem PHI ou endereço). */

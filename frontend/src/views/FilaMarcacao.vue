@@ -101,7 +101,42 @@
               <td v-if="visivel('status')" class="px-3 py-3"><StatusBadge :status="solicitacao.status" /></td>
               <td v-if="visivel('tempo')" class="px-3 py-3 text-gray-600">{{ formatarDuracao(horasDesde(solicitacao.recebidaEm)) }}</td>
               <td v-if="visivel('divergencias')" class="px-3 py-3"><DivergenciaBadge :quantidade="solicitacao.divergencias.filter((item) => !item.tratada).length" /></td>
-              <td v-if="visivel('acao')" class="px-3 py-3"><Button variant="info" @click.stop="store.abrir(solicitacao.id)">Abrir</Button></td>
+              <td v-if="visivel('acao')" class="px-3 py-3">
+                <div class="flex items-center gap-1">
+                  <button
+                    v-if="solicitacao.status === 'RECEBIDA' && podeEditar"
+                    type="button"
+                    @click.stop="agendarDaFila(solicitacao)"
+                    class="text-xs bg-paper-success hover:bg-paper-success-hover text-white px-2 py-1 rounded"
+                    title="Agendar solicitação"
+                  >
+                    Agendar
+                  </button>
+                  <button
+                    v-if="podeEditar && (
+                      solicitacao.status === 'AGUARDANDO_CONFIRMACAO' ||
+                      solicitacao.status === 'NAO_CONFIRMADO' ||
+                      solicitacao.status === 'AGUARDANDO_REAGENDAMENTO' ||
+                      solicitacao.status === 'AGENDADA'
+                    )"
+                    type="button"
+                    @click.stop="cancelarDaFila(solicitacao)"
+                    class="text-xs bg-paper-danger hover:bg-paper-danger-hover text-white px-2 py-1 rounded"
+                    title="Cancelar agendamento"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    v-if="solicitacao.status === 'AGENDADA' && podeEditar"
+                    type="button"
+                    @click.stop="reagendarDaFila(solicitacao)"
+                    class="text-xs bg-paper-warning hover:bg-paper-warning-hover text-white px-2 py-1 rounded"
+                    title="Reagendar"
+                  >
+                    Reagendar
+                  </button>
+                </div>
+              </td>
             </tr>
             <tr v-if="store.solicitacoes.length === 0 && !store.carregando">
               <td :colspan="colunasVisiveis.length + (podeEditar && visivel('selecao') ? 1 : 0)" class="px-3 py-8 text-center text-gray-500">Nenhuma solicitação encontrada para os filtros selecionados.</td>
@@ -409,6 +444,30 @@ async function reverterLote(): Promise<void> {
   } else {
     toast.error(agendamentosStore.erro || 'Não foi possível reverter a edição em lote.');
   }
+}
+
+/** Ações individuais da coluna "Ação" da fila. */
+async function agendarDaFila(solicitacao: Solicitacao): Promise<void> {
+  store.selecionada = solicitacao;
+  const slotId = window.prompt('Informe o ID da vaga (slot) para agendar:');
+  if (!slotId) return;
+  await store.agendarDaFila(slotId);
+}
+
+async function cancelarDaFila(solicitacao: Solicitacao): Promise<void> {
+  store.selecionada = solicitacao;
+  const justificativa = window.prompt('Informe a justificativa para o cancelamento:');
+  if (!justificativa || !justificativa.trim()) return;
+  await store.cancelarDaFila(justificativa.trim());
+}
+
+async function reagendarDaFila(solicitacao: Solicitacao): Promise<void> {
+  store.selecionada = solicitacao;
+  const slotId = window.prompt('Informe o ID da nova vaga (slot) para reagendar:');
+  if (!slotId) return;
+  const justificativa = window.prompt('Informe a justificativa para o reagendamento:');
+  if (!justificativa || !justificativa.trim()) return;
+  await store.reagendarDaFila(slotId, justificativa.trim());
 }
 </script>
 

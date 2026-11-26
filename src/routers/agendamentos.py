@@ -11,12 +11,14 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import AliasChoices, BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.auth import auth_handler
 from ..controllers import agendamento_controller as controller
 from ..dependencies import get_slot_provider
 from ..helpers.string_helper import parse_datetime
+from ..models.forms_integration import Solicitacao
 from ..providers.interfaces.slot_provider_interface import SlotProviderInterface
 from ..resources.database import get_app_db_session
 
@@ -199,6 +201,28 @@ class NaoConfirmacaoPayload(BaseModel):
     """Registro de não confirmação do paciente, com justificativa."""
 
     justificativa: Optional[str] = None
+    autor: str = Field(min_length=1)
+
+
+class AgendarDaFilaPayload(BaseModel):
+    """Agendamento a partir da fila de marcação."""
+
+    slotId: str = Field(min_length=1)
+    autor: str = Field(min_length=1)
+
+
+class CancelarDaFilaPayload(BaseModel):
+    """Cancelamento a partir da fila de marcação."""
+
+    justificativa: str = Field(min_length=1)
+    autor: str = Field(min_length=1)
+
+
+class ReagendarDaFilaPayload(BaseModel):
+    """Reagendamento a partir da fila de marcação."""
+
+    slotId: str = Field(min_length=1)
+    justificativa: str = Field(min_length=1)
     autor: str = Field(min_length=1)
 
 
@@ -491,6 +515,98 @@ async def registrar_contato_paciente(
         operador=payload.operador,
         ip=_ip(request),
     )
+
+
+@solicitacoes_router.post("/{solicitacao_id}/agendar")
+async def agendar_da_fila(
+    solicitacao_id: str,
+    payload: AgendarDaFilaPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_escrita),
+):
+    """Efetiva o agendamento a partir da fila (solicitação → AGUARDANDO_CONTATO)."""
+    return await controller.agendar_da_fila(
+        db,
+        provider,
+        solicitacao_id=solicitacao_id,
+        slot_id=payload.slotId,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@solicitacoes_router.post("/{solicitacao_id}/cancelar")
+async def cancelar_da_fila(
+    solicitacao_id: str,
+    payload: CancelarDaFilaPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_escrita),
+):
+    """Cancela o agendamento e devolve a solicitação para RECEBIDA."""
+    return await controller.cancelar_da_fila(
+        db,
+        provider,
+        solicitacao_id=solicitacao_id,
+        justificativa=payload.justificativa,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@solicitacoes_router.post("/{solicitacao_id}/reagendar")
+async def reagendar_da_fila(
+    solicitacao_id: str,
+    payload: ReagendarDaFilaPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_escrita),
+):
+    """Reagenda a solicitação mantendo o status AGENDADA."""
+    return await controller.reagendar_da_fila(
+        db,
+        provider,
+        solicitacao_id=solicitacao_id,
+        slot_id=payload.slotId,
+        justificativa=payload.justificativa,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@router.get("/fila")
+async def listar_fila(
+    db: AsyncSession = Depends(get_app_db_session),
+    current_user: dict = Depends(verificar_leitura),
+    ip: Optional[str] = None,
+):
+    """Lista a fila de marcação, aplicando a verificação automática de não confirmação (24h)."""
+    await controller.verificar_e_atualizar_nao_confirmados(db, ip)
+    solicitacoes = await db.scalars(
+        select(Solicitacao).where(
+            Solicitacao.deleted_at.is_(None),
+        )
+        .order_by(Solicitacao.pontuacao.desc(), Solicitacao.recebida_em)
+    )
+    return [
+        {
+            "id": s.id,
+            "protocolo": s.protocolo,
+            "prontuario": s.prontuario,
+            "pacienteNome": s.paciente_nome,
+            "setorSolicitante": s.setor_solicitante,
+            "exame": s.exame,
+            "status": s.status,
+            "pontuacao": s.pontuacao,
+            "prioridade": s.prioridade,
+            "recebidaEm": para_iso(s.recebida_em),
+        }
+        for s in solicitacoes.all()
+    ]
 
 
 # ---------------------------------------------------------------------------

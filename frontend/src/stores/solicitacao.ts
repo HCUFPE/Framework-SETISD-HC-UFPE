@@ -1,12 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import {
-  efetivarAgendamento,
-  listarFila,
-  obterSolicitacao,
-  registrarContato,
-  validarSolicitacao,
-} from '../services/sae';
+import * as sae from '../services/sae';
 import type { FiltroFila, ResultadoContato, ResultadoFila, Solicitacao } from '../types/sae';
 import { useAuthStore } from './auth';
 
@@ -27,7 +21,7 @@ export const useSolicitacaoStore = defineStore('solicitacao', () => {
     carregando.value = true;
     erro.value = '';
     try {
-      const resultado = await listarFila(filtros.value);
+      const resultado = await sae.listarFila(filtros.value);
       solicitacoes.value = resultado.itens;
       paginacao.value = {
         total: resultado.total,
@@ -55,7 +49,7 @@ export const useSolicitacaoStore = defineStore('solicitacao', () => {
   async function abrir(id: string): Promise<void> {
     erro.value = '';
     try {
-      selecionada.value = await obterSolicitacao(id);
+      selecionada.value = await sae.obterSolicitacao(id);
     } catch (e) {
       erro.value = e instanceof Error ? e.message : 'Não foi possível abrir a solicitação.';
     }
@@ -69,7 +63,7 @@ export const useSolicitacaoStore = defineStore('solicitacao', () => {
     if (!selecionada.value) return;
     const autor = useAuthStore().user?.displayName?.[0] ?? 'Operador';
     try {
-      await validarSolicitacao(selecionada.value.id, justificativa, autor);
+      await sae.validarSolicitacao(selecionada.value.id, justificativa, autor);
       await Promise.all([carregar(), abrir(selecionada.value.id)]);
     } catch (e) {
       erro.value = e instanceof Error ? e.message : 'Não foi possível validar a solicitação.';
@@ -80,7 +74,7 @@ export const useSolicitacaoStore = defineStore('solicitacao', () => {
     if (!selecionada.value) return;
     const autor = useAuthStore().user?.displayName?.[0] ?? 'Operador';
     try {
-      await registrarContato(selecionada.value.id, resultado, autor, observacao);
+      await sae.registrarContato(selecionada.value.id, resultado, autor, observacao);
       await Promise.all([carregar(), abrir(selecionada.value.id)]);
     } catch (e) {
       erro.value = e instanceof Error ? e.message : 'Não foi possível registrar o contato.';
@@ -91,10 +85,43 @@ export const useSolicitacaoStore = defineStore('solicitacao', () => {
     if (!selecionada.value) return;
     const autor = useAuthStore().user?.displayName?.[0] ?? 'Operador';
     try {
-      await efetivarAgendamento(selecionada.value.id, dataHora, autor);
+      await sae.efetivarAgendamento(selecionada.value.id, dataHora, autor);
       await Promise.all([carregar(), abrir(selecionada.value.id)]);
     } catch (e) {
       erro.value = e instanceof Error ? e.message : 'Não foi possível efetivar o agendamento.';
+    }
+  }
+
+  async function agendarDaFila(slotId: string): Promise<void> {
+    if (!selecionada.value) return;
+    const autor = useAuthStore().user?.displayName?.[0] ?? 'Operador';
+    try {
+      await sae.agendarDaFila(selecionada.value.id, slotId, autor);
+      await Promise.all([carregar(), abrir(selecionada.value.id)]);
+    } catch (e) {
+      erro.value = e instanceof Error ? e.message : 'Não foi possível agendar da fila.';
+    }
+  }
+
+  async function cancelarDaFila(justificativa: string): Promise<void> {
+    if (!selecionada.value) return;
+    const autor = useAuthStore().user?.displayName?.[0] ?? 'Operador';
+    try {
+      await sae.cancelarDaFila(selecionada.value.id, justificativa, autor);
+      await Promise.all([carregar(), abrir(selecionada.value.id)]);
+    } catch (e) {
+      erro.value = e instanceof Error ? e.message : 'Não foi possível cancelar.';
+    }
+  }
+
+  async function reagendarDaFila(slotId: string, justificativa: string): Promise<void> {
+    if (!selecionada.value) return;
+    const autor = useAuthStore().user?.displayName?.[0] ?? 'Operador';
+    try {
+      await sae.reagendarDaFila(selecionada.value.id, slotId, justificativa, autor);
+      await Promise.all([carregar(), abrir(selecionada.value.id)]);
+    } catch (e) {
+      erro.value = e instanceof Error ? e.message : 'Não foi possível reagendar.';
     }
   }
 
@@ -113,5 +140,8 @@ export const useSolicitacaoStore = defineStore('solicitacao', () => {
     validar,
     contatar,
     agendar,
+    agendarDaFila,
+    cancelarDaFila,
+    reagendarDaFila,
   };
 });

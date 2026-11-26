@@ -159,6 +159,10 @@ Todos os endpoints abaixo exigem JWT no `APIRouter` e RBAC no backend. Grupos/pe
 | `POST` | `/api/agendamentos/{id}/cancelar` | Escrita | Corpo `{ justificativa, autor }`; justificativa obrigatória; aceita `ATIVO` ou `PROPOSTO`; proposta cancelada devolve a solicitação para `AGUARDANDO_REAGENDAMENTO`, agendamento ativo cancelado para `CANCELADA`. |
 | `POST` | `/api/solicitacoes/{id}/validacao` | Escrita | Corpo `{ justificativas?: Record<string,string> }`; trata divergências ativas e muda o status para `AGUARDANDO_CONTATO`. |
 | `POST` | `/api/solicitacoes/{id}/contatos` | Escrita | Corpo `{ canal, resultado, observacao?, operador }`; `resultado` em `ACEITE`, `RECUSA` ou `SEM_RESPOSTA`; `201`. |
+| `GET` | `/api/fila` | Leitura | Lista a fila de marcação com status de todas as solicitações; aplica automaticamente a verificação de não confirmação (24h em `AGUARDANDO_CONFIRMACAO` → `NAO_CONFIRMADO`). |
+| `POST` | `/api/solicitacoes/{id}/agendar` | Escrita | Corpo `{ slotId, autor }`; efetiva o agendamento a partir da fila (solicitação `RECEBIDA` → `AGUARDANDO_CONTATO`, cria agendamento `ATIVO`). |
+| `POST` | `/api/solicitacoes/{id}/cancelar` | Escrita | Corpo `{ justificativa, autor }`; cancela o agendamento e devolve a solicitação para `RECEBIDA` (aceita `AGUARDANDO_CONFIRMACAO`, `NAO_CONFIRMADO`, `AGUARDANDO_REAGENDAMENTO`, `AGENDADA`). |
+| `POST` | `/api/solicitacoes/{id}/reagendar` | Escrita | Corpo `{ slotId, justificativa, autor }`; reagenda mantendo o status `AGENDADA`. |
 | `GET` | `/api/admin/agenda/slots?de=&ate=&unidade=&codigoExame=` | `CHEFIA` / `AREA_GESTORA` / `ADMIN_TI` / `GLO-SEC-HCPE-SETISD` | Lista vagas locais para gestão. |
 | `POST` | `/api/admin/agenda/slots` | Idem | Cria vaga local; `201`; auditoria `CONFIGURACAO`. Aceita `situacao` ou `status`. |
 | `PATCH` | `/api/admin/agenda/slots/{id}` | Idem | Ajusta capacidade, situação, horário, unidade ou exame; auditoria `CONFIGURACAO`. |
@@ -166,6 +170,21 @@ Todos os endpoints abaixo exigem JWT no `APIRouter` e RBAC no backend. Grupos/pe
 | `POST` | `/api/admin/agenda/copiar-semana` | Idem | Corpo `{ origem, destino, codigoExame? }` (datas ou ISO); `200` com `{ origem, destino, codigoExame, criadas, ignoradas, total }`. Preserva dia da semana, unidade, exame, horário, capacidade e situação; ignora vagas já existentes no destino; `422` se origem/destino forem inválidos, iguais ou sem vagas; auditoria `CONFIGURACAO`. |
 
 Pré-condições de agendamento/remarcação: solicitação em `AGUARDANDO_CONTATO`, `AGUARDANDO_CONFIRMACAO` ou `AGUARDANDO_REAGENDAMENTO` (`AGENDADA` apenas para remarcação), pelo menos um contato com `ACEITE`, nenhuma divergência ativa não tratada, vaga `DISPONIVEL` com `livres > 0`, início no futuro, **exame específico da solicitação** e nenhum agendamento `ATIVO` ou proposta `PROPOSTO` do mesmo `pacienteChave` no intervalo. Toda mutação registra `registrar_auditoria()` com estado anterior/posterior, IP de origem e categoria `NEGOCIO_CLINICO`.
+
+### Regras da coluna "Ação" na Fila de Marcação (operador)
+
+| Status da solicitação | Ações disponíveis |
+|---|---|
+| `RECEBIDA` | Agendar |
+| `PENDENTE_CORRECAO` | Nenhuma (não exibir opção de agendar) |
+| `AGUARDANDO_CONTATO` | Nenhuma (contato em andamento) |
+| `AGUARDANDO_CONFIRMACAO` | Cancelar |
+| `NAO_CONFIRMADO` (após 24h em `AGUARDANDO_CONFIRMACAO`) | Cancelar |
+| `AGUARDANDO_REAGENDAMENTO` | Agendar ou Cancelar |
+| `AGENDADA` | Reagendar ou Cancelar |
+| `CANCELADA` / `CONCLUIDO` | Nenhuma (aparecem apenas por filtro) |
+
+Abrir a solicitação é feito clicando na linha, não pela coluna "Ação".
 
 A sugestão ordena por score `0..100`: prioridade (`35`), vagas (`15`), compatibilidade (`20`), tempo de espera (`20`) e distância (`10`, neutro quando indisponível). Filtros duros (capacidade, prazo, compatibilidade e conflito) não são ponderados — uma sugestão que viola algum deles nunca é devolvida.
 

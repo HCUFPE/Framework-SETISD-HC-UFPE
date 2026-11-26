@@ -228,6 +228,168 @@ export async function efetivarAgendamento(id: string, dataHora: string, autor: s
   return clonar(solicitacao);
 }
 
+export async function agendarDaFila(
+  id: string,
+  slotId: string,
+  autor: string,
+): Promise<Solicitacao> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Solicitacao>(`/api/solicitacoes/${id}/agendar`, {
+      slotId, autor,
+    });
+    return data;
+  }
+  await pausa();
+  const solicitacao = mockDb.solicitacoes.find((item) => item.id === id);
+  if (!solicitacao) throw new Error('Solicitação não encontrada.');
+  if (solicitacao.status !== 'RECEBIDA') {
+    throw new Error('Somente solicitações recebidas podem ser agendadas da fila.');
+  }
+  const slot = slotsAgendaMock.find((item) => item.id === slotId);
+  if (!slot) throw new Error('Vaga não encontrada.');
+  if (agendamentosMock.some((item) =>
+    (item.status === 'ATIVO' || item.status === 'PROPOSTO') && item.solicitacaoId === solicitacao.id)) {
+    throw new Error('Esta solicitação já possui agendamento ativo.');
+  }
+  const chave = chavePacienteMock(solicitacao.prontuario);
+  if (agendamentosMock.some((item) =>
+    (item.status === 'ATIVO' || item.status === 'PROPOSTO') && item.pacienteChave === chave &&
+    item.slotId === slotId)) {
+    throw new Error('Já existe agendamento ativo para este paciente neste horário.');
+  }
+  solicitacao.status = 'AGUARDANDO_CONTATO';
+  solicitacao.agendamento = {
+    dataHora: slot.inicio,
+    unidade: slot.unidade,
+    confirmadoPor: autor,
+    criadoEm: agoraIso(),
+  };
+  const agendamento: Agendamento = {
+    id: `ag-${crypto.randomUUID()}`,
+    solicitacaoId: solicitacao.id,
+    protocolo: solicitacao.protocolo,
+    pacienteChave: chave,
+    pacienteNome: solicitacao.pacienteNome,
+    prontuario: solicitacao.prontuario,
+    unidade: slot.unidade,
+    exame: slot.nomeExame,
+    slotId: slot.id,
+    dataHora: slot.inicio,
+    status: 'ATIVO',
+    confirmadoPor: autor,
+    criadoEm: agoraIso(),
+    justificativa: null,
+  };
+  agendamentosMock.push(agendamento);
+  sincronizarOcupacaoMock();
+  solicitacao.historico.push({
+    id: `hist-${crypto.randomUUID()}`,
+    em: agoraIso(),
+    acao: 'Agendamento registrado na agenda local (da fila)',
+    autor,
+    categoria: 'NEGOCIO_CLINICO',
+    detalhes: `Horário reservado no SAE-HC: ${slot.inicio}.`,
+  });
+  registrar('Agendamento da fila', autor, 'NEGOCIO_CLINICO',
+    `${solicitacao.protocolo} → ${slot.inicio}.`);
+  return clonar(solicitacao);
+}
+
+export async function cancelarDaFila(
+  id: string,
+  justificativa: string,
+  autor: string,
+): Promise<{ solicitacaoId: string; status: string; agendamentoCancelado: boolean }> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<{ solicitacaoId: string; status: string; agendamentoCancelado: boolean }>(
+      `/api/solicitacoes/${id}/cancelar`, { justificativa, autor },
+    );
+    return data;
+  }
+  await pausa();
+  const solicitacao = mockDb.solicitacoes.find((item) => item.id === id);
+  if (!solicitacao) throw new Error('Solicitação não encontrada.');
+  if (![
+    'AGUARDANDO_CONFIRMACAO', 'NAO_CONFIRMADO', 'AGUARDANDO_REAGENDAMENTO', 'AGENDADA',
+  ].includes(solicitacao.status)) {
+    throw new Error('Esta solicitação não pode ser cancelada.');
+  }
+  solicitacao.status = 'RECEBIDA';
+  let cancelado = false;
+  const ag = agendamentosMock.find((item) =>
+    item.solicitacaoId === solicitacao.id
+    && (item.status === 'ATIVO' || item.status === 'PROPOSTO'));
+  if (ag) {
+    ag.status = 'CANCELADO';
+    ag.justificativa = justificativa.trim();
+    ag.canceladoEm = agoraIso();
+    cancelado = true;
+    sincronizarOcupacaoMock();
+  }
+  solicitacao.historico.push({
+    id: `hist-${crypto.randomUUID()}`,
+    em: agoraIso(),
+    acao: 'Cancelamento da fila de marcação',
+    autor,
+    categoria: 'NEGOCIO_CLINICO',
+    detalhes: `Motivo: ${justificativa.trim()}.`,
+  });
+  registrar('Cancelamento da fila', autor, 'NEGOCIO_CLINICO',
+    `${solicitacao.protocolo}: ${justificativa.trim()}.`);
+  return { solicitacaoId: id, status: solicitacao.status, agendamentoCancelado: cancelado };
+}
+
+export async function reagendarDaFila(
+  id: string,
+  slotId: string,
+  justificativa: string,
+  autor: string,
+): Promise<Solicitacao> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<Solicitacao>(`/api/solicitacoes/${id}/reagendar`, {
+      slotId, justificativa, autor,
+    });
+    return data;
+  }
+  await pausa();
+  const solicitacao = mockDb.solicitacoes.find((item) => item.id === id);
+  if (!solicitacao) throw new Error('Solicitação não encontrada.');
+  if (solicitacao.status !== 'AGENDADA') {
+    throw new Error('Somente solicitações agendadas podem ser reagendadas.');
+  }
+  const slot = slotsAgendaMock.find((item) => item.id === slotId);
+  if (!slot) throw new Error('Vaga não encontrada.');
+  const chave = chavePacienteMock(solicitacao.prontuario);
+  if (agendamentosMock.some((item) =>
+    (item.status === 'ATIVO' || item.status === 'PROPOSTO') && item.pacienteChave === chave && item.slotId === slotId)) {
+    throw new Error('Já existe agendamento ativo para este paciente neste horário.');
+  }
+  const ag = agendamentosMock.find((item) =>
+    item.solicitacaoId === solicitacao.id && item.status === 'ATIVO');
+  if (!ag) throw new Error('Nenhum agendamento ativo encontrado.');
+  const slotAnterior = ag.slotId;
+  ag.slotId = slotId;
+  ag.justificativa = justificativa.trim();
+  ag.confirmadoPor = autor;
+  if (solicitacao.agendamento) {
+    solicitacao.agendamento.dataHora = slot.inicio;
+    solicitacao.agendamento.unidade = slot.unidade;
+    solicitacao.agendamento.confirmadoPor = autor;
+  }
+  sincronizarOcupacaoMock();
+  solicitacao.historico.push({
+    id: `hist-${crypto.randomUUID()}`,
+    em: agoraIso(),
+    acao: 'Reagendamento da fila de marcação',
+    autor,
+    categoria: 'NEGOCIO_CLINICO',
+    detalhes: `De ${slotAnterior} para ${slot.inicio}. Motivo: ${justificativa.trim()}.`,
+  });
+  registrar('Reagendamento da fila', autor, 'NEGOCIO_CLINICO',
+    `${solicitacao.protocolo}: reagendado para ${slot.inicio}.`);
+  return clonar(solicitacao);
+}
+
 export async function listarIndicadores(filtros: FiltroIndicadores): Promise<Indicadores> {
   if (!USAR_MOCKS) {
     const { data } = await api.get<Indicadores>('/api/painel/indicadores', { params: filtros });
