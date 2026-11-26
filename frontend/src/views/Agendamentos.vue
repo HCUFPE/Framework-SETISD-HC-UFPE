@@ -132,37 +132,7 @@
             @remarcar="remarcarProposta"
             @nao-confirmado="naoConfirmarProposta"
             @cancelar="cancelarProposta"
-            @lote-aplicado="aplicarLote"
           />
-
-          <!-- Popup temporário de reverter após edição em lote -->
-          <div
-            v-if="reverterVisivel && reverterInfo"
-            class="mt-3 rounded border border-emerald-200 bg-emerald-50 p-3 flex items-start gap-3"
-          >
-            <div class="rounded-full bg-emerald-100 p-1 text-emerald-600 flex-shrink-0">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.859-3.087Z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm text-emerald-800 font-semibold">
-                Edição em lote aplicada: {{ reverterInfo.quantidade }} item(ns)
-                para {{ reverterInfo.novoStatus }}.
-              </p>
-              <button
-                type="button"
-                class="mt-1 text-xs text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-                @click="reverterLote"
-              >
-                Reverter alteração em lote
-              </button>
-              <span class="ml-2 text-xs text-emerald-600">
-                (desaparece automaticamente em 8s)
-              </span>
-            </div>
-          </div>
 
           <Card>
             <template #header>
@@ -303,14 +273,6 @@ const gestorVagasAberto = ref(false);
 const buscaFeita = ref(false);
 const calendarioRef = ref<{ irParaData: (dataIso: string) => void } | null>(null);
 
-// Popup temporário de reverter após edição em lote
-const reverterVisivel = ref(false);
-const reverterInfo = ref<{
-  novoStatus: string;
-  statusAnterior: string;
-  quantidade: number;
-} | null>(null);
-
 const pacienteSelecionado = computed(() =>
   store.pacientes.find((item) => item.pacienteChave === store.pacienteChave));
 
@@ -406,47 +368,6 @@ async function moverProposta(proposta: PropostaAgendamentoFila, slot: AgendaSlot
     toast.success('Proposta movida para o novo horário.');
   } else {
     toast.error(store.erro || 'Não foi possível mover a proposta.');
-  }
-}
-
-async function aplicarLote(payload: {
-  agendamentoIds: string[];
-  novoStatus: string;
-  justificativa: string;
-}): Promise<void> {
-  const resultado = await store.alterarStatusLote(
-    payload.agendamentoIds,
-    payload.novoStatus,
-    payload.justificativa,
-  );
-  if (resultado) {
-    toast.success(
-      `${resultado.processados} agendamento(ns) alterado(s) para ${resultado.novoStatus}.`,
-    );
-    // Exibe popup temporário de reverter por 8 segundos.
-    reverterInfo.value = {
-      novoStatus: payload.novoStatus,
-      statusAnterior: resultado.itens[0]?.statusAnterior ?? '',
-      quantidade: resultado.processados,
-    };
-    reverterVisivel.value = true;
-    setTimeout(() => {
-      reverterVisivel.value = false;
-      reverterInfo.value = null;
-    }, 8000);
-  } else {
-    toast.error(store.erro || 'Não foi possível aplicar a edição em lote.');
-  }
-}
-
-async function reverterLote(): Promise<void> {
-  const ok = await store.reverterUltimoLote();
-  if (ok) {
-    toast.success('Edição em lote revertida.');
-    reverterVisivel.value = false;
-    reverterInfo.value = null;
-  } else {
-    toast.error(store.erro || 'Não foi possível reverter a edição em lote.');
   }
 }
 

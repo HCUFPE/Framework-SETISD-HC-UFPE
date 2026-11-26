@@ -168,6 +168,9 @@ class GerarPropostasPayload(BaseModel):
 
     dias: int = Field(default=30, ge=1, le=90)
     autor: str = Field(default="Sistema", min_length=1)
+    unidade: Optional[str] = Field(default=None)
+    codigoExame: Optional[str] = Field(default=None)
+    pacienteChave: Optional[str] = Field(default=None)
 
 
 class ConfirmarPropostaPayload(BaseModel):
@@ -321,6 +324,9 @@ async def gerar_propostas(
         provider,
         dias=payload.dias,
         autor=payload.autor,
+        unidade=payload.unidade,
+        codigo_exame=payload.codigoExame,
+        paciente_chave=payload.pacienteChave,
         ip=_ip(request),
     )
 

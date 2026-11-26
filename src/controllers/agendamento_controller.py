@@ -858,6 +858,9 @@ async def gerar_propostas(
     *,
     dias: int,
     autor: str,
+    unidade: Optional[str] = None,
+    codigo_exame: Optional[str] = None,
+    paciente_chave: Optional[str] = None,
     ip: Optional[str],
 ) -> Dict[str, Any]:
     """Pré-aloca solicitações elegíveis em vagas dos próximos `dias` dias.
@@ -868,6 +871,8 @@ async def gerar_propostas(
     Uma solicitação com múltiplos exames pode gerar uma proposta por exame,
     cada qual em vaga e dia distintos conforme disponibilidade. Solicitações
     ou exames que não encontram vaga são contabilizados em `deFora`.
+    A simulação respeita os filtros ativos (unidade, código de exame e
+    paciente/prontuário); nunca simula todas as solicitações de uma vez.
     """
     horizonte_dias = max(1, min(int(dias), 90))
     agora = _agora()
@@ -884,6 +889,27 @@ async def gerar_propostas(
         )
     ).all()
 
+    # Aplica os filtros ativos sobre as solicitações elegíveis.
+    unidade_filtro = (unidade or "").strip().lower()
+    codigo_exame_filtro = (codigo_exame or "").strip().upper()
+    paciente_chave_filtro = (paciente_chave or "").strip()
+
+    elegiveis_filtradas = []
+    for solicitacao in elegiveis:
+        if unidade_filtro and (solicitacao.setor_solicitante or "").strip().lower() != unidade_filtro:
+            continue
+        if paciente_chave_filtro and (solicitacao.paciente_chave or "") != paciente_chave_filtro:
+            continue
+        if codigo_exame_filtro:
+            codigos = {
+                str(item.get("codigoExame") or "").strip().upper()
+                for item in _json_itens(solicitacao.itens_exame)
+                if item.get("codigoExame")
+            }
+            if codigo_exame_filtro not in codigos:
+                continue
+        elegiveis_filtradas.append(solicitacao)
+
     ja_reservadas = (
         await db.scalars(
             select(Agendamento.solicitacao_id).where(
@@ -899,7 +925,7 @@ async def gerar_propostas(
     usadas_por_dia: dict[str, set[str]] = {}
     alocadas_por_slot: dict[str, int] = {}
     de_fora = 0
-    for solicitacao in elegiveis:
+    for solicitacao in elegiveis_filtradas:
         if solicitacao.id in reservadas:
             continue
         if not await _tem_aceite(db, solicitacao.id):
@@ -972,7 +998,7 @@ async def gerar_propostas(
             )
     return {
         "geradas": len(geradas),
-        "solicitacoes": len(elegiveis),
+        "solicitacoes": len(elegiveis_filtradas),
         "dias": horizonte_dias,
         "deFora": de_fora,
         "propostas": _ordenar_fila_propostas(linhas_fila),

@@ -156,7 +156,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
           codigoExame: filtros.value.codigoExame,
           pacienteChave: filtros.value.pacienteChave,
         }),
-        listarPropostasAgendamento(),
+        listarPropostasAgendamento(filtros.value),
       ]);
       if (calendarioResultado.status === 'rejected') throw calendarioResultado.reason;
       calendario.value = calendarioResultado.value;
@@ -370,7 +370,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     salvando.value = true;
     limparErro();
     try {
-      const resultado = await gerarPropostasAgendamento(dias, autor());
+      const resultado = await gerarPropostasAgendamento(dias, autor(), filtros.value);
       await recarregarTudo();
       return resultado;
     } catch (candidato) {

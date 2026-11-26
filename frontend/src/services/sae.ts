@@ -995,13 +995,36 @@ export interface ResultadoSimulacaoAgenda {
 }
 
 /** GET /api/agendamentos/propostas */
-export async function listarPropostasAgendamento(): Promise<PropostaAgendamentoFila[]> {
+export async function listarPropostasAgendamento(
+  filtros: FiltrosSimulacao = {},
+): Promise<PropostaAgendamentoFila[]> {
   if (!USAR_MOCKS) {
-    const { data } = await api.get<PropostaAgendamentoFila[]>('/api/agendamentos/propostas');
+    const { data } = await api.get<PropostaAgendamentoFila[]>(
+      '/api/agendamentos/propostas', { params: { ...filtros } },
+    );
     return data;
   }
   await pausa();
-  return filaPropostasMock();
+  const unidadeFiltro = (filtros.unidade || '').trim().toLowerCase();
+  const codigoExameFiltro = (filtros.codigoExame || '').trim().toUpperCase();
+  const pacienteChaveFiltro = (filtros.pacienteChave || '').trim();
+
+  return filaPropostasMock().filter((proposta) => {
+    if (unidadeFiltro && (proposta.unidade || '').trim().toLowerCase() !== unidadeFiltro) {
+      return false;
+    }
+    if (pacienteChaveFiltro && chavePacienteMock(proposta.prontuario) !== pacienteChaveFiltro) {
+      return false;
+    }
+    if (codigoExameFiltro) {
+      const exameNome = (proposta.nomeExame || '').trim().toUpperCase();
+      const exames = (proposta.exames || '').toUpperCase();
+      if (!exameNome.includes(codigoExameFiltro) && !exames.includes(codigoExameFiltro)) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
 
 /**
@@ -1010,14 +1033,23 @@ export async function listarPropostasAgendamento(): Promise<PropostaAgendamentoF
  * gerada na própria simulação é contabilizada a cada proposta — inclusive o
  * bloqueio de outro horário do mesmo paciente — antes de escolher a vaga
  * seguinte. As propostas só viram ATIVOS após confirmação do operador.
+ * A simulação respeita os filtros ativos (unidade, código de exame e
+ * paciente/prontuário); nunca simula todas as solicitações de uma vez.
  */
+export interface FiltrosSimulacao {
+  unidade?: string;
+  codigoExame?: string;
+  pacienteChave?: string;
+}
+
 export async function gerarPropostasAgendamento(
   dias = 30,
   autor = 'Sistema',
+  filtros: FiltrosSimulacao = {},
 ): Promise<ResultadoSimulacaoAgenda> {
   if (!USAR_MOCKS) {
     const { data } = await api.post<ResultadoSimulacaoAgenda>(
-      '/api/agendamentos/propostas/gerar', { dias, autor },
+      '/api/agendamentos/propostas/gerar', { dias, autor, ...filtros },
     );
     return data;
   }
@@ -1025,6 +1057,10 @@ export async function gerarPropostasAgendamento(
   sincronizarOcupacaoMock();
   const inicio = agoraIso();
   const limite = somarHoras(inicio, Math.max(1, dias) * 24).slice(0, 10);
+  const unidadeFiltro = (filtros.unidade || '').trim().toLowerCase();
+  const codigoExameFiltro = (filtros.codigoExame || '').trim().toUpperCase();
+  const pacienteChaveFiltro = (filtros.pacienteChave || '').trim();
+
   const elegiveis = mockDb.solicitacoes
     .filter((solicitacao) => [
       'AGUARDANDO_CONTATO', 'AGUARDANDO_CONFIRMACAO', 'AGUARDANDO_REAGENDAMENTO',
@@ -1034,6 +1070,20 @@ export async function gerarPropostasAgendamento(
     .filter((solicitacao) => !agendamentosMock.some((agendamento) =>
       agendamento.solicitacaoId === solicitacao.id
       && (agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO')))
+    .filter((solicitacao) => {
+      if (unidadeFiltro && (solicitacao.setorSolicitante || '').trim().toLowerCase() !== unidadeFiltro) {
+        return false;
+      }
+      if (pacienteChaveFiltro && chavePacienteMock(solicitacao.prontuario) !== pacienteChaveFiltro) {
+        return false;
+      }
+      if (codigoExameFiltro) {
+        const codigos = new Set(solicitacao.itensExame
+          .map((item) => item.codigoExame.trim().toUpperCase()).filter(Boolean));
+        if (!codigos.has(codigoExameFiltro)) return false;
+      }
+      return true;
+    })
     .sort((a, b) => b.pontuacao - a.pontuacao
       || new Date(a.recebidaEm).getTime() - new Date(b.recebidaEm).getTime());
 

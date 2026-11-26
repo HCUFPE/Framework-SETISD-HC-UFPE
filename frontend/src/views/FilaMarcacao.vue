@@ -46,6 +46,14 @@
         <table class="w-full text-left text-sm">
           <thead class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
             <tr>
+              <th v-if="visivel('selecao') && podeEditar" class="px-3 py-2">
+                <input
+                  type="checkbox"
+                  :checked="selecionadosTodas"
+                  @change="alternarSelecaoTodas"
+                  class="rounded border-gray-300 text-paper-primary focus:ring-paper-primary"
+                />
+              </th>
               <th v-if="visivel('ordem')" class="px-3 py-2">#</th>
               <th v-if="visivel('prioridade')" class="px-3 py-2">Prioridade</th>
               <th v-if="visivel('paciente')" class="px-3 py-2">Paciente / Prontuário</th>
@@ -62,8 +70,17 @@
               v-for="(solicitacao, indice) in store.solicitacoes"
               :key="solicitacao.id"
               class="cursor-pointer bg-white transition hover:bg-gray-50"
+              :class="{ 'bg-gray-50/50': selecionados.has(solicitacao.id) }"
               @click="store.abrir(solicitacao.id)"
             >
+              <td v-if="visivel('selecao') && podeEditar" class="px-3 py-3">
+                <input
+                  type="checkbox"
+                  :checked="selecionados.has(solicitacao.id)"
+                  @change="alternarSelecao(solicitacao.id)"
+                  class="rounded border-gray-300 text-paper-primary focus:ring-paper-primary"
+                />
+              </td>
               <td v-if="visivel('ordem')" class="px-3 py-3 font-medium text-gray-500">{{ (store.paginacao.pagina - 1) * store.paginacao.porPagina + indice + 1 }}</td>
               <td v-if="visivel('prioridade')" class="px-3 py-3">
                 <PriorityBadge :prioridade="solicitacao.prioridade" />
@@ -87,11 +104,91 @@
               <td v-if="visivel('acao')" class="px-3 py-3"><Button variant="info" @click.stop="store.abrir(solicitacao.id)">Abrir</Button></td>
             </tr>
             <tr v-if="store.solicitacoes.length === 0 && !store.carregando">
-              <td :colspan="colunasVisiveis.length" class="px-3 py-8 text-center text-gray-500">Nenhuma solicitação encontrada para os filtros selecionados.</td>
+              <td :colspan="colunasVisiveis.length + (podeEditar && visivel('selecao') ? 1 : 0)" class="px-3 py-8 text-center text-gray-500">Nenhuma solicitação encontrada para os filtros selecionados.</td>
             </tr>
           </tbody>
         </table>
         <LoadingIndicator v-if="store.carregando" />
+      </div>
+
+      <!-- Barra de ação em lote -->
+      <div
+        v-if="podeEditar && selecionados.size > 0"
+        class="mt-3 rounded border border-amber-200 bg-amber-50 p-3"
+      >
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold text-amber-800">
+            {{ selecionados.size }} item(ns) selecionado(s)
+          </span>
+          <select
+            v-model="loteNovoStatus"
+            class="campo-lote text-xs border border-amber-300 rounded px-2 py-1"
+          >
+            <option value="PROPOSTO">Proposta</option>
+            <option value="ATIVO">Ativo</option>
+            <option value="CANCELADO">Cancelado</option>
+            <option value="CONCLUIDO">Concluído</option>
+          </select>
+          <input
+            v-model="loteJustificativa"
+            type="text"
+            placeholder="Justificativa (obrigatória)"
+            class="campo-lote text-xs border border-amber-300 rounded px-2 py-1 w-48"
+          />
+          <Button variant="warning" :loading="agendamentosStore.salvando" @click="abrirConfirmacaoLote">
+            Aplicar em lote
+          </Button>
+          <button
+            type="button"
+            @click="limparSelecao"
+            class="text-xs text-gray-600 hover:underline px-2 py-1"
+          >
+            Limpar seleção
+          </button>
+        </div>
+        <p class="mt-1 text-xs text-amber-700">
+          A justificativa será aplicada a todos os itens selecionados.
+        </p>
+      </div>
+
+      <!-- Modal de confirmação da edição em lote -->
+      <ModalLote
+        v-if="modalLoteAberto"
+        :selecionados="selecionadosArray"
+        :novoStatus="loteNovoStatus"
+        :justificativa="loteJustificativa"
+        :ocupado="agendamentosStore.salvando"
+        @confirmar="aplicarLote"
+        @cancelar="modalLoteAberto = false"
+      />
+
+      <!-- Popup temporário de reverter após edição em lote -->
+      <div
+        v-if="reverterVisivel && reverterInfo"
+        class="mt-3 rounded border border-emerald-200 bg-emerald-50 p-3 flex items-start gap-3"
+      >
+        <div class="rounded-full bg-emerald-100 p-1 text-emerald-600 flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.859-3.087Z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-emerald-800 font-semibold">
+            Edição em lote aplicada: {{ reverterInfo.quantidade }} item(ns)
+            para {{ reverterInfo.novoStatus }}.
+          </p>
+          <button
+            type="button"
+            class="mt-1 text-xs text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
+            @click="reverterLote"
+          >
+            Reverter alteração em lote
+          </button>
+          <span class="ml-2 text-xs text-emerald-600">
+            (desaparece automaticamente em 8s)
+          </span>
+        </div>
       </div>
 
       <nav class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4" aria-label="Paginação da fila">
@@ -130,17 +227,20 @@ import ColumnMenu from '../components/ColumnMenu.vue';
 import DivergenciaBadge from '../components/DivergenciaBadge.vue';
 import FilterBar from '../components/FilterBar.vue';
 import LoadingIndicator from '../components/LoadingIndicator.vue';
+import ModalLote from '../components/agendamentos/ModalLote.vue';
 import PriorityBadge from '../components/PriorityBadge.vue';
 import SolicitacaoDrawer from '../components/SolicitacaoDrawer.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { REFERENCIA_EM } from '../config/tempo';
 import { listarUnidadesSolicitantes } from '../services/sae';
 import { useAuthStore } from '../stores/auth';
+import { useAgendamentosStore } from '../stores/agendamentos';
 import { useSolicitacaoStore } from '../stores/solicitacao';
 import type { OpcaoColuna, ResultadoContato, Solicitacao } from '../types/sae';
 import { formatarDataHora, formatarDuracao, horasDesde } from '../utils/format';
 
 const TODAS_COLUNAS: OpcaoColuna[] = [
+  { chave: 'selecao', rotulo: '' },
   { chave: 'ordem', rotulo: '#' },
   { chave: 'prioridade', rotulo: 'Prioridade' },
   { chave: 'paciente', rotulo: 'Paciente / Prontuário' },
@@ -176,6 +276,7 @@ function preferenciaInicial(): string[] {
 }
 
 const store = useSolicitacaoStore();
+const agendamentosStore = useAgendamentosStore();
 const auth = useAuthStore();
 const toast = useToast();
 const router = useRouter();
@@ -183,7 +284,45 @@ const tiposExame = ['Imagem', 'Laboratório', 'Medicina Nuclear', 'Fonoaudiologi
 const unidadesSolicitantes = ref<string[]>([]);
 const colunasVisiveis = ref<string[]>(preferenciaInicial());
 
-const podeEditar = computed(() => auth.temPerfil('OPERADOR', 'CHEFIA'));
+const podeEditar = computed(() => auth.temPerfil('OPERADOR', 'CHEFIA', 'AREA_GESTORA', 'ADMIN_TI'));
+
+// Seleção múltipla para edição em lote
+const selecionados = ref<Set<string>>(new Set());
+const selecionadosArray = computed(() => Array.from(selecionados.value));
+const selecionadosTodas = computed(() =>
+  selecionados.value.size > 0 &&
+  selecionados.value.size === store.solicitacoes.length,
+);
+
+function alternarSelecao(id: string): void {
+  if (selecionados.value.has(id)) selecionados.value.delete(id);
+  else selecionados.value.add(id);
+}
+
+function alternarSelecaoTodas(): void {
+  if (selecionadosTodas.value) {
+    selecionados.value.clear();
+  } else {
+    store.solicitacoes.forEach((s) => selecionados.value.add(s.id));
+  }
+}
+
+function limparSelecao(): void {
+  selecionados.value.clear();
+}
+
+// Estado da edição em lote
+const modalLoteAberto = ref(false);
+const loteNovoStatus = ref('ATIVO');
+const loteJustificativa = ref('');
+
+// Popup de reverter
+const reverterVisivel = ref(false);
+const reverterInfo = ref<{
+  novoStatus: string;
+  statusAnterior: string;
+  quantidade: number;
+} | null>(null);
 
 watch(colunasVisiveis, (valor) => {
   try {
@@ -226,4 +365,64 @@ function efetuarMarcacao(solicitacao: Solicitacao): void {
     query: { solicitacao: solicitacao.id, busca: solicitacao.prontuario },
   });
 }
+
+function abrirConfirmacaoLote(): void {
+  if (!loteJustificativa.value.trim()) return;
+  modalLoteAberto.value = true;
+}
+
+async function aplicarLote(): Promise<void> {
+  const ids = selecionadosArray.value;
+  const resultado = await agendamentosStore.alterarStatusLote(
+    ids,
+    loteNovoStatus.value,
+    loteJustificativa.value,
+  );
+  if (resultado) {
+    toast.success(
+      `${resultado.processados} agendamento(ns) alterado(s) para ${resultado.novoStatus}.`,
+    );
+    modalLoteAberto.value = false;
+    limparSelecao();
+    loteJustificativa.value = '';
+    reverterInfo.value = {
+      novoStatus: loteNovoStatus.value,
+      statusAnterior: resultado.itens[0]?.statusAnterior ?? '',
+      quantidade: resultado.processados,
+    };
+    reverterVisivel.value = true;
+    setTimeout(() => {
+      reverterVisivel.value = false;
+      reverterInfo.value = null;
+    }, 8000);
+  } else {
+    toast.error(agendamentosStore.erro || 'Não foi possível aplicar a edição em lote.');
+  }
+}
+
+async function reverterLote(): Promise<void> {
+  const ok = await agendamentosStore.reverterUltimoLote();
+  if (ok) {
+    toast.success('Edição em lote revertida.');
+    reverterVisivel.value = false;
+    reverterInfo.value = null;
+  } else {
+    toast.error(agendamentosStore.erro || 'Não foi possível reverter a edição em lote.');
+  }
+}
 </script>
+
+<style scoped>
+.campo-lote {
+  width: 100%;
+  border-radius: 0.25rem;
+  border: 1px solid #d1d5db;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.875rem;
+  background: #fffbf0;
+}
+.campo-lote:focus {
+  outline: none;
+  border-color: #f59e0b;
+}
+</style>
