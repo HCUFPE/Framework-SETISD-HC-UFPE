@@ -64,6 +64,19 @@ def salvar(documento: Dict[str, Any], caminho: Path) -> None:
     )
 
 
+EXAMES_SIMULADOS: Dict[str, str] = {
+    "COLON": "Colonoscopia",
+    "DESITO": "Desitometria",
+    "ECO": "Ecocardiograma",
+    "ENDO": "Endoscopia",
+    "OFTA": "Exames de oftalmologia",
+    "MAMO": "Mamografia",
+    "RX": "Raio X",
+    "ERGO": "Teste ergométrico",
+    "US": "Ultrassonografias (inclusive com Doppler)",
+}
+
+
 def _catalogos(reais: List[Dict[str, Any]]) -> Tuple[List[str], Dict[str, str], List[Tuple[str, str]], List[Tuple[str, str]]]:
     """Extrai unidades, exames, solicitantes e cidades do export real."""
     unidades = sorted({
@@ -76,6 +89,8 @@ def _catalogos(reais: List[Dict[str, Any]]) -> Tuple[List[str], Dict[str, str], 
             codigo = str(exame.get("codigoExame", "")).strip()
             if codigo:
                 exames.setdefault(codigo, str(exame.get("nomeExame", "")).strip())
+    # Acrescenta exames de demonstração para compor os filtros e a agenda simulada.
+    exames.update(EXAMES_SIMULADOS)
     solicitantes = sorted({
         (str(item["solicitante"]["codigo"]).strip(), str(item["solicitante"]["nome"]).strip())
         for item in reais if item.get("solicitante", {}).get("codigo")

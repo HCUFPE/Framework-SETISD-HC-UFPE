@@ -592,7 +592,7 @@ const unidadesAgendaMock = Array.from(
 const examesAgendaMock = Array.from(
   new Map(mockDb.solicitacoes.flatMap((item) => item.itensExame)
     .map((item) => [item.codigoExame, item] as const)).values(),
-).slice(0, 3);
+);
 
 const TURNOS_AGENDA = [[8, 10], [10, 12], [13, 15], [15, 17]] as const;
 
