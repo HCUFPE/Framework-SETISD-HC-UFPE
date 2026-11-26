@@ -15,6 +15,7 @@ import {
   listarPropostasAgendamento,
   listarSugestoesAgendamento,
   moverPropostaAgendamento,
+  alterarStatusLoteAgendamento,
   obterSolicitacao,
   registrarNaoConfirmacaoAgendamento,
   remarcarAgendamento,
@@ -82,6 +83,11 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
   const solicitacao = ref<Solicitacao | null>(null);
   const sugestoes = ref<SugestaoAgendamento[]>([]);
   const propostas = ref<PropostaAgendamentoFila[]>([]);
+  /** Última edição em lote executada, guardada para possibilitar reverter. */
+  const ultimoLote = ref<{
+    novoStatus: string;
+    itens: Array<{ agendamentoId: string; statusAnterior: string }>;
+  } | null>(null);
   const modalSugestoes = ref(false);
   const modalAcao = ref(false);
   const modalDia = ref(false);
@@ -410,6 +416,62 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     }
   }
 
+  /** Altera o status de vários agendamentos de uma só vez (edição em lote).
+   * Guarda os estados anteriores para possibilitar reverter. */
+  async function alterarStatusLote(
+    agendamentoIds: string[], novoStatus: string, justificativa: string,
+  ): Promise<{ processados: number; novoStatus: string; itens: any[] } | null> {
+    if (!podeEditar.value) return null;
+    salvando.value = true;
+    limparErro();
+    try {
+      const resultado = await alterarStatusLoteAgendamento(
+        agendamentoIds, novoStatus, justificativa, autor(),
+      );
+      // Guarda para reverter: cada item com seu status anterior.
+      ultimoLote.value = {
+        novoStatus,
+        itens: resultado.itens.map((item) => ({
+          agendamentoId: item.agendamentoId,
+          statusAnterior: item.statusAnterior,
+        })),
+      };
+      await recarregarTudo();
+      return resultado;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível aplicar a edição em lote.');
+      return null;
+    } finally {
+      salvando.value = false;
+    }
+  }
+
+  /** Reverte a última edição em lote, restaurando os status anteriores. */
+  async function reverterUltimoLote(): Promise<boolean> {
+    if (!podeEditar.value || !ultimoLote.value) return false;
+    salvando.value = true;
+    limparErro();
+    try {
+      const lote = ultimoLote.value;
+      await alterarStatusLoteAgendamento(
+        lote.itens.map((item: { agendamentoId: string; statusAnterior: string }) =>
+          item.agendamentoId,
+        ),
+        lote.itens[0]?.statusAnterior ?? '',
+        `Reversão de edição em lote (${lote.novoStatus} → ${lote.itens[0]?.statusAnterior ?? ''})`,
+        autor(),
+      );
+      ultimoLote.value = null;
+      await recarregarTudo();
+      return true;
+    } catch (candidato) {
+      registrarErro(candidato, 'Não foi possível reverter a edição em lote.');
+      return false;
+    } finally {
+      salvando.value = false;
+    }
+  }
+
   async function registrarNaoConfirmacao(
     proposta: PropostaAgendamentoFila, justificativa: string,
   ): Promise<boolean> {
@@ -524,6 +586,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     solicitacao,
     sugestoes,
     propostas,
+    ultimoLote,
     modalSugestoes,
     modalAcao,
     modalDia,
@@ -560,6 +623,8 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     gerarPropostas,
     confirmarProposta,
     moverProposta,
+    alterarStatusLote,
+    reverterUltimoLote,
     registrarNaoConfirmacao,
     confirmarAcao,
     limparErro,

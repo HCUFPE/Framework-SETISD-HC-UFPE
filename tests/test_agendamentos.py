@@ -1197,3 +1197,126 @@ def test_copia_de_semana_valida_intervalo(cliente):
     )
     assert resposta.status_code == 422
     assert "origem" in resposta.json()["detail"]
+
+
+def test_edicao_em_lote_altera_status_multiplos_agendamentos(cliente):
+    cliente, caminho = cliente
+    # Cria 3 solicitações com aceite e gera propostas para elas.
+    ids = []
+    for i in range(3):
+        sid, _ = _inserir_solicitacao(caminho, prontuario=f"900001{i:02d}")
+        _criar_slot(cliente, minutos=60 + i * 30, capacidade=2)
+    # Gera propostas (pode gerar mais de uma se houver múltiplas solicitações elegíveis)
+    resposta = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    assert resposta.status_code == 201, resposta.text
+    propostas = resposta.json()["propostas"]
+    assert len(propostas) >= 1, "Esperava pelo menos uma proposta gerada."
+    ids = [item["agendamentoId"] for item in propostas]
+
+    # Edição em lote: operador não pode (403).
+    nao_permitido = cliente.post(
+        "/api/agendamentos/lote",
+        json={
+            "agendamentoIds": ids,
+            "novoStatus": "ATIVO",
+            "justificativa": "Lote de teste",
+            "autor": "operador",
+        },
+        headers=_headers(OPERADOR),
+    )
+    assert nao_permitido.status_code == 403
+
+    # Chefia pode.
+    resposta_lote = cliente.post(
+        "/api/agendamentos/lote",
+        json={
+            "agendamentoIds": ids,
+            "novoStatus": "ATIVO",
+            "justificativa": "Confirmação em lote da chefia.",
+            "autor": "chefia",
+        },
+        headers=_headers(CHEFIA),
+    )
+    assert resposta_lote.status_code == 200, resposta_lote.text
+    dados = resposta_lote.json()
+    assert dados["processados"] == len(ids)
+    assert dados["novoStatus"] == "ATIVO"
+    assert len(dados["itens"]) == len(ids)
+
+    # Verifica que os agendamentos realmente mudaram.
+    calendario = _calendario(cliente)
+    for item in dados["itens"]:
+        ag = next((a for a in calendario["agendamentos"] if a["id"] == item["agendamentoId"]), None)
+        assert ag is not None, f"Agendamento {item['agendamentoId']} não encontrado no calendário."
+        assert ag["status"] == "ATIVO"
+
+    # Auditoria: cada item deve ter um log ALTERAR_STATUS_LOTE.
+    with _conexao(caminho) as conn:
+        acoes = {
+            linha["acao"]
+            for linha in conn.execute("SELECT acao FROM audit_logs").fetchall()
+        }
+    assert "ALTERAR_STATUS_LOTE" in acoes
+
+
+def test_edicao_em_lote_exige_justificativa(cliente):
+    cliente, caminho = cliente
+    _inserir_solicitacao(caminho, prontuario="90000201")
+    _criar_slot(cliente, minutos=60, capacidade=2)
+    cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    propostas = cliente.post(
+        "/api/agendamentos/lote",
+        json={
+            "agendamentoIds": ["id-inexistente"],
+            "novoStatus": "ATIVO",
+            "justificativa": "",
+            "autor": "chefia",
+        },
+        headers=_headers(CHEFIA),
+    )
+    assert propostas.status_code in (400, 422)
+
+
+def test_edicao_em_lote_sem_ids_devolve_erro(cliente):
+    cliente, caminho = cliente
+    resposta = cliente.post(
+        "/api/agendamentos/lote",
+        json={
+            "agendamentoIds": [],
+            "novoStatus": "ATIVO",
+            "justificativa": "Sem itens.",
+            "autor": "chefia",
+        },
+        headers=_headers(CHEFIA),
+    )
+    assert resposta.status_code in (400, 422)
+
+
+def test_edicao_em_lote_bloqueia_coordenacao(cliente):
+    cliente, caminho = cliente
+    _inserir_solicitacao(caminho, prontuario="90000202")
+    _criar_slot(cliente, minutos=60, capacidade=2)
+    cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "operador"},
+        headers=_headers(OPERADOR),
+    )
+    resposta = cliente.post(
+        "/api/agendamentos/lote",
+        json={
+            "agendamentoIds": ["id-inexistente"],
+            "novoStatus": "CANCELADO",
+            "justificativa": "Tentativa de coordenação.",
+            "autor": "coordenacao",
+        },
+        headers=_headers(COORDENACAO),
+    )
+    assert resposta.status_code == 403

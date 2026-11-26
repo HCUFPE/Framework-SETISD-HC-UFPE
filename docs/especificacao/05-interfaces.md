@@ -68,7 +68,7 @@ stateDiagram-v2
 | `COORDENACAO` | Não | Não | Não | Não | Sim (somente leitura) |
 | `ADMIN_TI` | Não | Não | Não | Sim | Sim |
 
-Para a agenda (v0.7.0): leitura para `OPERADOR`, `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI`, `COORDENACAO` e `GLO-SEC-HCPE-SETISD`; escrita — incluindo gerar/confirmar/mover/cancelar propostas — para todos exceto `COORDENACAO`; administração de vagas para `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI` e `GLO-SEC-HCPE-SETISD`. Esses perfis são validados no backend; `meta.roles` no frontend apenas esconde controles.
+Para a agenda (v0.7.0): leitura para `OPERADOR`, `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI`, `COORDENACAO` e `GLO-SEC-HCPE-SETISD`; escrita — incluindo gerar/confirmar/mover/cancelar propostas e edição em lote de status — para `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI` e `GLO-SEC-HCPE-SETISD` (edição em lote não está disponível para `OPERADOR`); administração de vagas para `CHEFIA`, `AREA_GESTORA`, `ADMIN_TI` e `GLO-SEC-HCPE-SETISD`. Esses perfis são validados no backend; `meta.roles` no frontend apenas esconde controles.
 
 ## 5. Contratos de API
 
@@ -153,6 +153,7 @@ Todos os endpoints abaixo exigem JWT no `APIRouter` e RBAC no backend. Grupos/pe
 | `POST` | `/api/agendamentos/propostas/gerar` | Escrita | Corpo `{ dias = 30, autor }` (limite `1..90`); `201` com `{ geradas, solicitacoes, dias, propostas: PropostaAgendamentoFila[] }`. Cada proposta reserva vaga na própria execução e não envia nada ao AGHUX. |
 | `POST` | `/api/agendamentos/{id}/confirmar` | Escrita | Corpo `{ autor }`; `200` com a proposta confirmada (`ATIVO`) e a solicitação `AGENDADA`. Só aceita `PROPOSTO`. |
 | `POST` | `/api/agendamentos/{id}/mover` | Escrita | Corpo `{ slotId, autor }`; move uma proposta `PROPOSTO` para outra vaga sem confirmá-la (drag-and-drop). `422` se a proposta não estiver pendente, a vaga for a atual ou o exame não corresponder; `409` se a vaga estiver esgotada ou houver choque do mesmo paciente; auditoria `NEGOCIO_CLINICO` (`MOVER_PROPOSTA_AGENDA`). |
+| `POST` | `/api/agendamentos/lote` | `CHEFIA` / `AREA_GESTORA` / `ADMIN_TI` / `GLO-SEC-HCPE-SETISD` | Corpo `{ agendamentoIds[], novoStatus, justificativa, autor }`; altera o status de vários agendamentos de uma só vez (edição em lote da fila). Todos os status são elegíveis; justificativa única obrigatória para todo o lote; `403` para perfis sem permissão (incluindo `OPERADOR` e `COORDENACAO`); auditoria `NEGOCIO_CLINICO` (`ALTERAR_STATUS_LOTE`) por item alterado. |
 | `POST` | `/api/agendamentos/{id}/nao-confirmado` | Escrita | Corpo `{ justificativa, autor }`; justificativa obrigatória; `200` com agendamento `CANCELADO` e solicitação `AGUARDANDO_REAGENDAMENTO`. |
 | `POST` | `/api/agendamentos/{id}/remarcar` | Escrita | Corpo `{ slotId, justificativa, autor }`; justificativa obrigatória; aceita `ATIVO` ou `PROPOSTO`; devolve a vaga anterior na mesma transação. |
 | `POST` | `/api/agendamentos/{id}/cancelar` | Escrita | Corpo `{ justificativa, autor }`; justificativa obrigatória; aceita `ATIVO` ou `PROPOSTO`; proposta cancelada devolve a solicitação para `AGUARDANDO_REAGENDAMENTO`, agendamento ativo cancelado para `CANCELADA`. |

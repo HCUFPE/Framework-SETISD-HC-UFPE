@@ -7,7 +7,7 @@ reforçam RBAC no backend. O grupo `GLO-SEC-HCPE-SETISD` do usuário mock
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import AliasChoices, BaseModel, Field
@@ -38,6 +38,8 @@ GRUPOS_ESCRITA = {
 }
 # A chefia da central ajusta a disponibilidade de exames (vagas) na rotina diária.
 GRUPOS_ADMIN_AGENDA = {"CHEFIA", "AREA_GESTORA", "ADMIN_TI", "GLO-SEC-HCPE-SETISD"}
+# Edição em lote da fila: chefia, gestão/coordenação (área gestora), TI e admin.
+GRUPOS_LOTE = {"CHEFIA", "AREA_GESTORA", "ADMIN_TI", "GLO-SEC-HCPE-SETISD"}
 
 
 def _grupos(current_user: dict) -> set[str]:
@@ -76,6 +78,18 @@ async def verificar_admin_agenda(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Perfil sem permissão para administrar a agenda de vagas.",
+        )
+    return current_user
+
+
+async def verificar_lote(
+    current_user: dict = Depends(auth_handler.decode_token),
+) -> dict:
+    """Permite edição em lote apenas a chefia, gestão, TI e admin."""
+    if not (_grupos(current_user) & GRUPOS_LOTE):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Perfil sem permissão para edição em lote da fila.",
         )
     return current_user
 
@@ -166,6 +180,15 @@ class MoverPropostaPayload(BaseModel):
     """Movimento de uma proposta para outra vaga (arrastar e soltar)."""
 
     slotId: str = Field(min_length=1)
+    autor: str = Field(min_length=1)
+
+
+class LoteStatusPayload(BaseModel):
+    """Edição em lote de status na fila de marcação."""
+
+    agendamentoIds: List[str] = Field(min_length=1)
+    novoStatus: str = Field(min_length=1)
+    justificativa: str = Field(min_length=1)
     autor: str = Field(min_length=1)
 
 
@@ -377,6 +400,26 @@ async def mover_proposta(
         provider,
         agendamento_id=agendamento_id,
         slot_id=payload.slotId,
+        autor=payload.autor,
+        ip=_ip(request),
+    )
+
+
+@router.post("/lote")
+async def alterar_status_lote(
+    payload: LoteStatusPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_app_db_session),
+    provider: SlotProviderInterface = Depends(get_slot_provider),
+    current_user: dict = Depends(verificar_lote),
+):
+    """Altera o status de vários agendamentos de uma só vez (edição em lote)."""
+    return await controller.alterar_status_lote(
+        db,
+        provider,
+        agendamento_ids=payload.agendamentoIds,
+        novo_status=payload.novoStatus,
+        justificativa=payload.justificativa,
         autor=payload.autor,
         ip=_ip(request),
     )

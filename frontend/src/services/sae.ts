@@ -1451,6 +1451,61 @@ export async function moverPropostaAgendamento(
   return clonar(agendamento);
 }
 
+/** POST /api/agendamentos/lote — edição em lote de status na fila. */
+export async function alterarStatusLoteAgendamento(
+  agendamentoIds: string[],
+  novoStatus: string,
+  justificativa: string,
+  autor: string,
+): Promise<{ processados: number; novoStatus: string; itens: Array<{
+  agendamentoId: string; statusAnterior: string; statusNovo: string;
+  protocolo: string; pacienteNome: string;
+}> }> {
+  if (!USAR_MOCKS) {
+    const { data } = await api.post<{
+      processados: number; novoStatus: string; itens: any[];
+    }>('/api/agendamentos/lote', {
+      agendamentoIds, novoStatus, justificativa, autor,
+    });
+    return data as any;
+  }
+  await pausa();
+  sincronizarOcupacaoMock();
+  const itens: Array<{
+    agendamentoId: string; statusAnterior: string; statusNovo: string;
+    protocolo: string; pacienteNome: string;
+  }> = [];
+  for (const id of agendamentoIds) {
+    const agendamento = agendamentosMock.find((item) => item.id === id);
+    if (!agendamento) throw new Error(`Agendamento ${id} não encontrado.`);
+    const statusAnterior = agendamento.status;
+    agendamento.status = novoStatus as unknown as Agendamento['status'];
+    agendamento.justificativa = justificativa.trim();
+    agendamento.confirmadoPor = autor;
+    const solicitacao = encontrarSolicitacaoMock(agendamento.solicitacaoId);
+    if (solicitacao) {
+      if (novoStatus === 'ATIVO') solicitacao.status = 'AGENDADA' as Solicitacao['status'];
+      solicitacao.agendamento = solicitacao.agendamento || {
+        dataHora: agendamento.dataHora,
+        unidade: agendamento.unidade,
+        confirmadoPor: autor,
+        criadoEm: agoraIso(),
+      };
+    }
+    registrar('Alteração de status em lote', autor, 'NEGOCIO_CLINICO',
+      `${agendamento.protocolo}: ${statusAnterior} → ${novoStatus}.`);
+    itens.push({
+      agendamentoId: id,
+      statusAnterior,
+      statusNovo: novoStatus,
+      protocolo: agendamento.protocolo,
+      pacienteNome: agendamento.pacienteNome,
+    });
+  }
+  sincronizarOcupacaoMock();
+  return { processados: itens.length, novoStatus, itens };
+}
+
 function inicioSemanaIsoMock(valor: string, campo: string): string {
   const texto = valor.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) {

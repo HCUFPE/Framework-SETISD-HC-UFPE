@@ -1150,6 +1150,103 @@ async def registrar_nao_confirmacao(
 
 
 # ---------------------------------------------------------------------------
+# Edição em lote da fila de marcação
+# ---------------------------------------------------------------------------
+
+_STATUS_PARA_SOLICITACAO = {
+    "ATIVO": STATUS_AGENDADA,
+}
+
+
+async def alterar_status_lote(
+    db: AsyncSession,
+    provider: SlotProviderInterface,
+    *,
+    agendamento_ids: List[str],
+    novo_status: str,
+    justificativa: Optional[str],
+    autor: str,
+    ip: Optional[str],
+) -> Dict[str, Any]:
+    """Altera o status de vários agendamentos de uma só vez (edição em lote).
+
+    Todos os status são elegíveis. A justificativa é única para todo o lote.
+    Cada alteração é auditada individualmente como `NEGOCIO_CLINICO`.
+    Retorna a lista de itens processados com status anterior e novo.
+    """
+    if not agendamento_ids:
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Informe ao menos um agendamento para edição em lote.",
+        )
+    if not justificativa or not justificativa.strip():
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Justificativa é obrigatória para edição em lote.",
+        )
+
+    processados: List[Dict[str, Any]] = []
+    erros: List[Dict[str, str]] = []
+
+    for agendamento_id in agendamento_ids:
+        agendamento = await _buscar_agendamento(db, agendamento_id)
+        status_anterior = agendamento.status
+
+        anterior = await _agendamento_para_dict(db, agendamento, provider)
+        agendamento.status = novo_status
+        agendamento.justificativa = justificativa.strip()
+        agendamento.autor = autor
+
+        solicitacao = await _buscar_solicitacao(db, agendamento.solicitacao_id)
+        status_solicitacao_anterior = solicitacao.status
+        novo_status_solicitacao = _STATUS_PARA_SOLICITACAO.get(novo_status)
+        if novo_status_solicitacao:
+            solicitacao.status = novo_status_solicitacao
+        solicitacao.atualizado_em = _agora()
+
+        await db.flush()
+        atualizado = await _agendamento_para_dict(db, agendamento, provider)
+
+        await _auditar(
+            db,
+            usuario=autor,
+            categoria="NEGOCIO_CLINICO",
+            acao="ALTERAR_STATUS_LOTE",
+            recurso=f"agendamento:{agendamento_id}",
+            anteriores={
+                **anterior,
+                "statusSolicitacao": status_solicitacao_anterior,
+            },
+            novos={
+                **atualizado,
+                "statusSolicitacao": solicitacao.status,
+                "motivo": justificativa.strip(),
+            },
+            ip=ip,
+        )
+
+        processados.append({
+            "agendamentoId": agendamento_id,
+            "statusAnterior": status_anterior,
+            "statusNovo": novo_status,
+            "protocolo": atualizado.get("protocolo", ""),
+            "pacienteNome": atualizado.get("pacienteNome", ""),
+        })
+
+    if erros:
+        raise _erro(
+            status.HTTP_409_CONFLICT,
+            f"{len(erros)} agendamento(ns) não pôde(m) ser alterado(s).",
+        )
+
+    return {
+        "processados": len(processados),
+        "novoStatus": novo_status,
+        "itens": processados,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Consultas e sugestões
 # ---------------------------------------------------------------------------
 
