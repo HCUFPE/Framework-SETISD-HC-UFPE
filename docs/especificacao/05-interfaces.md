@@ -277,14 +277,14 @@ O tipo `Agendamento` da fila foi renomeado para `AgendamentoRegistro` para não 
 ```typescript
 interface ResultadoFila {
   itens: Solicitacao[]; // 20 por página, da maior para a menor pontuação
-  total: number;        // 493 no export AGHUX atual
+  total: number;        // 523 no fixture: 493 do export + 30 simuladas
   pagina: number;       // 1-based
   porPagina: number;    // 20
-  totalPaginas: number; // 25 no export AGHUX atual
+  totalPaginas: number; // 27 com o fixture atual (523 / 20)
 }
 ```
 
-`periodo` (`24`, `72`, `168`, `720` ou `todos`) é calculado em relação a `referenciaEm` (`2026-09-28T16:05:34.227`) enquanto `VITE_USE_MOCKS=true`. A busca inclui `prontuario` e `codigoSolicitacaoAghux`; `unidadeSolicitante` filtra pelo setor solicitante. Solicitações com mais de um `codigo_exame` no export aparecem uma única vez, com `itensExame[]`.
+`periodo` (`24`, `72`, `168`, `720` ou `todos`) é calculado em relação a `referenciaEm` (`2026-11-25T16:05:34.227`) enquanto `VITE_USE_MOCKS=true`. A busca inclui `prontuario` e `codigoSolicitacaoAghux`; `unidadeSolicitante` filtra pelo setor solicitante. Solicitações com mais de um `codigo_exame` no export aparecem uma única vez, com `itensExame[]`.
 
 ### [SCHEMA] Interface de integração alvo (não implementada)
 

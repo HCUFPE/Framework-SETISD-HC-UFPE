@@ -409,12 +409,12 @@ O fixture `frontend/src/mocks/dadosAghux.json` é gerado por `scripts/importar_d
 | `pac_nome` | `pacienteNome` | Nome já anonimizado no export. |
 | `telefone` | `telefone` | Fixo `81999999999` no export; não é telefone real. |
 | `cidade`, `estado` | `cidade`, `estado` | UF por extenso no export. |
-| `data_solicitao` | `recebidaEm` | Data real preservada; o maior valor é `referenciaEm`. |
+| `data_solicitao` | `recebidaEm` | Data real preservada; o maior valor do export é 28/09/2026, estendido para 25/11/2026 pelas solicitações simuladas no fixture. |
 | `unidade_solicitante` | `setorSolicitante`, `tipoExame` | `tipoExame` é categoria derivada para filtros. |
 | `codigo_exame`, `nome_exame` | `itensExame[]` | Exames de uma mesma solicitação. |
 | `id_funcionario`, `nome_funcionario` | `solicitanteCodigo`, `solicitanteNome` | Solicitante no AGHU. |
 
-`urgenciaClinica` e `idade` não existem no export e são valores neutros simulados, sinalizados em `atributosSimulados`. `tempoEspera` e `complexidadeExame` são derivados de campos reais. A data de referência do export (`2026-09-28T16:05:34.227`) é o "agora" da simulação.
+`urgenciaClinica` e `idade` não existem no export e são valores neutros simulados, sinalizados em `atributosSimulados`. `tempoEspera` e `complexidadeExame` são derivados de campos reais. O "agora" da simulação é a referência do fixture (`2026-11-25T16:05:34.227`); a referência original do export (`2026-09-28T16:05:34.227`) permanece apenas como proveniência dos registros reais.
 
 ### [MAPEAMENTO] Resposta do Forms → Solicitacao (atualizado na v0.3.0)
 

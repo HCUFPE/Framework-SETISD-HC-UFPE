@@ -1,9 +1,783 @@
 {
   "fonte": "Documentos de Apoio/_SELECT_Dados_do_Paciente_pac_prontuario_pac_nome_81999999999_as_202610021206.csv",
-  "referenciaEm": "2026-09-28T16:05:34.227",
-  "totalRegistros": 576,
-  "totalSolicitacoes": 493,
+  "referenciaEm": "2026-11-25T16:05:34.227",
+  "totalRegistros": 642,
+  "totalSolicitacoes": 523,
   "solicitacoes": [
+    {
+      "codigoSolicitacao": "SIM-20261125-018",
+      "prontuario": "SIM72073606",
+      "nome": "João Teixeira (SIMULAÇÃO)",
+      "telefone": "(81) 92387-7428",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-25T11:05:34.227",
+      "unidadeSolicitante": "UDI: DENSITOMETRIA ÓSSEA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "9090",
+        "nome": "TOBIAS 7AE8D3 CEB5C4A1"
+      },
+      "itens": [
+        {
+          "codigoExame": "USAX",
+          "nomeExame": "USG AXILA"
+        },
+        {
+          "codigoExame": "VRA",
+          "nomeExame": "AUDIOMETRIA DE REFORÇO VISUAL"
+        },
+        {
+          "codigoExame": "TRXSC",
+          "nomeExame": "TOMOGRADIA DO TORAX SEM CONTRASTE COM SEDACAO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-019",
+      "prontuario": "SIM77303300",
+      "nome": "Larissa Pereira (SIMULAÇÃO)",
+      "telefone": "(81) 91960-2469",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-25T00:05:34.227",
+      "unidadeSolicitante": "UDI: MAMOGRAFIA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "10062",
+        "nome": "NATALIA 107693 03 A8314"
+      },
+      "itens": [
+        {
+          "codigoExame": "USTIR",
+          "nomeExame": "TIREÓIDE"
+        },
+        {
+          "codigoExame": "CESQ",
+          "nomeExame": "CINTILOGRAFIA DO ESQUELETO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-003",
+      "prontuario": "SIM93291567",
+      "nome": "Marcelo Ribeiro (SIMULAÇÃO)",
+      "telefone": "(81) 95387-6361",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-24T18:05:34.227",
+      "unidadeSolicitante": "UDI: MEDICINA NUCLEAR",
+      "tipoExame": "Medicina Nuclear",
+      "solicitante": {
+        "codigo": "12446",
+        "nome": "ANNA 412ED9C67 09E1BB 7BEA68C"
+      },
+      "itens": [
+        {
+          "codigoExame": "CPCI",
+          "nomeExame": "CINTILOGRAFIA PARA PESQUISA DE CORPO INTEIRO"
+        },
+        {
+          "codigoExame": "USPT",
+          "nomeExame": "PUNÇÃO ASPIRATIVA COM AGULHA FINA ORIENTADA POR ECOTIREÓIDE"
+        },
+        {
+          "codigoExame": "CESQ",
+          "nomeExame": "CINTILOGRAFIA DO ESQUELETO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-016",
+      "prontuario": "SIM86351347",
+      "nome": "Bruno Ribeiro (SIMULAÇÃO)",
+      "telefone": "(81) 97557-4978",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-23T19:05:34.227",
+      "unidadeSolicitante": "UDI: MEDICINA NUCLEAR",
+      "tipoExame": "Medicina Nuclear",
+      "solicitante": {
+        "codigo": "14893",
+        "nome": "ANA FCF13 EF94D02 EF1F2F"
+      },
+      "itens": [
+        {
+          "codigoExame": "USAX",
+          "nomeExame": "USG AXILA"
+        },
+        {
+          "codigoExame": "CPCI",
+          "nomeExame": "CINTILOGRAFIA PARA PESQUISA DE CORPO INTEIRO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-006",
+      "prontuario": "SIM82332357",
+      "nome": "João Almeida (SIMULAÇÃO)",
+      "telefone": "(81) 91314-3927",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-23T16:05:34.227",
+      "unidadeSolicitante": "UDI: RESSONÂNIA MAGNÉTICA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "2056",
+        "nome": "LARISSA 8DA122 1A8857BFC 32717C6"
+      },
+      "itens": [
+        {
+          "codigoExame": "RXCL7",
+          "nomeExame": "COLUNA LOMBAR (AP+P)"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-005",
+      "prontuario": "SIM68862085",
+      "nome": "Diego Barbosa (SIMULAÇÃO)",
+      "telefone": "(81) 99822-7609",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-23T13:05:34.227",
+      "unidadeSolicitante": "UDI: ULTRASSONOGRAFIA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "10136",
+        "nome": "VINICIUS 94C9598 EF1F2F 0B7071"
+      },
+      "itens": [
+        {
+          "codigoExame": "PA",
+          "nomeExame": "TESTE DE PROCESSAMENTO AUDITIVO"
+        },
+        {
+          "codigoExame": "CMREP",
+          "nomeExame": "CINTILOGRAFIA DO MIOCARDIO EM REPOUSO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-022",
+      "prontuario": "SIM39547742",
+      "nome": "Larissa Moraes (SIMULAÇÃO)",
+      "telefone": "(81) 95539-9278",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-23T06:05:34.227",
+      "unidadeSolicitante": "UDI: RESSONÂNIA MAGNÉTICA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "12042",
+        "nome": "MARCIA E197A 3A D3126A"
+      },
+      "itens": [
+        {
+          "codigoExame": "APECR",
+          "nomeExame": "ANATOMOPATOLÓGICO -  PEÇA CIRÚRGICA"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-009",
+      "prontuario": "SIM74405447",
+      "nome": "Hugo Dias (SIMULAÇÃO)",
+      "telefone": "(81) 94134-1816",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-22T17:05:34.227",
+      "unidadeSolicitante": "UDI: RESSONÂNIA MAGNÉTICA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "10896",
+        "nome": "GABRIEL 3A 75417 DA7C1"
+      },
+      "itens": [
+        {
+          "codigoExame": "USAPU",
+          "nomeExame": "APARELHO URINÁRIO"
+        },
+        {
+          "codigoExame": "RMTOD",
+          "nomeExame": "RESSONÂNCIA MAGNÉTICA DE TORNOZELO DIREITO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-030",
+      "prontuario": "SIM69664885",
+      "nome": "Ana Ferreira (SIMULAÇÃO)",
+      "telefone": "(81) 96573-3047",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-22T15:05:34.227",
+      "unidadeSolicitante": "UDI: MEDICINA NUCLEAR",
+      "tipoExame": "Medicina Nuclear",
+      "solicitante": {
+        "codigo": "12874",
+        "nome": "JOSE F29C6B 4983458 F6C 2F7C3F 6BCD82"
+      },
+      "itens": [
+        {
+          "codigoExame": "MPCLM",
+          "nomeExame": "MARCAÇÃO PRÉ-CIRURGICA DE LESÃO NÃO PALPAVEL DE MAMA ASSOCIADA A MAMOGRAFIA"
+        },
+        {
+          "codigoExame": "VRA",
+          "nomeExame": "AUDIOMETRIA DE REFORÇO VISUAL"
+        },
+        {
+          "codigoExame": "LOG",
+          "nomeExame": "LOGOAUDIOMETRIA"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-001",
+      "prontuario": "SIM11276516",
+      "nome": "Natália Carvalho (SIMULAÇÃO)",
+      "telefone": "(81) 98860-3022",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-22T07:05:34.227",
+      "unidadeSolicitante": "UDI: ULTRASSONOGRAFIA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "1874",
+        "nome": "JULIANA 03 A8314 7790"
+      },
+      "itens": [
+        {
+          "codigoExame": "RMPEL",
+          "nomeExame": "RESSONANCIA MAGNETICA DE PELVE"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-007",
+      "prontuario": "SIM19907821",
+      "nome": "Otávio Santos (SIMULAÇÃO)",
+      "telefone": "(81) 92134-4903",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-22T07:05:34.227",
+      "unidadeSolicitante": "UDI: DENSITOMETRIA ÓSSEA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "514",
+        "nome": "ALLISSON BA0A02EB2 3A 913E23"
+      },
+      "itens": [
+        {
+          "codigoExame": "CESQ",
+          "nomeExame": "CINTILOGRAFIA DO ESQUELETO"
+        },
+        {
+          "codigoExame": "USPRO",
+          "nomeExame": "PRÓSTATA VIA ABDOMINAL"
+        },
+        {
+          "codigoExame": "CMPIR",
+          "nomeExame": "CINTILOGRAFIA MIOCARCARDICA COM PIROFOSFATO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-013",
+      "prontuario": "SIM90096993",
+      "nome": "Otávio Ribeiro (SIMULAÇÃO)",
+      "telefone": "(81) 98538-6240",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-22T05:05:34.227",
+      "unidadeSolicitante": "UDI: TOMOGRAFIA COMPUTADORIZADA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "1874",
+        "nome": "JULIANA 03 A8314 7790"
+      },
+      "itens": [
+        {
+          "codigoExame": "CMPIR",
+          "nomeExame": "CINTILOGRAFIA MIOCARCARDICA COM PIROFOSFATO"
+        },
+        {
+          "codigoExame": "VRA",
+          "nomeExame": "AUDIOMETRIA DE REFORÇO VISUAL"
+        },
+        {
+          "codigoExame": "PA",
+          "nomeExame": "TESTE DE PROCESSAMENTO AUDITIVO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-026",
+      "prontuario": "SIM18179741",
+      "nome": "Marcelo Barbosa (SIMULAÇÃO)",
+      "telefone": "(81) 99338-8037",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-21T21:05:34.227",
+      "unidadeSolicitante": "UDI: DENSITOMETRIA ÓSSEA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "2056",
+        "nome": "LARISSA 8DA122 1A8857BFC 32717C6"
+      },
+      "itens": [
+        {
+          "codigoExame": "IMT",
+          "nomeExame": "IMITANCIOMETRIA"
+        },
+        {
+          "codigoExame": "RMPEL",
+          "nomeExame": "RESSONANCIA MAGNETICA DE PELVE"
+        },
+        {
+          "codigoExame": "RXMM1",
+          "nomeExame": "MAMOGRAFIA BILATERAL"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-008",
+      "prontuario": "SIM43025842",
+      "nome": "Diego Oliveira (SIMULAÇÃO)",
+      "telefone": "(81) 93753-4629",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-21T20:05:34.227",
+      "unidadeSolicitante": "UDI: TOMOGRAFIA COMPUTADORIZADA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "14544",
+        "nome": "ELLISA 96A06FC F062B9 3A 75417 28352"
+      },
+      "itens": [
+        {
+          "codigoExame": "TCCR1",
+          "nomeExame": "CRÂNIO (ENCÉFALO)"
+        },
+        {
+          "codigoExame": "CITOP",
+          "nomeExame": "CITOPATOLÓGICO"
+        },
+        {
+          "codigoExame": "TCABI",
+          "nomeExame": "ABDOMEINFERIOR COM CONTRASTE"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-024",
+      "prontuario": "SIM79697585",
+      "nome": "Gabriela Almeida (SIMULAÇÃO)",
+      "telefone": "(81) 94825-6996",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-21T19:05:34.227",
+      "unidadeSolicitante": "UDI: TOMOGRAFIA COMPUTADORIZADA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "12014",
+        "nome": "LARISSA EF94D02 350A8D0"
+      },
+      "itens": [
+        {
+          "codigoExame": "IMT",
+          "nomeExame": "IMITANCIOMETRIA"
+        },
+        {
+          "codigoExame": "CITOP",
+          "nomeExame": "CITOPATOLÓGICO"
+        },
+        {
+          "codigoExame": "CTIRS",
+          "nomeExame": "CINTILOGRAFIA DA TIREÓIDE SEM CAPTAÇÃO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-010",
+      "prontuario": "SIM52593199",
+      "nome": "Rafael Moraes (SIMULAÇÃO)",
+      "telefone": "(81) 99962-2712",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-19T15:05:34.227",
+      "unidadeSolicitante": "FONOAUDIOLOGIA",
+      "tipoExame": "Fonoaudiologia",
+      "solicitante": {
+        "codigo": "2298",
+        "nome": "ELISABETH 5CFAEF6BA7 746697"
+      },
+      "itens": [
+        {
+          "codigoExame": "CMDIP",
+          "nomeExame": "CINTILOGRAFIA DO MIOCARDIO COM DIPIRIDAMOL"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-015",
+      "prontuario": "SIM62902526",
+      "nome": "Natália Nogueira (SIMULAÇÃO)",
+      "telefone": "(81) 95326-6743",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-19T13:05:34.227",
+      "unidadeSolicitante": "UDI: ULTRASSONOGRAFIA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "9090",
+        "nome": "TOBIAS 7AE8D3 CEB5C4A1"
+      },
+      "itens": [
+        {
+          "codigoExame": "CRDTP",
+          "nomeExame": "CINTILOGRAFIA RENALCOM DTPA"
+        },
+        {
+          "codigoExame": "CTEL",
+          "nomeExame": "CINTILOGRAFIA DE TRANSITO ESOFAGICO LIQUIDO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-020",
+      "prontuario": "SIM58564286",
+      "nome": "Gabriela Lima (SIMULAÇÃO)",
+      "telefone": "(81) 92036-7347",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-19T05:05:34.227",
+      "unidadeSolicitante": "UDI: RESSONÂNIA MAGNÉTICA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "4694",
+        "nome": "IVANIZE 4E6122855 03 A8314"
+      },
+      "itens": [
+        {
+          "codigoExame": "PA",
+          "nomeExame": "TESTE DE PROCESSAMENTO AUDITIVO"
+        },
+        {
+          "codigoExame": "RXTX4",
+          "nomeExame": "TÓRAX (PA+P+OBL)"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-002",
+      "prontuario": "SIM49906019",
+      "nome": "Bruno Almeida (SIMULAÇÃO)",
+      "telefone": "(81) 95667-3897",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-19T00:05:34.227",
+      "unidadeSolicitante": "UDI: ULTRASSONOGRAFIA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "7438",
+        "nome": "MIRELA 8A516E 0948 193F702"
+      },
+      "itens": [
+        {
+          "codigoExame": "USBI2",
+          "nomeExame": "BIÓPSIA ORIENTADA POR ECOGRAFIA TIREÓIDE"
+        },
+        {
+          "codigoExame": "TCABI",
+          "nomeExame": "ABDOMEINFERIOR COM CONTRASTE"
+        },
+        {
+          "codigoExame": "RXDOS",
+          "nomeExame": "DENSITOMETRIA ÓSSEA"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-014",
+      "prontuario": "SIM87132655",
+      "nome": "Diego Almeida (SIMULAÇÃO)",
+      "telefone": "(81) 96709-1846",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-18T21:05:34.227",
+      "unidadeSolicitante": "FONOAUDIOLOGIA",
+      "tipoExame": "Fonoaudiologia",
+      "solicitante": {
+        "codigo": "6322",
+        "nome": "VIVIANE 7081E4 09E1BB"
+      },
+      "itens": [
+        {
+          "codigoExame": "CESQ",
+          "nomeExame": "CINTILOGRAFIA DO ESQUELETO"
+        },
+        {
+          "codigoExame": "RXCL6",
+          "nomeExame": "COLUNA DORSAL (AP+P)"
+        },
+        {
+          "codigoExame": "RXJL1",
+          "nomeExame": "JOELHO DIR. AP C/CARGA + PERFIL S/CARGA"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-027",
+      "prontuario": "SIM39120454",
+      "nome": "Rafael Dias (SIMULAÇÃO)",
+      "telefone": "(81) 91894-7289",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-18T18:05:34.227",
+      "unidadeSolicitante": "UDI: RESSONÂNIA MAGNÉTICA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "14544",
+        "nome": "ELLISA 96A06FC F062B9 3A 75417 28352"
+      },
+      "itens": [
+        {
+          "codigoExame": "USPT",
+          "nomeExame": "PUNÇÃO ASPIRATIVA COM AGULHA FINA ORIENTADA POR ECOTIREÓIDE"
+        },
+        {
+          "codigoExame": "USBI4",
+          "nomeExame": "BIÓPSIA ORIENTADA POR ECOGRAFIA - MAMA"
+        },
+        {
+          "codigoExame": "CRDMS",
+          "nomeExame": "CINTILOGRAFIA RENAL COM DMSA"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-028",
+      "prontuario": "SIM98176335",
+      "nome": "Felipe Moraes (SIMULAÇÃO)",
+      "telefone": "(81) 95590-2005",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-17T18:05:34.227",
+      "unidadeSolicitante": "UDI: RESSONÂNIA MAGNÉTICA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "12796",
+        "nome": "ANA EDFB5922 326EB4 8874170"
+      },
+      "itens": [
+        {
+          "codigoExame": "CPARA",
+          "nomeExame": "CINTILOGRAFIA DE PARATIREÓIDES"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-011",
+      "prontuario": "SIM15100249",
+      "nome": "Marcelo Oliveira (SIMULAÇÃO)",
+      "telefone": "(81) 97054-6397",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-17T07:05:34.227",
+      "unidadeSolicitante": "FONOAUDIOLOGIA",
+      "tipoExame": "Fonoaudiologia",
+      "solicitante": {
+        "codigo": "355",
+        "nome": "ANA 8DA122 E92C68C 84B8DA21 5DE60"
+      },
+      "itens": [
+        {
+          "codigoExame": "USPRO",
+          "nomeExame": "PRÓSTATA VIA ABDOMINAL"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-012",
+      "prontuario": "SIM22671048",
+      "nome": "Felipe Teixeira (SIMULAÇÃO)",
+      "telefone": "(81) 94331-9681",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-17T06:05:34.227",
+      "unidadeSolicitante": "FONOAUDIOLOGIA",
+      "tipoExame": "Fonoaudiologia",
+      "solicitante": {
+        "codigo": "4694",
+        "nome": "IVANIZE 4E6122855 03 A8314"
+      },
+      "itens": [
+        {
+          "codigoExame": "USBI4",
+          "nomeExame": "BIÓPSIA ORIENTADA POR ECOGRAFIA - MAMA"
+        },
+        {
+          "codigoExame": "USAPU",
+          "nomeExame": "APARELHO URINÁRIO"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-029",
+      "prontuario": "SIM43782643",
+      "nome": "Hugo Carvalho (SIMULAÇÃO)",
+      "telefone": "(81) 99079-7144",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-17T04:05:34.227",
+      "unidadeSolicitante": "UDI: RADIOLOGIA CONVENCIONAL",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "7438",
+        "nome": "MIRELA 8A516E 0948 193F702"
+      },
+      "itens": [
+        {
+          "codigoExame": "RXJL1",
+          "nomeExame": "JOELHO DIR. AP C/CARGA + PERFIL S/CARGA"
+        },
+        {
+          "codigoExame": "VRA",
+          "nomeExame": "AUDIOMETRIA DE REFORÇO VISUAL"
+        },
+        {
+          "codigoExame": "USPT",
+          "nomeExame": "PUNÇÃO ASPIRATIVA COM AGULHA FINA ORIENTADA POR ECOTIREÓIDE"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-004",
+      "prontuario": "SIM12611394",
+      "nome": "Paula Carvalho (SIMULAÇÃO)",
+      "telefone": "(81) 94722-7784",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-17T00:05:34.227",
+      "unidadeSolicitante": "UDI: RESSONÂNIA MAGNÉTICA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "355",
+        "nome": "ANA 8DA122 E92C68C 84B8DA21 5DE60"
+      },
+      "itens": [
+        {
+          "codigoExame": "RXCL7",
+          "nomeExame": "COLUNA LOMBAR (AP+P)"
+        },
+        {
+          "codigoExame": "LOG",
+          "nomeExame": "LOGOAUDIOMETRIA"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-017",
+      "prontuario": "SIM76022105",
+      "nome": "Gabriela Gomes (SIMULAÇÃO)",
+      "telefone": "(81) 91336-6256",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-16T20:05:34.227",
+      "unidadeSolicitante": "UDI: ULTRASSONOGRAFIA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "4738",
+        "nome": "FELIPE 6B52A B654024"
+      },
+      "itens": [
+        {
+          "codigoExame": "KM",
+          "nomeExame": "OCI PUNÇÃO DE MAMA POR AGULHA GROSSA"
+        },
+        {
+          "codigoExame": "USGRI",
+          "nomeExame": "ECO REGIAO INGUINAL"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-021",
+      "prontuario": "SIM98571148",
+      "nome": "Gabriela Lima (SIMULAÇÃO)",
+      "telefone": "(81) 92199-3462",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-16T20:05:34.227",
+      "unidadeSolicitante": "UDI: MAMOGRAFIA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "10896",
+        "nome": "GABRIEL 3A 75417 DA7C1"
+      },
+      "itens": [
+        {
+          "codigoExame": "TCCR1",
+          "nomeExame": "CRÂNIO (ENCÉFALO)"
+        },
+        {
+          "codigoExame": "TCABI",
+          "nomeExame": "ABDOMEINFERIOR COM CONTRASTE"
+        },
+        {
+          "codigoExame": "VRA",
+          "nomeExame": "AUDIOMETRIA DE REFORÇO VISUAL"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-025",
+      "prontuario": "SIM17436777",
+      "nome": "Rafael Gomes (SIMULAÇÃO)",
+      "telefone": "(81) 91225-3603",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-16T11:05:34.227",
+      "unidadeSolicitante": "UDI: RADIOLOGIA CONVENCIONAL",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "10062",
+        "nome": "NATALIA 107693 03 A8314"
+      },
+      "itens": [
+        {
+          "codigoExame": "KM",
+          "nomeExame": "OCI PUNÇÃO DE MAMA POR AGULHA GROSSA"
+        }
+      ]
+    },
+    {
+      "codigoSolicitacao": "SIM-20261125-023",
+      "prontuario": "SIM91428295",
+      "nome": "Gabriela Barbosa (SIMULAÇÃO)",
+      "telefone": "(81) 95484-6605",
+      "cidade": "Recife",
+      "estado": "Pernambuco",
+      "dataSolicitacao": "2026-11-16T06:05:34.227",
+      "unidadeSolicitante": "UDI: DENSITOMETRIA ÓSSEA",
+      "tipoExame": "Imagem",
+      "solicitante": {
+        "codigo": "12450",
+        "nome": "ADRIANA 89750E 3A 4D24D192 A8314"
+      },
+      "itens": [
+        {
+          "codigoExame": "TRXSC",
+          "nomeExame": "TOMOGRADIA DO TORAX SEM CONTRASTE COM SEDACAO"
+        },
+        {
+          "codigoExame": "CESQ",
+          "nomeExame": "CINTILOGRAFIA DO ESQUELETO"
+        }
+      ]
+    },
     {
       "codigoSolicitacao": "1490154",
       "prontuario": "15004443",

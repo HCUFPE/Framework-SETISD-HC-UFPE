@@ -1,9 +1,9 @@
 <template>
   <div class="space-y-5">
     <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-      <strong>Ambiente de demonstração:</strong> os dados vêm do export AGHUX de
-      {{ formatarDataHora(REFERENCIA_EM) }}. Essa é a data de referência usada para
-      contar prazos e tempo na fila — não é a data atual do computador.
+      <strong>Ambiente de demonstração:</strong> os dados vêm do export AGHUX e incluem
+      solicitações simuladas recentes. A referência usada para contar prazos e tempo na fila é
+      {{ formatarDataHora(REFERENCIA_EM) }} — não é a data atual do computador.
     </div>
 
     <Card>

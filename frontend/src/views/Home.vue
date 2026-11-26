@@ -8,7 +8,11 @@
         </div>
       </template>
       <p class="text-gray-700 leading-relaxed">
-        Esta é a versão de telas do SAE-HC. Os dados de solicitações vêm do export do AGHUX (576 itens agrupados em 493 solicitações), com data de referência em 28/09/2026 16:05; prazos e filtros usam essa data, não o relógio do computador. A integração com o formulário externo, o AGHUX e o backend de domínio será feita na próxima entrega.
+        Esta é a versão de telas do SAE-HC. O fixture reúne {{ totalSolicitacoes }} solicitações
+        ({{ solicitacoesSimuladas }} simuladas recentes, geradas a partir de
+        {{ totalRegistros }} itens), com referência em {{ referenciaFormatada }}; prazos e filtros
+        usam essa data, não o relógio do computador. A integração com o formulário externo, o AGHUX
+        e o backend de domínio segue reservada para entrega futura.
       </p>
     </Card>
 
@@ -37,7 +41,10 @@ import {
   UsersIcon,
 } from '@heroicons/vue/24/outline';
 import Card from '../components/Card.vue';
+import { REFERENCIA_EM } from '../config/tempo';
+import dadosAghuxJson from '../mocks/dadosAghux.json';
 import { useAuthStore } from '../stores/auth';
+import { formatarDataHora } from '../utils/format';
 import type { Perfil } from '../types/sae';
 
 interface Atalho {
@@ -49,6 +56,13 @@ interface Atalho {
 }
 
 const auth = useAuthStore();
+
+const totalRegistros = dadosAghuxJson.totalRegistros;
+const totalSolicitacoes = dadosAghuxJson.totalSolicitacoes;
+const solicitacoesSimuladas = dadosAghuxJson.solicitacoes.filter(
+  (item) => item.codigoSolicitacao.startsWith('SIM-'),
+).length;
+const referenciaFormatada = formatarDataHora(REFERENCIA_EM);
 
 const todos: Atalho[] = [
   { rota: '/fila', titulo: 'Fila de Marcação', descricao: 'Fila priorizada com conferência e registro de contato.', icone: TableCellsIcon, perfis: ['OPERADOR', 'CHEFIA', 'AREA_GESTORA'] },

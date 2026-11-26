@@ -4,6 +4,11 @@ O arquivo de apoio usa CSV em dois níveis: cada linha é um único campo CSV qu
 por sua vez, contém a linha real com aspas duplicadas. Por isso é necessário
 passar ``csv.reader`` duas vezes. Nenhuma dependência externa é necessária.
 
+As solicitações simuladas recentes acrescentadas por
+``scripts/gerar_solicitacoes_simuladas.py`` são preservadas quando o arquivo de
+saída já existe, para que a reimportação do CSV não apague o cenário de
+demonstração.
+
 Uso:
     python scripts/importar_dados_aghux.py
 """
@@ -123,6 +128,10 @@ def main() -> None:
     args = parser.parse_args()
 
     documento = importar(args.csv.resolve())
+    if args.saida.exists():
+        from gerar_solicitacoes_simuladas import carregar, mesclar_sinteticas
+
+        documento = mesclar_sinteticas(documento, carregar(args.saida))
     args.saida.parent.mkdir(parents=True, exist_ok=True)
     args.saida.write_text(
         json.dumps(documento, ensure_ascii=False, indent=2) + "\n",

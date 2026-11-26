@@ -2,7 +2,8 @@
 Provedores de cruzamento com o AGHUX
 =====================================
 `AghuxJsonProvider` consome o fixture versionado gerado a partir do export real
-(576 itens / 493 solicitações). `AghuProvider` é o ponto de extensão para a
+(576 itens / 493 solicitações) acrescido de 30 solicitações simuladas recentes.
+`AghuProvider` é o ponto de extensão para a
 consulta futura ao PostgreSQL do AGHU.
 """
 
