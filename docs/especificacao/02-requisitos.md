@@ -10,8 +10,8 @@
 | RF007 | Conferência com AGHUX | Comparação dos dados do formulário com o cadastro do AGHUX, destacando divergências. (RN-04) | Essencial |
 | RF008 | Validação e Assinatura | Correção e validação dos dados pelo operador, com assinatura eletrônica em cada ação. (RN-06) | Essencial |
 | RF009 | Bloqueio de Duplicidade | Bloqueio de solicitações duplicadas e de agendamentos conflitantes para o mesmo paciente. (RN-05) | Essencial |
-| RF010 | Contato com Paciente | Registro da confirmação de data e horário com o paciente (aceite, recusa ou sem resposta). (RN-07) | Essencial |
-| RF011 | Efetivação do Agendamento | Registro da marcação no AGHUX após o aceite do paciente. (RN-07) | Essencial |
+| RF010 | Contato com Paciente | Registro do contato para confirmar data e horário com o paciente (aceite, recusa ou sem resposta), depois da marcação. Sem confirmação em 24 horas, o agendamento é cancelado e a vaga liberada. (RN-07) | Essencial |
+| RF011 | Efetivação do Agendamento | Marcação da solicitação recebida na agenda local antes do contato com o paciente, para garantir a vaga, sem exigir aceite prévio; divergências pendentes continuam bloqueando (RN-04). (RN-07) | Essencial |
 | RF012 | Alteração de Fila | Alteração da ordem da fila pela Área Gestora, exigindo justificativa formal. (RN-03) | Importante |
 | RF013 | Histórico e Auditoria | Consulta ao histórico completo de cada solicitação (quem fez, o quê e quando). (RN-08) | Essencial |
 | RF014 | Painel de Gestão | Painel em tempo real com solicitações pendentes, tempo médio de validação, exames agendados, gargalos e taxa de erro. | Importante |

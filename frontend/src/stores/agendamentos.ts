@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 import { USAR_MOCKS } from '../config/mocks';
 import { agora, paraIsoLocal } from '../config/tempo';
 import {
+  agendarDaFila,
   agendarExame,
   buscarPacientesAgendamento,
   cancelarAgendamento,
@@ -534,6 +535,11 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
           justificativa,
           autor(),
         );
+      } else if (solicitacao.value?.status === 'RECEBIDA') {
+        // RN-07: a solicitação recebida reserva a vaga antes do contato com o paciente,
+        // por isso usa o fluxo da fila, que não exige aceite prévio.
+        await agendarDaFila(solicitacao.value.id, slotSelecionado.value.id, autor());
+        solicitacao.value = await obterSolicitacao(solicitacao.value.id);
       } else if (solicitacao.value) {
         resultado = await agendarExame(solicitacao.value.id, slotSelecionado.value.id, autor());
       } else {

@@ -446,12 +446,13 @@ async function reverterLote(): Promise<void> {
   }
 }
 
-/** Ações individuais da coluna "Ação" da fila. */
-async function agendarDaFila(solicitacao: Solicitacao): Promise<void> {
-  store.selecionada = solicitacao;
-  const slotId = window.prompt('Informe o ID da vaga (slot) para agendar:');
-  if (!slotId) return;
-  await store.agendarDaFila(slotId);
+/**
+ * Ações individuais da coluna "Ação" da fila.
+ * Agendar leva ao calendário com a solicitação já selecionada, onde o operador
+ * escolhe a vaga pelo dia; a marcação de uma solicitação recebida usa o fluxo da fila.
+ */
+function agendarDaFila(solicitacao: Solicitacao): void {
+  efetuarMarcacao(solicitacao);
 }
 
 async function cancelarDaFila(solicitacao: Solicitacao): Promise<void> {

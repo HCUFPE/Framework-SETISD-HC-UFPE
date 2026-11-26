@@ -70,7 +70,7 @@
             placeholder="Buscar solicitação (nome, prontuário, protocolo)"
             @keyup.enter="buscarSolicitacoes()"
           />
-          <Button variant="secondary" @click="buscarSolicitacoes">Buscar solicitação</Button>
+          <Button variant="secondary" @click="buscarSolicitacoes()">Buscar solicitação</Button>
           <span v-if="store.solicitacao" class="text-sm text-gray-700">
             Selecionada: <strong>{{ store.solicitacao.protocolo }}</strong> · {{ store.solicitacao.pacienteNome }}
           </span>

@@ -788,6 +788,10 @@ async def agendar_da_fila(
 
     A solicitação deve estar em RECEBIDA. Cria um agendamento ATIVO no slot
     informado e move a solicitação para AGUARDANDO_CONTATO.
+
+    A vaga é marcada antes do contato com o paciente (RN-07), por isso este
+    fluxo não exige aceite prévio; o contato e a confirmação vêm depois. As
+    divergências pendentes continuam bloqueando o agendamento (RN-04).
     """
     solicitacao = await _buscar_solicitacao(db, solicitacao_id)
     if solicitacao.status != STATUS_RECEBIDA:
@@ -795,7 +799,11 @@ async def agendar_da_fila(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Somente solicitações recebidas podem ser agendadas da fila.",
         )
-    await _verificar_precondicoes(db, solicitacao)
+    if await _divergencias_ativas(db, solicitacao.id):
+        raise _erro(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Existem divergências não tratadas; valide a solicitação antes de agendar.",
+        )
     slot = await _slot_disponivel(provider, slot_id)
 
     chave = solicitacao.paciente_chave or ""

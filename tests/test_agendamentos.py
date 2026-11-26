@@ -299,6 +299,55 @@ def test_agendar_sem_aceite_devolve_422(cliente):
     assert "ACEITE" in resposta.json()["detail"]
 
 
+def _agendar_da_fila(cliente, sid, slot_id, grupos=OPERADOR):
+    return cliente.post(
+        f"/api/solicitacoes/{sid}/agendar",
+        json={"slotId": slot_id, "autor": "operador"},
+        headers=_headers(grupos),
+    )
+
+
+def test_agendar_da_fila_solicitacao_recebida_sem_aceite(cliente):
+    """RN-07: a vaga é marcada antes do contato, então RECEBIDA agenda sem aceite prévio."""
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho, status="RECEBIDA", aceite=False)
+    slot = _criar_slot(cliente)
+
+    resposta = _agendar_da_fila(cliente, sid, slot["id"])
+    assert resposta.status_code == 200, resposta.text
+    assert resposta.json()["status"] == "ATIVO"
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["ocupadas"] == 1
+    with _conexao(caminho) as conn:
+        solicitacao = conn.execute("SELECT status FROM solicitacoes WHERE id=?", (sid,)).fetchone()
+        auditoria = conn.execute(
+            "SELECT categoria FROM audit_logs WHERE acao='AGENDAR_DA_FILA'"
+        ).fetchone()
+    assert solicitacao["status"] == "AGUARDANDO_CONTATO"
+    assert auditoria["categoria"] == "NEGOCIO_CLINICO"
+
+
+def test_agendar_da_fila_com_divergencia_pendente_devolve_422(cliente):
+    """RN-04 continua valendo na fila: divergência pendente bloqueia o agendamento."""
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho, status="RECEBIDA", aceite=False, divergencia=True)
+    slot = _criar_slot(cliente)
+
+    resposta = _agendar_da_fila(cliente, sid, slot["id"])
+    assert resposta.status_code == 422
+    assert "divergências" in resposta.json()["detail"]
+    assert _slot_no_calendario(_calendario(cliente), slot["id"])["ocupadas"] == 0
+
+
+def test_agendar_da_fila_exige_solicitacao_recebida(cliente):
+    cliente, caminho = cliente
+    sid, _ = _inserir_solicitacao(caminho, status="AGUARDANDO_CONTATO")
+    slot = _criar_slot(cliente)
+
+    resposta = _agendar_da_fila(cliente, sid, slot["id"])
+    assert resposta.status_code == 422
+    assert "recebidas" in resposta.json()["detail"]
+
+
 def test_vaga_esgotada_devolve_409(cliente):
     cliente, caminho = cliente
     sid_a, _ = _inserir_solicitacao(caminho, prontuario="11111111", protocolo="PROTO-A")
