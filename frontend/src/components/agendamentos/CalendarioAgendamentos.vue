@@ -57,6 +57,14 @@ const emit = defineEmits<{
 
 const calendario = ref<InstanceType<typeof FullCalendar> | null>(null);
 
+/** Leva o calendário para o mês/semana da data informada. */
+function irParaData(dataIso: string): void {
+  if (!dataIso) return;
+  calendario.value?.getApi().gotoDate(dataIso.slice(0, 10));
+}
+
+defineExpose({ irParaData });
+
 function corOcupacao(slot: AgendaSlot): string {
   if (slot.status === 'ENCERRADO' || slot.livres === 0) return '#fecaca';
   if (slot.capacidade > 0 && slot.livres / slot.capacidade <= 0.4) return '#fde68a';

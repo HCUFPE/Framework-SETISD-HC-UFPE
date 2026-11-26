@@ -96,18 +96,32 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     : auth.isAdmin || auth.temPerfil('CHEFIA', 'AREA_GESTORA', 'ADMIN_TI')
       || (auth.user?.groups?.includes('CHEFIA') ?? false));
 
-  const unidades = computed(() => Array.from(
-    new Set(calendario.value?.slots.map((slot) => slot.unidade) ?? []),
-  ).sort());
-
-  const exames = computed(() => Array.from(
-    new Map((calendario.value?.slots ?? [])
-      .map((slot) => [slot.codigoExame, { codigo: slot.codigoExame, nome: slot.nomeExame }] as const))
-      .values(),
-  ).sort((a, b) => a.nome.localeCompare(b.nome)));
+  const unidades = ref<string[]>([]);
+  const exames = ref<Array<{ codigo: string; nome: string }>>([]);
 
   const agendamentos = computed(() => calendario.value?.agendamentos ?? []);
   const slots = computed(() => calendario.value?.slots ?? []);
+
+  /**
+   * Acumula unidades/exames já vistos para que os selects não percam opções
+   * quando um dos filtros está ativo (a resposta do calendário vem filtrada).
+   */
+  function acumularOpcoesDeSlots(lista: AgendaSlot[]): void {
+    const proximasUnidades = new Set(unidades.value);
+    const proximosExames = new Map(exames.value.map((item) => [item.codigo, item]));
+    for (const slot of lista) {
+      if (slot.unidade) proximasUnidades.add(slot.unidade);
+      if (slot.codigoExame) {
+        proximosExames.set(slot.codigoExame, {
+          codigo: slot.codigoExame,
+          nome: slot.nomeExame,
+        });
+      }
+    }
+    unidades.value = Array.from(proximasUnidades).sort();
+    exames.value = Array.from(proximosExames.values())
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }
 
   function autor(): string {
     return auth.user?.displayName?.[0] ?? auth.user?.username ?? 'Operador';
@@ -140,6 +154,7 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
       ]);
       if (calendarioResultado.status === 'rejected') throw calendarioResultado.reason;
       calendario.value = calendarioResultado.value;
+      acumularOpcoesDeSlots(calendarioResultado.value.slots);
       propostas.value = propostasResultado.status === 'fulfilled' ? propostasResultado.value : [];
       if (diaSelecionado.value) selecionarDia(diaSelecionado.value);
     } catch (candidato) {
@@ -365,8 +380,8 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     salvando.value = true;
     limparErro();
     try {
-      await confirmarPropostaAgendamento(proposta.agendamentoId, autor());
-      await recarregarTudo();
+      const confirmado = await confirmarPropostaAgendamento(proposta.agendamentoId, autor());
+      await focarPacienteDoAgendamento(confirmado);
       return true;
     } catch (candidato) {
       registrarErro(candidato, 'Não foi possível confirmar a proposta.');
@@ -384,8 +399,8 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     salvando.value = true;
     limparErro();
     try {
-      await moverPropostaAgendamento(proposta.agendamentoId, slot.id, autor());
-      await recarregarTudo();
+      const movida = await moverPropostaAgendamento(proposta.agendamentoId, slot.id, autor());
+      await focarPacienteDoAgendamento(movida);
       return true;
     } catch (candidato) {
       registrarErro(candidato, 'Não foi possível mover a proposta.');
@@ -425,6 +440,21 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     }
   }
 
+  /**
+   * Garante que o agendamento recém-criado/alterado apareça no calendário.
+   * Se houver um filtro de paciente ativo para outra pessoa, ele passa a
+   * apontar para o paciente do agendamento (o calendário só lista os
+   * agendamentos do paciente filtrado).
+   */
+  async function focarPacienteDoAgendamento(agendamento: Agendamento): Promise<void> {
+    const chave = agendamento.pacienteChave;
+    if (chave && filtros.value.pacienteChave && filtros.value.pacienteChave !== chave) {
+      filtros.value.pacienteChave = chave;
+      pacienteChave.value = chave;
+    }
+    await recarregarTudo();
+  }
+
   async function confirmarAcao(justificativa: string): Promise<boolean> {
     if (modoAcao.value === 'cancelar') return cancelar(justificativa);
     if (!slotSelecionado.value) {
@@ -434,20 +464,22 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     salvando.value = true;
     limparErro();
     try {
+      let resultado: Agendamento | null = null;
       if (modoAcao.value === 'remarcar' && agendamentoSelecionado.value) {
-        await remarcarAgendamento(
+        resultado = await remarcarAgendamento(
           agendamentoSelecionado.value.id,
           slotSelecionado.value.id,
           justificativa,
           autor(),
         );
       } else if (solicitacao.value) {
-        await agendarExame(solicitacao.value.id, slotSelecionado.value.id, autor());
+        resultado = await agendarExame(solicitacao.value.id, slotSelecionado.value.id, autor());
       } else {
         throw new Error('Selecione uma solicitação antes de confirmar o agendamento.');
       }
       modalAcao.value = false;
-      await recarregarTudo();
+      if (resultado) await focarPacienteDoAgendamento(resultado);
+      else await recarregarTudo();
       return true;
     } catch (candidato) {
       registrarErro(candidato, 'Não foi possível concluir a operação.');

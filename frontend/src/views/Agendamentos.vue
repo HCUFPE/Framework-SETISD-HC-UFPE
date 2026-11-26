@@ -106,6 +106,7 @@
               <span class="rounded bg-white px-3 py-2 text-sm text-gray-600 shadow">Carregando agenda…</span>
             </div>
             <CalendarioAgendamentos
+              ref="calendarioRef"
               :slots="store.slots"
               :agendamentos="store.agendamentos"
               :propostas="store.propostas"
@@ -270,6 +271,7 @@ const toast = useToast();
 const termoSolicitacao = ref('');
 const gestorVagasAberto = ref(false);
 const buscaFeita = ref(false);
+const calendarioRef = ref<{ irParaData: (dataIso: string) => void } | null>(null);
 
 const pacienteSelecionado = computed(() =>
   store.pacientes.find((item) => item.pacienteChave === store.pacienteChave));
@@ -318,8 +320,12 @@ async function gerarPropostas(): Promise<void> {
 }
 
 async function confirmarProposta(proposta: PropostaAgendamentoFila): Promise<void> {
-  if (await store.confirmarProposta(proposta)) toast.success('Proposta confirmada e agendamento efetivado.');
-  else toast.error(store.erro || 'Não foi possível confirmar a proposta.');
+  if (await store.confirmarProposta(proposta)) {
+    calendarioRef.value?.irParaData(proposta.dataHora);
+    toast.success('Proposta confirmada e agendamento efetivado.');
+  } else {
+    toast.error(store.erro || 'Não foi possível confirmar a proposta.');
+  }
 }
 
 async function naoConfirmarProposta(proposta: PropostaAgendamentoFila): Promise<void> {
@@ -352,6 +358,7 @@ function selecionarSolicitacao(id: string): void {
 
 async function moverProposta(proposta: PropostaAgendamentoFila, slot: AgendaSlot): Promise<void> {
   if (await store.moverProposta(proposta, slot)) {
+    calendarioRef.value?.irParaData(slot.inicio);
     toast.success('Proposta movida para o novo horário.');
   } else {
     toast.error(store.erro || 'Não foi possível mover a proposta.');
@@ -370,8 +377,10 @@ function sugerirParaAgendamento(agendamento: Agendamento): void {
 
 async function confirmarAcao(justificativa: string): Promise<void> {
   const modo = store.modoAcao;
+  const dataFoco = store.slotSelecionado?.inicio ?? '';
   const concluido = await store.confirmarAcao(justificativa);
   if (concluido) {
+    if (modo !== 'cancelar') calendarioRef.value?.irParaData(dataFoco);
     if (modo === 'remarcar') toast.success('Agendamento remarcado com sucesso.');
     else if (modo === 'cancelar') toast.success('Agendamento cancelado com sucesso.');
     else toast.success('Agendamento efetivado com sucesso.');
