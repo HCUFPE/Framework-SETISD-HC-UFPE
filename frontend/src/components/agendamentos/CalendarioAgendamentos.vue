@@ -36,6 +36,7 @@ import type {
   EventInput,
 } from '@fullcalendar/core';
 import { agoraIso, paraIsoLocal } from '../../config/tempo';
+import { diaLocal } from '../../utils/datetime';
 import type { AgendaSlot, Agendamento, PropostaAgendamentoFila } from '../../types/sae';
 
 const props = defineProps<{
@@ -43,6 +44,8 @@ const props = defineProps<{
   agendamentos: Agendamento[];
   propostas: PropostaAgendamentoFila[];
   readonly?: boolean;
+  /** Exibe uma faixa por horário na visão semanal; sem filtro, agrupa por dia. */
+  detalharVagas?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -56,6 +59,7 @@ const emit = defineEmits<{
 }>();
 
 const calendario = ref<InstanceType<typeof FullCalendar> | null>(null);
+const visaoAtual = ref('dayGridMonth');
 
 /** Leva o calendário para o mês/semana da data informada. */
 function irParaData(dataIso: string): void {
@@ -78,17 +82,48 @@ function corStatus(status: Agendamento['status']): string {
   return '#0d9488';
 }
 
-const eventos = computed<EventInput[]>(() => [
-  ...props.slots.map((slot) => ({
-    id: `vaga-${slot.id}`,
-    title: `${slot.livres}/${slot.capacidade} vagas`,
-    start: slot.inicio,
-    end: slot.fim,
+/**
+ * No mês, uma faixa por dia evita milhares de eventos de fundo e deixa as
+ * marcações de pacientes visíveis. Na semana, os horários individuais só
+ * aparecem quando há filtro de unidade/exame (ou seja, quando o volume cai).
+ */
+const resumoVagas = computed<EventInput[]>(() => {
+  const porDia = new Map<string, { total: number; livres: number }>();
+  for (const slot of props.slots) {
+    const dia = diaLocal(slot.inicio);
+    const atual = porDia.get(dia) ?? { total: 0, livres: 0 };
+    atual.total += 1;
+    atual.livres += slot.livres;
+    porDia.set(dia, atual);
+  }
+  return Array.from(porDia, ([dia, contagem]) => ({
+    id: `resumo-vagas-${dia}`,
+    title: `${contagem.total} vaga(s) · ${contagem.livres} livre(s)`,
+    start: dia,
+    allDay: true,
     display: 'background' as const,
-    backgroundColor: corOcupacao(slot),
+    backgroundColor: contagem.livres > 0 ? '#a7f3d0' : '#fecaca',
     borderColor: 'transparent',
-    extendedProps: { tipo: 'slot', slot },
-  })),
+    extendedProps: { tipo: 'resumo-vagas', dia },
+  }));
+});
+
+const mostrarSlotsIndividuais = computed(() =>
+  visaoAtual.value !== 'dayGridMonth' && props.detalharVagas === true);
+
+const eventos = computed<EventInput[]>(() => [
+  ...(mostrarSlotsIndividuais.value
+    ? props.slots.map((slot) => ({
+        id: `vaga-${slot.id}`,
+        title: `${slot.livres}/${slot.capacidade} vagas`,
+        start: slot.inicio,
+        end: slot.fim,
+        display: 'background' as const,
+        backgroundColor: corOcupacao(slot),
+        borderColor: 'transparent',
+        extendedProps: { tipo: 'slot', slot },
+      }))
+    : resumoVagas.value),
   ...props.agendamentos
     // Propostas são renderizadas como cards próprios (arrastáveis) abaixo.
     .filter((agendamento) => agendamento.status !== 'PROPOSTO')
@@ -139,15 +174,21 @@ const opcoes = computed<CalendarOptions>(() => ({
   buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana' },
   events: eventos.value,
   datesSet: (info: DatesSetArg) => {
+    visaoAtual.value = info.view.type;
     emit('periodo-alterado', paraIsoLocal(info.start.getTime()), paraIsoLocal(info.end.getTime()));
   },
   dateClick: (info: DateClickArg) => {
     emit('dia-selecionado', paraIsoLocal(info.date.getTime()).slice(0, 10));
   },
   eventClick: (info: EventClickArg) => {
+    const diaResumo = info.event.extendedProps.dia as string | undefined;
+    if (diaResumo) {
+      emit('dia-selecionado', diaResumo);
+      return;
+    }
     const slot = info.event.extendedProps.slot as AgendaSlot | undefined;
     if (slot) {
-      emit('dia-selecionado', slot.inicio.slice(0, 10));
+      emit('dia-selecionado', diaLocal(slot.inicio));
       emit('slot-selecionado', slot);
       return;
     }
@@ -155,6 +196,11 @@ const opcoes = computed<CalendarOptions>(() => ({
     if (agendamento) emit('agendamento-selecionado', agendamento);
   },
   eventDidMount: (info) => {
+    const diaResumo = info.event.extendedProps.dia as string | undefined;
+    if (diaResumo) {
+      info.el.title = `Vagas de ${diaResumo} (clique para ver os horários)`;
+      return;
+    }
     const slot = info.event.extendedProps.slot as AgendaSlot | undefined;
     if (slot) {
       info.el.title = `${slot.livres}/${slot.capacidade} vagas · ${slot.unidade} · ${slot.nomeExame}`;
@@ -181,9 +227,12 @@ const opcoes = computed<CalendarOptions>(() => ({
       return;
     }
     const tipo = info.event.extendedProps.tipo as string | undefined;
-    const destino = paraIsoLocal(info.event.start?.getTime() ?? 0).slice(0, 16);
+    const destino = info.event.start?.getTime() ?? 0;
+    // Compara instantes, não strings: na API real o slot vem em UTC e o
+    // calendário trabalha no fuso local.
     const slot = props.slots.find((item) =>
-      item.inicio.slice(0, 16) === destino && item.status !== 'ENCERRADO');
+      item.status !== 'ENCERRADO'
+      && Math.abs(new Date(item.inicio).getTime() - destino) < 60_000);
     if (!slot) {
       info.revert();
       emit('erro-slot', 'Não há vaga cadastrada para o horário de destino.');

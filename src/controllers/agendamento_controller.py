@@ -1622,6 +1622,12 @@ async def listar_calendario(
             AgendaSlot.inicio <= para_utc_naive(ate_dt),
         )
     )
+    # Os mesmos filtros aplicados às vagas valem para as marcações: sem isso,
+    # selecionar uma unidade/exame continuaria exibindo agendamentos de outros.
+    if unidade.strip():
+        stmt = stmt.where(AgendaSlot.unidade.ilike(f"%{unidade.strip()}%"))
+    if codigo_exame.strip():
+        stmt = stmt.where(AgendaSlot.codigo_exame == codigo_exame.strip())
     if paciente_chave:
         stmt = stmt.where(Agendamento.paciente_chave == paciente_chave)
     agendamentos = (await db.scalars(stmt.order_by(AgendaSlot.inicio))).all()

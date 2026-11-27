@@ -290,6 +290,25 @@ def test_calendario_ocupadas_ignora_filtro_de_paciente(cliente):
     assert _slot_no_calendario(filtrado, slot["id"])["livres"] == 0
 
 
+def test_calendario_filtra_agendamentos_por_unidade_e_exame(cliente):
+    cliente, caminho = cliente
+    sid_a, _ = _inserir_solicitacao(caminho, prontuario="30303030", protocolo="PROTO-UNI-A")
+    sid_b, _ = _inserir_solicitacao(caminho, prontuario="40404040", protocolo="PROTO-UNI-B")
+    slot_a = _criar_slot(cliente, unidade="IMAGEM-A", codigo="CMDIP", nome="Cintilografia")
+    slot_b = _criar_slot(cliente, unidade="IMAGEM-B", codigo="RX", nome="Raio-X")
+
+    assert _agendar(cliente, sid_a, slot_a["id"]).status_code == 201
+    assert _agendar(cliente, sid_b, slot_b["id"]).status_code == 201
+
+    por_unidade = _calendario(cliente, unidade="IMAGEM-A")
+    assert [slot["id"] for slot in por_unidade["slots"]] == [slot_a["id"]]
+    assert [item["slotId"] for item in por_unidade["agendamentos"]] == [slot_a["id"]]
+
+    por_exame = _calendario(cliente, codigoExame="RX")
+    assert [slot["id"] for slot in por_exame["slots"]] == [slot_b["id"]]
+    assert [item["slotId"] for item in por_exame["agendamentos"]] == [slot_b["id"]]
+
+
 def test_agendar_sem_aceite_devolve_422(cliente):
     cliente, caminho = cliente
     sid, _ = _inserir_solicitacao(caminho, aceite=False)

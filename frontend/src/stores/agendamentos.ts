@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { USAR_MOCKS } from '../config/mocks';
 import { agora, paraIsoLocal } from '../config/tempo';
+import { diaLocal } from '../utils/datetime';
 import {
   agendarExame,
   buscarPacientesAgendamento,
@@ -144,7 +145,11 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
     erroStatus.value = erroApi?.response?.status ?? null;
   }
 
+  /** Descarta respostas antigas quando o período muda enquanto ainda carrega. */
+  let requisicaoAtual = 0;
+
   async function carregar(): Promise<void> {
+    const minhaRequisicao = ++requisicaoAtual;
     carregando.value = true;
     limparErro();
     try {
@@ -158,15 +163,17 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
         }),
         listarPropostasAgendamento(filtros.value),
       ]);
+      if (minhaRequisicao !== requisicaoAtual) return;
       if (calendarioResultado.status === 'rejected') throw calendarioResultado.reason;
       calendario.value = calendarioResultado.value;
       acumularOpcoesDeSlots(calendarioResultado.value.slots);
       propostas.value = propostasResultado.status === 'fulfilled' ? propostasResultado.value : [];
       if (diaSelecionado.value) selecionarDia(diaSelecionado.value);
     } catch (candidato) {
+      if (minhaRequisicao !== requisicaoAtual) return;
       registrarErro(candidato, 'Não foi possível carregar o calendário de agendamentos.');
     } finally {
-      carregando.value = false;
+      if (minhaRequisicao === requisicaoAtual) carregando.value = false;
     }
   }
 
@@ -181,10 +188,10 @@ export const useAgendamentosStore = defineStore('agendamentos', () => {
   }
 
   function selecionarDia(dataIso: string): void {
-    diaSelecionado.value = dataIso.slice(0, 10);
+    diaSelecionado.value = diaLocal(dataIso);
     const dia = diaSelecionado.value;
     slotsDoDia.value = slots.value
-      .filter((slot) => slot.inicio.slice(0, 10) === dia)
+      .filter((slot) => diaLocal(slot.inicio) === dia)
       .sort((a, b) => a.inicio.localeCompare(b.inicio)
         || a.unidade.localeCompare(b.unidade));
     const aindaSelecionado = slotsDoDia.value.find((slot) => slot.id === slotSelecionado.value?.id);
