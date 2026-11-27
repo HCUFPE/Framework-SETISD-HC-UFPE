@@ -13,6 +13,7 @@ erDiagram
     SOLICITACAO_AGHU ||--o{ CASO_AP : pode_originar
     ITEM_SOLICITACAO_AGHU o|--o{ CASO_AP : detalha_amostra
     TIPO_EXAME ||--o{ CASO_AP : classifica
+    CASO_AP ||--o{ CASO_AP : deriva_de
     CASO_AP ||--o{ CASO_RELACAO : participa
     CASO_AP ||--o{ CASO_ETAPA : percorre
     ETAPA ||--o{ CASO_ETAPA : define
@@ -189,7 +190,7 @@ Registra tentativas de importação/consulta para diagnóstico técnico da integ
 
 #### Tabela `tipo_exame`
 
-Catálogo das cinco modalidades de exames do SAP. A tabela registra as cinco modalidades para padronizar a classificação, mas nem todas geram um `caso_ap` independente.
+Catálogo das modalidades de exames do SAP. A IHQ é complementar e não gera um `caso_ap`; uma Revisão recebida como grupo independente do AGHU gera um caso derivado vinculado ao caso de origem.
 
 | Código | Nome | Natureza no modelo | Observação |
 |---|---|---|---|
@@ -197,6 +198,7 @@ Catálogo das cinco modalidades de exames do SAP. A tabela registra as cinco mod
 | `CG` | Citologia geral | Caso principal | Inclui materiais líquidos e PAAF conforme classificação do SAP. |
 | `CCV` | Citologia cérvico-vaginal | Caso principal | Pode conter triagem citotécnica antes da validação médica. |
 | `CO` | Congelação | Caso principal | Fluxo intraoperatório reduzido. Pode ser relacionado a um caso HP do mesmo procedimento. |
+| `REVISAO` | Revisão de lâmina / anatomopatológica | Caso derivado | Gera identificador próprio quando recebida como grupo AGHU independente e mantém vínculo com o caso de origem. Revisões internas solicitadas como etapa complementar continuam no caso existente. |
 | `IHQ` | Imuno-histoquímica | Complemento | Sempre associada ao caso de origem; não gera conclusão diagnóstica independente. |
 
 Campos da tabela:
@@ -207,7 +209,7 @@ Campos da tabela:
 | `codigo` | VARCHAR(20) | Sim | UNIQUE | Sigla padronizada. |
 | `nome` | VARCHAR(120) | Sim | — | Nome do tipo de exame. |
 | `prefixo_identificador` | VARCHAR(10) | Sim | UNIQUE | Prefixo do número interno, se aplicável. |
-| `natureza` | VARCHAR(30) | Sim | `CASO_PRINCIPAL`, `COMPLEMENTAR` | Distingue HP/CG/CCV/CO de IHQ. |
+| `natureza` | VARCHAR(30) | Sim | `CASO_PRINCIPAL`, `CASO_DERIVADO`, `COMPLEMENTAR` | Distingue casos principais, Revisão recebida como caso derivado e IHQ complementar. |
 | `ativo` | BOOLEAN | Sim | DEFAULT TRUE | Permite desativar sem apagar histórico. |
 | `descricao` | TEXT | Não | — | Observações sobre a modalidade. |
 
@@ -257,6 +259,8 @@ Representa o caso interno acompanhado pelo SAP.
 | `item_solicitacao_aghu_id` | INTEGER | Não | FK → `item_solicitacao_aghu.id` | Item/amostra específico, quando a solicitação tiver essa identificação. Nulo quando o caso for controlado no nível da solicitação inteira. |
 | `tipo_exame_id` | INTEGER | Sim | FK → `tipo_exame.id` | Modalidade do exame. |
 | `numero_interno` | VARCHAR(30) | Sim | UNIQUE | Código interno, por exemplo `HP-0001/26`. |
+| `caso_origem_numero` | VARCHAR(30) | Não | FK → `caso_ap.numero_interno`; diferente do próprio caso | Caso principal de origem de uma Revisão recebida como grupo independente. Nulo para casos principais e exames sem derivação. |
+| `tipo_derivacao` | VARCHAR(30) | Não | `REVISAO` | Classifica o vínculo quando o caso é derivado. |
 | `status` | VARCHAR(40) | Sim | Domínio controlado | Estado operacional do caso. |
 | `etapa_atual_id` | INTEGER | Não | FK → `etapa.id` | Etapa atual. Nulo após encerramento definitivo, se adotado. |
 | `data_entrada_sap` | DATETIME | Sim | — | Data/hora de confirmação da entrada no SAP. |
@@ -310,7 +314,7 @@ Relaciona casos diferentes que pertencem ao mesmo procedimento ou que possuem v�
 | `id` | INTEGER | Sim | PK | Identificador. |
 | `caso_origem_id` | INTEGER | Sim | FK → `caso_ap.id` | Caso de origem. |
 | `caso_relacionado_id` | INTEGER | Sim | FK → `caso_ap.id`; diferente da origem | Caso relacionado. |
-| `tipo_relacao` | VARCHAR(30) | Sim | Domínio controlado | `MESMO_PROCEDIMENTO`, `SEGUIMENTO_DE`, `OUTRO`. Revisões de peça/lâmina são registradas em `solicitacao_complementar`, não como modalidade/caso autônomo. |
+| `tipo_relacao` | VARCHAR(30) | Sim | Domínio controlado | `MESMO_PROCEDIMENTO`, `SEGUIMENTO_DE`, `OUTRO`. Vínculos não hierárquicos, como CO e HP do mesmo procedimento, ficam nesta tabela; Revisão recebida como caso derivado usa a relação direta de origem em `caso_ap`. |
 | `descricao` | TEXT | Não | — | Explicação do vínculo. |
 | `created_by` | INTEGER | Sim | FK → `usuario.id` | Usuário que relacionou. |
 | `created_at` | DATETIME | Sim | — | Data/hora. |
@@ -1008,6 +1012,8 @@ Os alertas podem ser calculados comparando `caso_etapa.iniciada_em` com `prazo_p
 8. Resultado externo deve ser anexado como documento e associado à rodada e ao caso de origem.
 9. Conclusão técnica da IHQ encerra a execução do complemento, não o caso principal.
 10. Após resultado, o caso principal retorna à microscopia.
+11. Uma Revisão recebida como grupo independente do AGHU gera identificador próprio e mantém referência ao caso principal de origem; isso não substitui as solicitações internas de revisão registradas em `solicitacao_complementar`.
+12. A origem da Revisão deve existir e não pode estar cancelada ou devolvida. O vínculo não pode apontar para o próprio caso nem formar ciclos; o ciclo de vida da Revisão permanece independente do caso de origem.
 11. O patologista/preceptor decide se o diagnóstico está fechado ou se solicita novo complemento.
 
 ### 3.7. Laudo e AGHU

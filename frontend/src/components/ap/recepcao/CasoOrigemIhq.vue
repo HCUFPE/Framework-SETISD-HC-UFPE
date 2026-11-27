@@ -1,8 +1,8 @@
 <template>
   <div>
-    <label :for="id" class="form-label">Caso de origem da IHQ <span class="text-paper-danger">*</span></label>
-    <p class="mb-2 text-xs text-gray-500">
-      A IHQ é vinculada a um caso já existente e não gera um novo caso. Busque por nº interno, prontuário ou nome.
+    <label v-if="!selecionado" :for="id" class="form-label">{{ props.rotulo }} <span class="text-paper-danger">*</span></label>
+    <p v-if="selecionado?.numeroInterno.startsWith('HP-')" class="mb-2 text-sm font-semibold text-gray-700">
+      Exame de origem associado
     </p>
 
     <div v-if="selecionado" class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-paper-primary bg-paper-primary-soft p-3">
@@ -55,15 +55,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, withDefaults } from 'vue';
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import Button from '../../Button.vue';
 import StatusCasoBadge from '../StatusCasoBadge.vue';
 import { useCasosStore } from '../../../stores/casos';
 import type { CasoElegivelIhq } from '../../../types/ap';
 
-defineProps<{ id: string; erro?: string }>();
 const selecionado = defineModel<CasoElegivelIhq | null>({ required: true });
+
+const props = withDefaults(defineProps<{ id: string; erro?: string; rotulo?: string; derivacao?: 'IHQ' | 'REVISAO' }>(), {
+  rotulo: 'Histopatológico associado',
+  derivacao: 'IHQ',
+});
 
 const casosStore = useCasosStore();
 const termo = ref('');

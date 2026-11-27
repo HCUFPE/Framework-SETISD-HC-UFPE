@@ -165,7 +165,7 @@
 
             <div v-if="estado[grupo.id].receber" class="mt-3 space-y-3">
               <!-- Caso principal -->
-              <template v-if="grupo.tipoExameSugerido !== 'IHQ'">
+              <template v-if="!requerCasoOrigem(grupo)">
                 <div class="form-group mb-0">
                   <label :for="idCampo(grupo, 'procedimento')" class="form-label">Procedimento <span class="text-paper-danger">*</span></label>
                   <SelectBusca
@@ -179,10 +179,37 @@
                 </div>
               </template>
 
-              <!-- IHQ: caso de origem -->
-              <template v-else>
-                <fieldset v-if="principalSelecionado" class="space-y-1.5">
-                  <legend class="form-label">Caso de origem da IHQ <span class="text-paper-danger">*</span></legend>
+              <!-- IHQ usa o HP da própria solicitação automaticamente; só pedido avulso permite busca manual. -->
+              <template v-else-if="requerCasoOrigem(grupo)">
+                <p
+                  v-if="grupo.tipoExameSugerido === 'IHQ' && !recepcao.examesDaSolicitacaoCarregados"
+                  class="text-sm font-semibold text-paper-danger-strong"
+                  role="alert"
+                >
+                  Não foi possível confirmar os exames desta solicitação. Recarregue antes de receber a IHQ.
+                </p>
+                <p
+                  v-else-if="grupo.tipoExameSugerido === 'IHQ' && hpDaSolicitacao(grupo)?.situacaoRecepcao === 'RECEBIDA' && hpDaSolicitacao(grupo)?.casoNumero"
+                  class="text-sm font-semibold text-gray-700"
+                >
+                  Histopatológico associado: {{ hpDaSolicitacao(grupo)?.casoNumero }}
+                </p>
+                <p
+                  v-else-if="grupo.tipoExameSugerido === 'IHQ' && hpDaSolicitacao(grupo) && hpSelecionadoNaConferencia(grupo)"
+                  class="text-sm text-gray-700"
+                >
+                  O HP desta solicitação será associado automaticamente.
+                </p>
+                <p
+                  v-else-if="grupo.tipoExameSugerido === 'IHQ' && hpDaSolicitacao(grupo) && estado[grupo.id].receber"
+                  class="text-sm font-semibold text-paper-danger-strong"
+                  role="alert"
+                >
+                  Receba o HP da solicitação junto ou antes da IHQ.
+                </p>
+
+                <fieldset v-if="grupo.tipoExameSugerido === 'REVISAO' && principalSelecionado" class="space-y-1.5">
+                  <legend class="sr-only">Exame de origem associado</legend>
                   <label class="flex cursor-pointer items-start gap-2 text-sm">
                     <input v-model="estado[grupo.id].origemModo" type="radio" :name="`origem-${grupo.id}`" value="CONFERENCIA" class="mt-0.5" />
                     <span>Caso {{ principalSelecionado.tipoExameSugerido }} gerado nesta conferência</span>
@@ -192,18 +219,14 @@
                     <span>Caso já existente</span>
                   </label>
                 </fieldset>
-                <template v-if="!principalSelecionado || estado[grupo.id].origemModo === 'EXISTENTE'">
+                <template v-if="(grupo.tipoExameSugerido === 'IHQ' && recepcao.examesDaSolicitacaoCarregados && !hpDaSolicitacao(grupo)) || (grupo.tipoExameSugerido === 'REVISAO' && (!principalSelecionado || estado[grupo.id].origemModo === 'EXISTENTE'))">
                   <CasoOrigemIhq
                     :id="idCampo(grupo, 'casoOrigem')"
                     v-model="estado[grupo.id].casoOrigem"
                     :erro="erro(grupo, 'casoOrigem') || undefined"
+                    :rotulo="grupo.tipoExameSugerido === 'IHQ' ? 'Histopatológico associado' : rotuloOrigem(grupo)"
+                    :derivacao="tipoDerivacao(grupo)"
                   />
-                  <p
-                    v-if="casoSugerido && estado[grupo.id].casoOrigem?.numeroInterno === casoSugerido"
-                    class="-mt-1 text-xs font-semibold text-paper-info-strong"
-                  >
-                    Sugerido: caso {{ casoSugerido }}, recebido a partir da mesma solicitação AGHU. Use "Trocar caso" se não for o correto.
-                  </p>
                   <div v-if="divergente(grupo)">
                     <Alert variant="warning" title="Prontuário divergente">
                       A solicitação é do prontuário <strong>{{ grupo.prontuario || NAO_INFORMADO }}</strong> e o caso
@@ -217,7 +240,7 @@
                         type="checkbox"
                         class="focus-ring mt-0.5 h-5 w-5 rounded"
                       />
-                      Confirmo o vínculo da IHQ apesar do prontuário divergente.
+                      Confirmo o vínculo apesar do prontuário divergente.
                     </label>
                     <p v-if="erro(grupo, 'divergencia')" class="mt-1 text-sm text-paper-danger-strong">{{ erro(grupo, 'divergencia') }}</p>
                   </div>
@@ -291,7 +314,7 @@ import type { CasoElegivelIhq, SolicitacaoAghu, TipoCasoPrincipal } from '../../
 /** `devolvido`: a não conformidade foi registrada e a recepção deve voltar ao passo 1. */
 const emit = defineEmits<{ (e: 'devolvido'): void }>();
 
-type CampoGrupo = 'procedimento' | 'casoOrigem' | 'divergencia';
+type CampoGrupo = 'procedimento' | 'casoOrigem' | 'divergencia' | 'ihqHp';
 
 /** Estado dos campos de um tipo de exame na conferência. */
 interface EstadoGrupo {
@@ -362,8 +385,9 @@ const opcoesUrgencia = [
 ] as const;
 const rotulosCampo: Record<CampoGrupo, string> = {
   procedimento: 'Procedimento',
-  casoOrigem: 'Caso de origem da IHQ',
+  casoOrigem: 'Caso de origem',
   divergencia: 'Confirmação do prontuário divergente',
+  ihqHp: 'HP da solicitação',
 };
 
 const ehCongelacao = (grupo: SolicitacaoAghu) => grupo.tipoExameSugerido === 'CO';
@@ -419,8 +443,19 @@ const erroUrgente = computed(() => (principaisSelecionados.value.length && !urge
 
 /** Tipo principal (não IHQ) recebido nesta conferência, que pode ser o caso de origem da IHQ. */
 const principalSelecionado = computed(
-  () => selecionados.value.find((g) => g.tipoExameSugerido === 'HP') ?? selecionados.value.find((g) => g.tipoExameSugerido !== 'IHQ' && g.tipoExameSugerido !== 'CO') ?? selecionados.value.find((g) => g.tipoExameSugerido !== 'IHQ'),
+  () => selecionados.value.find((g) => g.tipoExameSugerido === 'HP') ?? selecionados.value.find((g) => !['IHQ', 'REVISAO', 'CO'].includes(g.tipoExameSugerido)) ?? selecionados.value.find((g) => !['IHQ', 'REVISAO'].includes(g.tipoExameSugerido)),
 );
+
+const requerCasoOrigem = (grupo: SolicitacaoAghu) => ['IHQ', 'REVISAO'].includes(grupo.tipoExameSugerido);
+const hpDaSolicitacao = (grupo: SolicitacaoAghu) => recepcao.examesDaSolicitacao.find(
+  (exame) => exame.codigoSolicitacao === grupo.codigoSolicitacao && exame.tipoExameSugerido === 'HP',
+);
+const hpSelecionadoNaConferencia = (grupo: SolicitacaoAghu) => {
+  const hp = hpDaSolicitacao(grupo);
+  return !!hp && !!estado[hp.id]?.receber;
+};
+const rotuloOrigem = (grupo: SolicitacaoAghu) => `Caso de origem da ${grupo.tipoExameSugerido === 'IHQ' ? 'IHQ' : 'Revisão'}`;
+const tipoDerivacao = (grupo: SolicitacaoAghu): 'IHQ' | 'REVISAO' => grupo.tipoExameSugerido === 'IHQ' ? 'IHQ' : 'REVISAO';
 
 /** Grupos da solicitação já recebidos ou devolvidos antes (informativo). */
 const jaTratados = computed(() => recepcao.outrosExames.filter((e) => e.situacaoRecepcao !== 'AGUARDANDO_RECEBIMENTO'));
@@ -434,17 +469,17 @@ watch(
   casoSugerido,
   async (numero) => {
     if (!numero) return;
-    const ihqs = recepcao.exames.filter((g) => g.tipoExameSugerido === 'IHQ' && !estado[g.id].casoOrigem);
-    if (ihqs.length === 0) return;
+    const derivados = recepcao.exames.filter((g) => g.tipoExameSugerido === 'REVISAO' && !estado[g.id].casoOrigem);
+    if (derivados.length === 0) return;
     try {
       const caso = (await casosStore.buscarElegiveisIhq(numero)).find((c) => c.numeroInterno === numero && c.elegivel);
       if (!caso) return;
-      for (const g of ihqs) {
+      for (const g of derivados) {
         if (!estado[g.id].casoOrigem) estado[g.id].casoOrigem = caso;
         if (!principalSelecionado.value) estado[g.id].origemModo = 'EXISTENTE';
       }
     } catch (e) {
-      console.error('Falha ao sugerir o caso de origem da IHQ.', e);
+      console.error('Falha ao sugerir caso de origem do exame derivado.', e);
     }
   },
   { immediate: true },
@@ -458,7 +493,9 @@ watch(
 
 const idCampo = (grupo: SolicitacaoAghu, campo: CampoGrupo) => `campo-${grupo.tipoExameSugerido.toLowerCase()}-${campo}`;
 
-const usaCasoExistente = (grupo: SolicitacaoAghu) => !principalSelecionado.value || estado[grupo.id].origemModo === 'EXISTENTE';
+const usaCasoExistente = (grupo: SolicitacaoAghu) => grupo.tipoExameSugerido === 'IHQ'
+  ? !hpDaSolicitacao(grupo)
+  : !principalSelecionado.value || estado[grupo.id].origemModo === 'EXISTENTE';
 
 const divergente = (grupo: SolicitacaoAghu) => {
   const caso = estado[grupo.id].casoOrigem;
@@ -471,6 +508,19 @@ const errosPorCampo = computed(() => {
   for (const grupo of selecionados.value) {
     const e = estado[grupo.id];
     if (grupo.tipoExameSugerido === 'IHQ') {
+      const hp = hpDaSolicitacao(grupo);
+      if (!recepcao.examesDaSolicitacaoCarregados) {
+        erros.push({ grupo, campo: 'ihqHp', mensagem: 'Não foi possível confirmar os exames desta solicitação. Recarregue antes de receber a IHQ.' });
+      } else if (hp && (hp.situacaoRecepcao !== 'RECEBIDA' || !hp.casoNumero) && !hpSelecionadoNaConferencia(grupo)) {
+        erros.push({ grupo, campo: 'ihqHp', mensagem: 'Receba o HP da solicitação junto ou antes da IHQ.' });
+      } else if (!hp && !e.casoOrigem) {
+        erros.push({ grupo, campo: 'casoOrigem', mensagem: 'Selecione o histopatológico associado.' });
+      } else if (!hp && divergente(grupo) && !e.divergenciaConfirmada) {
+        erros.push({ grupo, campo: 'divergencia', mensagem: 'Confirme o vínculo apesar do prontuário divergente.' });
+      }
+      continue;
+    }
+    if (requerCasoOrigem(grupo)) {
       if (usaCasoExistente(grupo)) {
         if (!e.casoOrigem) erros.push({ grupo, campo: 'casoOrigem', mensagem: 'Selecione o caso de origem.' });
         else if (divergente(grupo) && !e.divergenciaConfirmada)
@@ -489,7 +539,7 @@ const erro = (grupo: SolicitacaoAghu, campo: CampoGrupo): string =>
 const listaErros = computed(() => [
   ...(erroUrgente.value ? [{ id: 'campo-urgente', rotulo: 'Urgente?', mensagem: erroUrgente.value }] : []),
   ...errosPorCampo.value.map((x) => ({
-    id: idCampo(x.grupo, x.campo),
+    id: x.campo === 'ihqHp' ? `receber-${hpDaSolicitacao(x.grupo)?.tipoExameSugerido ?? 'HP'}` : idCampo(x.grupo, x.campo),
     rotulo: multiplos.value ? `${x.grupo.tipoExameSugerido} · ${rotulosCampo[x.campo]}` : rotulosCampo[x.campo],
     mensagem: x.mensagem,
   })),
@@ -509,13 +559,12 @@ const montarEntradas = (): EntradaConferencia[] => {
   return selecionados.value.map((grupo): EntradaConferencia => {
     const e = estado[grupo.id];
     if (grupo.tipoExameSugerido === 'IHQ') {
-      const existente = usaCasoExistente(grupo);
+      const hp = hpDaSolicitacao(grupo);
       return {
         tipo: 'IHQ',
-        usarCasoDaConferencia: !existente,
         dados: {
           solicitacaoId: grupo.id,
-          casoOrigemNumero: existente ? e.casoOrigem?.numeroInterno : undefined,
+          casoOrigemNumero: hp ? hp.casoNumero : e.casoOrigem?.numeroInterno,
           divergenciaConfirmada: e.divergenciaConfirmada,
           observacoes: obs,
         },
@@ -523,12 +572,18 @@ const montarEntradas = (): EntradaConferencia[] => {
     }
     return {
       tipo: 'CASO',
+      usarCasoDaConferencia: grupo.tipoExameSugerido === 'REVISAO' && !usaCasoExistente(grupo),
       dados: {
         solicitacaoId: grupo.id,
         tipoExame: grupo.tipoExameSugerido as TipoCasoPrincipal,
         urgente: urgente.value === 'SIM',
         procedimento: e.procedimento,
         observacoes: obs,
+        ...(grupo.tipoExameSugerido === 'REVISAO' ? {
+          casoOrigemNumero: usaCasoExistente(grupo) ? e.casoOrigem?.numeroInterno : undefined,
+          tipoDerivacao: 'REVISAO' as const,
+          divergenciaConfirmada: e.divergenciaConfirmada,
+        } : {}),
       },
     };
   });

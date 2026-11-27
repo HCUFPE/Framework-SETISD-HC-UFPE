@@ -33,6 +33,12 @@ class ApCaso(Base):
     solicitacao_id: Mapped[str] = mapped_column(
         ForeignKey("ap_solicitacoes.id"), nullable=False, index=True
     )
+    caso_origem_numero: Mapped[str | None] = mapped_column(
+        ForeignKey("ap_casos.numero_interno", name="fk_ap_casos_caso_origem_numero"),
+        nullable=True,
+        index=True,
+    )
+    tipo_derivacao: Mapped[str | None] = mapped_column(String(20), nullable=True)
     tipo_exame: Mapped[str] = mapped_column(String(12), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     data_entrada: Mapped[str] = mapped_column(String(40), nullable=False, index=True)

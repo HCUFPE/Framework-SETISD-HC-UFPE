@@ -27,6 +27,10 @@ _RELACOES_CASO = {
     "conferencia",
     "materiais",
     "ihqs",
+    "casoOrigem",
+    "casoOrigemNumero",
+    "tipoDerivacao",
+    "examesDerivados",
     "naoConformidades",
     "devolucoes",
     "historico",
@@ -250,6 +254,8 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
             registro = ApCaso(numero_interno=numero, solicitacao_id=solicitacao["id"])
             self.session.add(registro)
         registro.solicitacao_id = solicitacao["id"]
+        registro.caso_origem_numero = payload.get("casoOrigemNumero")
+        registro.tipo_derivacao = payload.get("tipoDerivacao")
         registro.tipo_exame = payload["tipoExame"]
         registro.status = payload["status"]
         registro.data_entrada = payload["dataEntradaSap"]
@@ -582,6 +588,49 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
             ihq_payload["codigoInternoIhq"] = ihq.codigo_interno
             ihqs.append(ihq_payload)
         payload["ihqs"] = ihqs
+
+        payload["casoOrigemNumero"] = registro.caso_origem_numero
+        payload["tipoDerivacao"] = registro.tipo_derivacao
+        if registro.caso_origem_numero:
+            origem = await self.session.get(ApCaso, registro.caso_origem_numero)
+            origem_solicitacao = await self.session.get(ApSolicitacao, origem.solicitacao_id) if origem else None
+            origem_payload = self._solicitacao_payload(origem_solicitacao) if origem_solicitacao else {}
+            payload["casoOrigem"] = {
+                "numeroInterno": origem.numero_interno,
+                "tipoExame": origem.tipo_exame,
+                "status": origem.status,
+                "dataEntradaSap": origem.data_entrada,
+                "nomePaciente": origem_payload.get("nomePaciente", ""),
+                "prontuario": origem_payload.get("prontuario", ""),
+            }
+        else:
+            payload["casoOrigem"] = None
+
+        derivados: list[dict[str, Any]] = []
+        casos_derivados_result = await self.session.execute(
+            select(ApCaso)
+            .where(ApCaso.caso_origem_numero == registro.numero_interno)
+            .order_by(ApCaso.data_entrada.asc(), ApCaso.numero_interno.asc())
+        )
+        for derivado in casos_derivados_result.scalars().all():
+            derivados.append({
+                "codigoInterno": derivado.numero_interno,
+                "numeroInterno": derivado.numero_interno,
+                "tipo": derivado.tipo_derivacao or derivado.tipo_exame,
+                "status": derivado.status,
+                "data": derivado.data_entrada,
+                "navegavel": True,
+            })
+        for ihq in ihqs:
+            derivados.append({
+                "codigoInterno": ihq["codigoInternoIhq"],
+                "tipo": "IHQ",
+                "status": ihq.get("status", "SOLICITADA"),
+                "data": ihq.get("recebidaEm"),
+                "solicitacaoAghuCodigo": ihq.get("solicitacaoAghuCodigo"),
+                "navegavel": False,
+            })
+        payload["examesDerivados"] = sorted(derivados, key=lambda item: item.get("data") or "")
 
         nc_result = await self.session.execute(select(ApNaoConformidade))
         nao_conformidades: list[dict[str, Any]] = []

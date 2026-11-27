@@ -72,7 +72,7 @@
       </router-link>
     </div>
 
-    <PrintPreview :show="impressao !== null" :caso="resultado.caso" :tipo="impressao ?? 'ETIQUETAS'" @close="impressao = null" />
+    <PrintPreview :show="impressao !== null" :caso="resultado.caso" :caso-etiqueta="resultado.etiqueta" :tipo="impressao ?? 'ETIQUETAS'" @close="impressao = null" />
   </article>
 </template>
 

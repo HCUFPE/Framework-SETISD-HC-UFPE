@@ -25,7 +25,7 @@
       <dt class="font-bold">Pront.</dt>
       <dd class="tabular-nums">{{ caso.solicitacao.prontuario || '—' }}</dd>
       <dt class="font-bold">Exame</dt>
-      <dd>{{ caso.solicitacao.siglaExame }}</dd>
+      <dd>{{ caso.tipoExame === 'IHQ' ? 'IHQ · Imuno-histoquímica' : caso.solicitacao.siglaExame }}</dd>
     </dl>
   </div>
 </template>
@@ -35,9 +35,9 @@ import { computed } from 'vue';
 import Barcode from './Barcode.vue';
 import { NAO_INFORMADO } from '../../constants/ap';
 import { formatarData } from '../../helpers/formato';
-import type { CasoAp, ItemMaterial } from '../../types/ap';
+import type { DadosEtiquetaRecepcao, ItemMaterial } from '../../types/ap';
 
-const props = defineProps<{ caso: CasoAp; item: ItemMaterial }>();
+const props = defineProps<{ caso: DadosEtiquetaRecepcao; item: ItemMaterial }>();
 
 /** Acima deste tamanho o nome usa a fonte menor para caber em 2 linhas sem cortar. */
 const LIMITE_NOME_CURTO = 40;

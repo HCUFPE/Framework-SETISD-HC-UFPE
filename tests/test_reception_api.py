@@ -1,6 +1,8 @@
 """Testes diretos de API para persistência, regras e RBAC da Recepção."""
 
 import asyncio
+import json
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
@@ -47,6 +49,54 @@ def receber(client, solicitacao_id: str = "7712301:HP", tipo: str = "HP") -> dic
     return resposta.json()
 
 
+def criar_grupo_revisao(client, codigo: str, prontuario: str) -> str:
+    """Insere uma solicitação fictícia de Revisão para testar o recebimento derivado."""
+    grupo_id = f"{codigo}:REVISAO"
+    payload = {
+        "id": grupo_id,
+        "codigoSolicitacao": codigo,
+        "tipoExameSugerido": "REVISAO",
+        "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO",
+        "dataSolicitacao": "2026-01-01T10:00:00",
+        "prontuario": prontuario,
+        "nomePaciente": "PACIENTE DE TESTE",
+        "amostras": [{"numeroAmostra": "1", "descricaoMaterial": "Lâmina para revisão"}],
+    }
+    database = client.app.state.app_db.engine.url.database
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO ap_solicitacoes "
+            "(id, codigo_solicitacao, tipo_exame, situacao_recepcao, data_solicitacao, payload) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (grupo_id, codigo, "REVISAO", "AGUARDANDO_RECEBIMENTO", payload["dataSolicitacao"], json.dumps(payload)),
+        )
+    return grupo_id
+
+
+def criar_grupo_hp_para_ihq(client, codigo: str = "7712356") -> str:
+    """Adiciona HP ao pedido IHQ de fixture para testar a origem obrigatória da mesma solicitação."""
+    grupo_id = f"{codigo}:HP"
+    payload = {
+        "id": grupo_id,
+        "codigoSolicitacao": codigo,
+        "tipoExameSugerido": "HP",
+        "situacaoRecepcao": "AGUARDANDO_RECEBIMENTO",
+        "dataSolicitacao": "2026-01-01T10:00:00",
+        "prontuario": "23155281",
+        "nomePaciente": "NEIDE CAMPELO SARMENTO",
+        "amostras": [{"numeroAmostra": "2", "descricaoMaterial": "Biópsia gástrica"}],
+    }
+    database = client.app.state.app_db.engine.url.database
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO ap_solicitacoes "
+            "(id, codigo_solicitacao, tipo_exame, situacao_recepcao, data_solicitacao, payload) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (grupo_id, codigo, "HP", "AGUARDANDO_RECEBIMENTO", payload["dataSolicitacao"], json.dumps(payload)),
+        )
+    return grupo_id
+
+
 def test_rotas_sao_privadas_e_consultas_seguem_catalogo_por_perfil(client):
     assert client.get("/api/ap/casos").status_code == 401
     assert client.get("/api/ap/solicitacoes/pendentes").status_code == 401
@@ -60,6 +110,142 @@ def test_rotas_sao_privadas_e_consultas_seguem_catalogo_por_perfil(client):
     assert client.get("/api/ap/casos", headers=sem_perfil).status_code == 403
     assert client.get("/api/ap/auditoria", headers=token(client, "recepcionista")).status_code == 403
     assert client.get("/api/ap/auditoria", headers=token(client, "recepcao-coordenacao")).status_code == 200
+
+
+def test_recebimento_revisao_vincula_e_projeta_origem_e_derivado(client):
+    headers = token(client, "recepcionista")
+    origem = receber(client)
+    grupo = criar_grupo_revisao(client, "7712398", origem["solicitacao"]["prontuario"])
+
+    resposta = client.post(
+        "/api/ap/recebimentos",
+        headers=headers,
+        json={
+            "solicitacaoId": grupo,
+            "tipoExame": "REVISAO",
+            "urgente": False,
+            "procedimento": "Revisão de lâmina",
+            "casoOrigemNumero": origem["numeroInterno"],
+            "tipoDerivacao": "REVISAO",
+        },
+    )
+
+    assert resposta.status_code == 201, resposta.text
+    revisao = resposta.json()
+    assert revisao["numeroInterno"].startswith("REV-")
+    assert revisao["casoOrigemNumero"] == origem["numeroInterno"]
+    assert revisao["casoOrigem"]["numeroInterno"] == origem["numeroInterno"]
+    assert revisao["etapaAtual"] == "MICROSCOPIA"
+
+    detalhe_origem = client.get(f"/api/ap/casos/{origem['numeroInterno']}", headers=headers).json()
+    assert any(item["numeroInterno"] == revisao["numeroInterno"] for item in detalhe_origem["examesDerivados"])
+    assert any(item["evento"] == "EXAME_DERIVADO_VINCULADO" for item in detalhe_origem["historico"])
+    assert any(item["evento"] == "CASO_ORIGEM_VINCULADO" for item in revisao["historico"])
+
+
+def test_revisao_recusa_origem_terminal_e_prontuario_divergente(client):
+    headers = token(client, "recepcionista")
+    origem = receber(client)
+    grupo = criar_grupo_revisao(client, "7712397", "PRONTUARIO-DIFERENTE")
+    corpo = {
+        "solicitacaoId": grupo,
+        "tipoExame": "REVISAO",
+        "urgente": False,
+        "procedimento": "Revisão de lâmina",
+        "casoOrigemNumero": origem["numeroInterno"],
+        "tipoDerivacao": "REVISAO",
+    }
+
+    divergente = client.post("/api/ap/recebimentos", headers=headers, json=corpo)
+    assert divergente.status_code == 422
+    assert "prontuário divergente" in divergente.json()["detail"]
+
+    confirmada = client.post(
+        "/api/ap/recebimentos", headers=headers, json={**corpo, "divergenciaConfirmada": True}
+    )
+    assert confirmada.status_code == 201, confirmada.text
+
+
+def test_revisao_nao_altera_estado_da_origem_ao_cancelar_derivado(client):
+    headers = token(client, "recepcionista")
+    origem = receber(client)
+    grupo = criar_grupo_revisao(client, "7712396", origem["solicitacao"]["prontuario"])
+    revisao = client.post(
+        "/api/ap/recebimentos",
+        headers=headers,
+        json={
+            "solicitacaoId": grupo,
+            "tipoExame": "REVISAO",
+            "urgente": False,
+            "procedimento": "Revisão de lâmina",
+            "casoOrigemNumero": origem["numeroInterno"],
+            "tipoDerivacao": "REVISAO",
+        },
+    ).json()
+    cancelamento = client.post(
+        "/api/ap/casos/cancelamento",
+        headers=token(client, "recepcao-coordenacao"),
+        json={"numeroInterno": revisao["numeroInterno"], "motivo": "Revisão não necessária"},
+    )
+
+    assert cancelamento.status_code == 200, cancelamento.text
+    origem_atualizada = client.get(f"/api/ap/casos/{origem['numeroInterno']}", headers=headers).json()
+    assert origem_atualizada["status"] == "RECEBIDO"
+    assert any(item["status"] == "CANCELADO" for item in origem_atualizada["examesDerivados"])
+
+
+def test_revisao_reverte_persistencia_quando_auditoria_falha(client, monkeypatch):
+    headers = token(client, "recepcionista")
+    origem = receber(client)
+    grupo = criar_grupo_revisao(client, "7712395", origem["solicitacao"]["prontuario"])
+
+    async def falhar_auditoria(**_kwargs):
+        raise RuntimeError("Falha simulada de auditoria")
+
+    monkeypatch.setattr("src.controllers.reception_controller.registrar_auditoria", falhar_auditoria)
+    with pytest.raises(RuntimeError, match="Falha simulada"):
+        client.post(
+            "/api/ap/recebimentos",
+            headers=headers,
+            json={
+                "solicitacaoId": grupo,
+                "tipoExame": "REVISAO",
+                "urgente": False,
+                "procedimento": "Revisão de lâmina",
+                "casoOrigemNumero": origem["numeroInterno"],
+                "tipoDerivacao": "REVISAO",
+            },
+        )
+
+    grupos = client.get("/api/ap/solicitacoes/7712395/exames", headers=headers).json()
+    revisao = next(item for item in grupos if item["id"] == grupo)
+    casos = client.get("/api/ap/casos", headers=headers).json()
+    assert revisao["situacaoRecepcao"] == "AGUARDANDO_RECEBIMENTO"
+    assert all(item["tipoExame"] != "REVISAO" for item in casos)
+
+
+def test_revisao_recusa_caso_de_origem_cancelado(client):
+    origem = receber(client)
+    client.post(
+        "/api/ap/casos/cancelamento",
+        headers=token(client, "recepcao-coordenacao"),
+        json={"numeroInterno": origem["numeroInterno"], "motivo": "Caso encerrado"},
+    )
+    grupo = criar_grupo_revisao(client, "7712394", origem["solicitacao"]["prontuario"])
+    resposta = client.post(
+        "/api/ap/recebimentos",
+        headers=token(client, "recepcionista"),
+        json={
+            "solicitacaoId": grupo,
+            "tipoExame": "REVISAO",
+            "urgente": False,
+            "procedimento": "Revisão de lâmina",
+            "casoOrigemNumero": origem["numeroInterno"],
+            "tipoDerivacao": "REVISAO",
+        },
+    )
+    assert resposta.status_code == 422
+    assert "não pode receber Revisão" in resposta.json()["detail"]
 
 
 def test_cancelamento_de_exame_preserva_grupo_irmao_e_audita(client):
@@ -338,6 +524,10 @@ def test_regularizacao_ihq_associa_historico_ao_caso_de_origem(client):
         "divergenciaConfirmada": True,
     })
     assert vinculada.status_code == 201, vinculada.text
+    assert any(
+        exame["tipo"] == "IHQ" and exame["codigoInterno"] == vinculada.json()["ihq"]["codigoInternoIhq"]
+        for exame in vinculada.json()["caso"]["examesDerivados"]
+    )
     detalhe = client.get(f"/api/ap/casos/{caso['numeroInterno']}", headers=headers).json()
     assert len(detalhe["naoConformidades"]) == 1
     assert len(detalhe["devolucoes"]) == 1
@@ -464,6 +654,76 @@ def test_plantao_e_limitado_a_congelacao_e_so_uma_vez(client):
     assert repetida.status_code == 409
 
 
+def test_ihq_com_hp_pendente_exige_hp_recebido_na_conferencia(client):
+    headers = token(client, "recepcionista")
+    hp_id = criar_grupo_hp_para_ihq(client)
+    caso_de_outra_solicitacao = receber(client)
+    corpo_ihq = {
+        "solicitacaoId": "7712356:IHQ",
+        "casoOrigemNumero": caso_de_outra_solicitacao["numeroInterno"],
+    }
+
+    antes_do_hp = client.post("/api/ap/recebimentos/ihq", headers=headers, json=corpo_ihq)
+    assert antes_do_hp.status_code == 422
+    assert "Receba o HP" in antes_do_hp.json()["detail"]
+
+    hp = receber(client, hp_id, "HP")
+    recebida = client.post(
+        "/api/ap/recebimentos/ihq",
+        headers=headers,
+        json={**corpo_ihq, "casoOrigemNumero": hp["numeroInterno"]},
+    )
+    assert recebida.status_code == 201, recebida.text
+    assert recebida.json()["solicitacao"]["ihqCasoNumero"] == hp["numeroInterno"]
+
+
+def test_ihq_com_hp_recebido_recusa_origem_de_outra_solicitacao(client):
+    headers = token(client, "recepcionista")
+    hp_id = criar_grupo_hp_para_ihq(client)
+    hp_da_solicitacao = receber(client, hp_id, "HP")
+    outro_hp = receber(client)
+
+    recusada = client.post(
+        "/api/ap/recebimentos/ihq",
+        headers=headers,
+        json={
+            "solicitacaoId": "7712356:IHQ",
+            "casoOrigemNumero": outro_hp["numeroInterno"],
+        },
+    )
+    assert recusada.status_code == 422
+    assert "HP da mesma" in recusada.json()["detail"]
+
+    aceita = client.post(
+        "/api/ap/recebimentos/ihq",
+        headers=headers,
+        json={
+            "solicitacaoId": "7712356:IHQ",
+            "casoOrigemNumero": hp_da_solicitacao["numeroInterno"],
+        },
+    )
+    assert aceita.status_code == 201, aceita.text
+    assert aceita.json()["solicitacao"]["ihqCasoNumero"] == hp_da_solicitacao["numeroInterno"]
+
+
+def test_ihq_sem_hp_na_solicitacao_permite_origem_manual(client):
+    headers = token(client, "recepcionista")
+    caso_existente = receber(client)
+
+    resposta = client.post(
+        "/api/ap/recebimentos/ihq",
+        headers=headers,
+        json={
+            "solicitacaoId": "7712356:IHQ",
+            "casoOrigemNumero": caso_existente["numeroInterno"],
+            "divergenciaConfirmada": True,
+        },
+    )
+
+    assert resposta.status_code == 201, resposta.text
+    assert resposta.json()["solicitacao"]["ihqCasoNumero"] == caso_existente["numeroInterno"]
+
+
 def test_ihq_manual_preserva_permissoes_e_impressao_nao_tem_endpoint(client):
     headers = token(client, "recepcionista")
     caso = receber(client)
@@ -475,6 +735,13 @@ def test_ihq_manual_preserva_permissoes_e_impressao_nao_tem_endpoint(client):
     ihq = client.post("/api/ap/recebimentos/ihq", headers=headers, json=entrada_ihq)
     assert ihq.status_code == 201, ihq.text
     assert ihq.json()["ihq"]["solicitacaoAghuCodigo"] == "7712356"
+    dados_etiqueta = ihq.json()["solicitacao"]
+    assert dados_etiqueta["tipoExameSugerido"] == "IHQ"
+    assert dados_etiqueta["situacaoRecepcao"] == "RECEBIDA"
+    assert dados_etiqueta["amostras"]
+    assert dados_etiqueta["ihqCodigo"] == ihq.json()["ihq"]["codigoInternoIhq"]
+    assert dados_etiqueta["ihqCasoNumero"] == caso["numeroInterno"]
+    assert ihq.json()["ihq"]["codigoInternoIhq"] != caso["numeroInterno"]
 
     impressao = client.post("/api/ap/casos/impressoes", headers=headers, json={
         "numeroInterno": caso["numeroInterno"], "tipo": "ETIQUETAS", "amostras": ["1"],

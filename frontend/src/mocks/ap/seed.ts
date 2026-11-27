@@ -118,6 +118,7 @@ const SIGLA_PADRAO: Record<TipoExame, string> = {
   CG: 'CITOP',
   CCV: 'CCVM',
   CO: 'CONGE',
+  REVISAO: 'REV',
   IHQ: 'IMUHI',
 };
 

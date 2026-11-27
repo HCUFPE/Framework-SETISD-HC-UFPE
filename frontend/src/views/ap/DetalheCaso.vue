@@ -78,6 +78,18 @@
           <span>Entrada: {{ formatarDataHora(caso.dataEntradaSap) }}</span>
         </p>
 
+        <Alert v-if="caso.casoOrigem" variant="info" title="Caso de origem">
+          <router-link
+            :to="`/casos/${encodeURIComponent(caso.casoOrigem.numeroInterno)}`"
+            class="font-bold text-paper-primary-strong underline hover:no-underline"
+          >
+            {{ caso.casoOrigem.numeroInterno }} · {{ TIPOS_EXAME[caso.casoOrigem.tipoExame].nome }}
+          </router-link>
+          <span> · {{ caso.casoOrigem.nomePaciente }} · </span>
+          <StatusCasoBadge :status="caso.casoOrigem.status" />
+          <span class="ml-1">· entrada {{ formatarDataHora(caso.casoOrigem.dataEntradaSap) }}</span>
+        </Alert>
+
         <Alert v-if="fluxoReaberto" variant="info" title="Histórico de devolução regularizada">
           Este caso mantém na aba de não conformidades a ocorrência original e na linha do tempo o evento de reabertura do fluxo.
         </Alert>
@@ -116,6 +128,28 @@
                   <p class="text-xs font-bold uppercase text-paper-info-strong">Informações clínicas (AGHU)</p>
                   <p class="mt-1 text-sm text-gray-800">{{ caso.solicitacao.informacoesClinicas || 'Não informadas.' }}</p>
                 </div>
+                <section class="mt-5" aria-labelledby="exames-derivados-titulo">
+                  <h3 id="exames-derivados-titulo" class="mb-3 text-sm font-extrabold uppercase text-gray-700">Exames Derivados</h3>
+                  <p v-if="(caso.examesDerivados ?? []).length === 0" class="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-500">
+                    Ainda não há exames derivados registrados.
+                  </p>
+                  <ul v-else class="divide-y divide-gray-100 rounded-lg border border-gray-200">
+                    <li v-for="derivado in caso.examesDerivados" :key="derivado.codigoInterno" class="flex flex-wrap items-center justify-between gap-3 p-3">
+                      <div>
+                        <p class="font-bold text-gray-900">{{ derivado.codigoInterno }} · {{ TIPOS_EXAME[derivado.tipo].nome }}</p>
+                        <p class="text-sm text-gray-600">{{ derivado.status }} · {{ derivado.data ? formatarDataHora(derivado.data) : NAO_INFORMADO }}</p>
+                      </div>
+                      <router-link
+                        v-if="derivado.navegavel && derivado.numeroInterno"
+                        :to="`/casos/${encodeURIComponent(derivado.numeroInterno)}`"
+                        class="focus-ring rounded px-2 py-1 text-sm font-semibold text-paper-primary-strong hover:underline"
+                      >Abrir caso derivado</router-link>
+                      <button v-else type="button" class="focus-ring rounded px-2 py-1 text-sm font-semibold text-paper-primary-strong hover:underline" @click="aba = 'ihq'">
+                        Ver IHQ
+                      </button>
+                    </li>
+                  </ul>
+                </section>
               </div>
               <div>
                 <h3 class="mb-2 font-bold text-gray-800">Últimas movimentações</h3>

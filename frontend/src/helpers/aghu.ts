@@ -38,7 +38,7 @@ export interface SolicitacaoAgrupada {
 }
 
 /** Ordem dos tipos na solicitação: Congelação primeiro, IHQ por último. */
-const ORDEM_TIPO: Record<TipoExame, number> = { CO: 0, HP: 1, CG: 2, CCV: 3, IHQ: 4 };
+const ORDEM_TIPO: Record<TipoExame, number> = { CO: 0, HP: 1, CG: 2, CCV: 3, REVISAO: 4, IHQ: 5 };
 
 /** Ordena os grupos de uma solicitação (CO primeiro, IHQ por último). */
 export function ordenarGrupos(grupos: SolicitacaoAghu[]): SolicitacaoAghu[] {

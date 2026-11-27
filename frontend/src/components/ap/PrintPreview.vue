@@ -14,7 +14,7 @@
           <PrinterIcon class="h-6 w-6 text-paper-primary-strong" aria-hidden="true" />
           <div>
             <p class="font-bold text-gray-800">{{ titulo }}</p>
-            <p class="text-xs text-gray-500">Pré-visualização em escala real · caso {{ caso.numeroInterno }}</p>
+            <p class="text-xs text-gray-500">Pré-visualização em escala real · {{ casoEtiqueta?.numeroInterno ?? caso.numeroInterno }}</p>
           </div>
         </div>
         <div class="flex gap-2">
@@ -56,9 +56,9 @@
 
       <!-- Conteúdo impresso -->
       <div class="print-area flex-1 overflow-auto p-8">
-        <div v-if="tipo === 'ETIQUETAS'" class="flex flex-wrap justify-center gap-6">
+      <div v-if="tipo === 'ETIQUETAS'" class="flex flex-wrap justify-center gap-6">
           <div v-for="item in etiquetas" :key="item.codigo" class="pagina-etiqueta shadow-lg">
-            <EtiquetaFrasco :caso="caso" :item="item" />
+            <EtiquetaFrasco :caso="casoEtiqueta" :item="item" />
           </div>
         </div>
         <div v-else class="flex justify-center">
@@ -77,15 +77,17 @@ import { PrinterIcon } from '@heroicons/vue/24/outline';
 import Button from '../Button.vue';
 import EtiquetaFrasco from './EtiquetaFrasco.vue';
 import FichaTrabalho from './FichaTrabalho.vue';
-import type { CasoAp, TipoImpressao } from '../../types/ap';
+import type { CasoAp, DadosEtiquetaRecepcao, TipoImpressao } from '../../types/ap';
 
-const props = defineProps<{ show: boolean; caso: CasoAp | null; tipo: TipoImpressao }>();
+const props = defineProps<{ show: boolean; caso: CasoAp | null; casoEtiqueta?: DadosEtiquetaRecepcao; tipo: TipoImpressao }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
+
+const casoEtiqueta = computed(() => props.casoEtiqueta ?? props.caso!);
 
 const emitidaEm = ref(new Date().toISOString());
 
 /** Uma etiqueta por amostra-raiz do caso. */
-const amostras = computed(() => props.caso?.materiais.filter((m) => m.tipoItem === 'AMOSTRA') ?? []);
+const amostras = computed(() => casoEtiqueta.value?.materiais.filter((m) => m.tipoItem === 'AMOSTRA') ?? []);
 
 /** Códigos das amostras marcadas para impressão (todas por padrão). */
 const selecionadas = ref<string[]>([]);

@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 def _camel_case(nome: str) -> str:
@@ -19,10 +19,25 @@ class PayloadRecepcao(BaseModel):
 
 class ConfirmarEntradaInput(PayloadRecepcao):
     solicitacao_id: str = Field(min_length=1)
-    tipo_exame: Literal["HP", "CG", "CCV", "CO"]
+    tipo_exame: Literal["HP", "CG", "CCV", "CO", "REVISAO"]
     urgente: bool
     procedimento: str = Field(min_length=1)
     observacoes: str | None = None
+    caso_origem_numero: str | None = Field(default=None, min_length=1)
+    tipo_derivacao: Literal["REVISAO"] | None = None
+    divergencia_confirmada: bool = False
+
+    @model_validator(mode="after")
+    def validar_origem_revisao(self) -> "ConfirmarEntradaInput":
+        """Exige origem apenas para Revisão e impede metadados de derivação indevidos."""
+        if self.tipo_exame == "REVISAO":
+            if not self.caso_origem_numero:
+                raise ValueError("Informe o caso de origem da Revisão.")
+            if self.tipo_derivacao != "REVISAO":
+                raise ValueError("O tipo de derivação da Revisão deve ser REVISAO.")
+        elif self.caso_origem_numero or self.tipo_derivacao:
+            raise ValueError("Somente uma Revisão pode informar caso de origem nesta operação.")
+        return self
 
 
 class VincularIhqInput(PayloadRecepcao):

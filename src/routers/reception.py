@@ -130,7 +130,8 @@ async def buscar_casos(
     return await _controller(provider, session).buscar_casos(termo, limite)
 
 
-@router.get("/casos/elegiveis-ihq")
+@router.get("/casos/elegiveis-derivacao")
+@router.get("/casos/elegiveis-ihq", include_in_schema=False)
 async def buscar_casos_elegiveis_ihq(
     termo: str = Query(default=""),
     usuario: dict[str, Any] = Depends(exigir_permissao(Permissao.CASOS_CONSULTAR)),

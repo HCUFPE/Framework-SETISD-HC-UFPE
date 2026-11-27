@@ -103,7 +103,11 @@ def _mapear_linha(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     Retorna None quando a sigla do exame não pertence ao mapa de tipos de exame.
     """
     sigla = _texto(row, "sigla_exame").strip().upper()
+    nome_exame = _texto(row, "nome_exame")
+    nome_normalizado = _normalizar_texto(nome_exame)
     tipo = SIGLA_PARA_TIPO_EXAME.get(sigla)
+    if tipo is None and (sigla.startswith("REV") or "REVISAO" in nome_normalizado):
+        tipo = "REVISAO"
     if tipo is None:
         return None
 
@@ -124,7 +128,7 @@ def _mapear_linha(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "nomeSolicitante": None,
         "dataSolicitacao": _converter_data(_texto(row, "data_solicitacao")),
         "siglaExame": sigla,
-        "nomeExame": _texto(row, "nome_exame"),
+        "nomeExame": nome_exame,
         "tipoExameSugerido": tipo,
         "descricaoMaterial": _texto(row, "descricao_material"),
         "informacoesClinicas": _texto(row, "informacoes_clinica"),
@@ -136,6 +140,17 @@ def _mapear_linha(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "convenio": _texto(row, "convenio"),
         "codStatusItem": _texto(row, "cod_status_item"),
     }
+
+
+def _normalizar_texto(valor: str) -> str:
+    """Normaliza texto do AGHU para reconhecer rótulos de Revisão com ou sem acento."""
+    import unicodedata
+
+    sem_acentos = "".join(
+        caractere for caractere in unicodedata.normalize("NFD", valor)
+        if unicodedata.category(caractere) != "Mn"
+    )
+    return " ".join(sem_acentos.upper().split())
 
 
 def _mapear_linhas(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

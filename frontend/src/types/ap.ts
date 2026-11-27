@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 
 /** Tipos de exame (tabela `tipo_exame`). IHQ é complementar: nunca vira caso próprio. */
-export type TipoExame = 'HP' | 'CG' | 'CCV' | 'CO' | 'IHQ';
+export type TipoExame = 'HP' | 'CG' | 'CCV' | 'CO' | 'REVISAO' | 'IHQ';
 
 /** Tipos que originam um `caso_ap`. */
 export type TipoCasoPrincipal = Exclude<TipoExame, 'IHQ'>;
@@ -331,6 +331,10 @@ export interface Cancelamento {
 export interface CasoAp {
   numeroInterno: string;
   tipoExame: TipoCasoPrincipal;
+  casoOrigemNumero?: string | null;
+  tipoDerivacao?: 'REVISAO' | null;
+  casoOrigem?: CasoOrigemResumo | null;
+  examesDerivados?: ExameDerivadoResumo[];
   /** Cópia da solicitação AGHU que originou o caso. */
   solicitacao: SolicitacaoAghu;
   status: StatusCaso;
@@ -353,6 +357,16 @@ export interface CasoAp {
   cancelamento?: Cancelamento;
   historico: HistoricoCaso[];
   plantaoAcionadoEm?: string;
+}
+
+/** Dados específicos necessários para imprimir uma etiqueta de caso ou IHQ recebida. */
+export interface DadosEtiquetaRecepcao {
+  numeroInterno: string;
+  tipoExame: TipoExame;
+  solicitacao: SolicitacaoAghu;
+  urgente: boolean;
+  dataEntradaSap: string;
+  materiais: ItemMaterial[];
 }
 
 /** Registro da trilha de auditoria (espelha `audit_logs` / `registrar_auditoria()`). */
@@ -386,6 +400,30 @@ export interface ConfirmarEntradaInput {
   urgente: boolean;
   procedimento: string;
   observacoes?: string;
+  casoOrigemNumero?: string;
+  tipoDerivacao?: 'REVISAO';
+  divergenciaConfirmada?: boolean;
+}
+
+/** Resumo navegável da origem de uma Revisão derivada. */
+export interface CasoOrigemResumo {
+  numeroInterno: string;
+  tipoExame: TipoCasoPrincipal;
+  status: StatusCaso;
+  dataEntradaSap: string;
+  nomePaciente: string;
+  prontuario: string;
+}
+
+/** Projeção de apresentação que unifica IHQs e casos derivados. */
+export interface ExameDerivadoResumo {
+  codigoInterno: string;
+  numeroInterno?: string;
+  tipo: 'IHQ' | 'REVISAO';
+  status: string;
+  data?: string;
+  solicitacaoAghuCodigo?: string;
+  navegavel: boolean;
 }
 
 /** Confirmação de uma IHQ vinculada a um caso existente. */
@@ -495,12 +533,13 @@ export interface ResultadoBuscaCasos {
 
 /** Resultado da confirmação na recepção. */
 export type ResultadoRecepcao =
-  | { tipo: 'CASO'; caso: CasoAp }
-  | { tipo: 'IHQ'; caso: CasoAp; ihq: ExameIhq };
+  | { tipo: 'CASO'; caso: CasoAp; etiqueta: DadosEtiquetaRecepcao }
+  | { tipo: 'IHQ'; caso: CasoAp; ihq: ExameIhq; etiqueta: DadosEtiquetaRecepcao };
 
 /** Caso elegível como origem de uma IHQ. */
 export interface CasoElegivelIhq {
   numeroInterno: string;
+  tipoExame: TipoCasoPrincipal;
   nomePaciente: string;
   prontuario: string;
   descricaoMaterial: string;

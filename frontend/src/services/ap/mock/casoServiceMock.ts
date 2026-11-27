@@ -106,6 +106,7 @@ export const casoServiceMock: CasoService = {
         const inelegivel = STATUS_INELEGIVEIS_IHQ.includes(c.status);
         return {
           numeroInterno: c.numeroInterno,
+          tipoExame: c.tipoExame,
           nomePaciente: c.solicitacao.nomePaciente,
           prontuario: c.solicitacao.prontuario,
           descricaoMaterial: resumoMaterial(c.solicitacao),
@@ -265,7 +266,7 @@ export const casoServiceMock: CasoService = {
         prontuarioDivergente: divergente,
       },
     );
-    return { caso: montarCaso(caso), ihq: copia(ihq) };
+    return { caso: montarCaso(caso), ihq: copia(ihq), solicitacao: copia(solicitacao) };
   },
 
   async cancelar(numeroInterno: string, motivo: string, usuario: Responsavel): Promise<CasoAp> {

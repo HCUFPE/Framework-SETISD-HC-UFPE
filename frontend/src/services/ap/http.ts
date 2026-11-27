@@ -64,7 +64,7 @@ export const casoServiceHttp: CasoService = {
       throw erro;
     }
   },
-  buscarElegiveisIhq: (termo) => requisicao(() => api.get('/api/ap/casos/elegiveis-ihq', { params: { termo } })),
+  buscarElegiveisIhq: (termo) => requisicao(() => api.get('/api/ap/casos/elegiveis-derivacao', { params: { termo } })),
   confirmarEntrada: (input: ConfirmarEntradaInput, _usuario: Responsavel) =>
     requisicao(() => api.post('/api/ap/recebimentos', input)),
   vincularIhq: (input: VincularIhqInput, _usuario: Responsavel) =>

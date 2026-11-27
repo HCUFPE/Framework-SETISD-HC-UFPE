@@ -8,6 +8,8 @@ import { ServiceError, aghuService, casoService } from '../services/ap';
 import type {
   CasoAp,
   ConfirmarEntradaInput,
+  DadosEtiquetaRecepcao,
+  ItemMaterial,
   LeituraSolicitacao,
   RecebimentoExame,
   ResultadoRecepcao,
@@ -35,17 +37,14 @@ export interface MensagemLeitura {
 export interface EntradaCasoConferencia {
   tipo: 'CASO';
   dados: ConfirmarEntradaInput;
+  usarCasoDaConferencia?: boolean;
 }
 
 /** Entrada de um grupo IHQ recebido na conferência. */
 export interface EntradaIhqConferencia {
   tipo: 'IHQ';
-  /**
-   * Vínculo com caso existente; ou, com `usarCasoDaConferencia`, com o caso principal criado
-   * nesta mesma conferência (preenchido na confirmação).
-   */
+  /** A origem é manual apenas quando a solicitação não possui grupo HP próprio. */
   dados: Omit<VincularIhqInput, 'casoOrigemNumero'> & { casoOrigemNumero?: string };
-  usarCasoDaConferencia: boolean;
 }
 
 export type EntradaConferencia = EntradaCasoConferencia | EntradaIhqConferencia;
@@ -64,6 +63,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
   const exames = ref<SolicitacaoAghu[]>([]);
   /** Todos os grupos da solicitação em conferência (qualquer situação), recarregados após confirmar. */
   const examesDaSolicitacao = ref<SolicitacaoAghu[]>([]);
+  const examesDaSolicitacaoCarregados = ref(false);
   /** Casos e IHQs gerados na confirmação da conferência. */
   const resultados = ref<ResultadoRecepcao[]>([]);
   const mensagemLeitura = ref<MensagemLeitura | null>(null);
@@ -81,6 +81,31 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
   const grupoSelecionadoId = ref<string | null>(null);
   /** Metadados quando a amostra bipada pertence a um grupo já recebido/devolvido. */
   const amostraBipadaSituacao = ref<AmostraBipadaSituacao | null>(null);
+
+  /** Projeta a etiqueta da IHQ usando o grupo AGHU recebido, sem copiar a identidade do HP pai. */
+  function etiquetaIhq(caso: CasoAp, codigoInternoIhq: string, grupo: SolicitacaoAghu): DadosEtiquetaRecepcao {
+    const agora = new Date().toISOString();
+    const materiais: ItemMaterial[] = grupo.amostras.map((amostra, indice) => ({
+      codigo: indice === 0 ? codigoInternoIhq : `${codigoInternoIhq}-F${indice + 1}`,
+      tipoItem: 'AMOSTRA',
+      rotulo: `Amostra ${amostra.numeroAmostra}`,
+      descricao: amostra.descricaoMaterial,
+      numeroAmostraAghu: amostra.numeroAmostra,
+      origem: 'COMPLEMENTAR',
+      status: 'DISPONIVEL',
+      criadoPor: responsavel.value,
+      criadoEm: agora,
+      filhos: [],
+    }));
+    return {
+      numeroInterno: codigoInternoIhq,
+      tipoExame: 'IHQ',
+      solicitacao: grupo,
+      urgente: caso.urgente,
+      dataEntradaSap: agora,
+      materiais,
+    };
+  }
 
   /** Dados de cabeçalho da solicitação em conferência (paciente, origem etc.). */
   const solicitacao = computed<SolicitacaoAghu | null>(() => exames.value[0] ?? examesDaSolicitacao.value[0] ?? null);
@@ -101,8 +126,11 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
 
   /** Carrega todos os grupos da solicitação atual (falha não bloqueia a recepção). */
   async function carregarExamesDaSolicitacao(codigo: string): Promise<void> {
+    examesDaSolicitacaoCarregados.value = false;
+    examesDaSolicitacao.value = [];
     try {
       examesDaSolicitacao.value = await aghuService.listarExamesDaSolicitacao(codigo);
+      examesDaSolicitacaoCarregados.value = true;
     } catch (erro) {
       console.error('Falha ao carregar os exames da solicitação.', erro);
     }
@@ -133,31 +161,31 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
   }
 
   /** Abre a conferência da solicitação com os grupos pendentes informados. */
-  function iniciarConferencia(gruposPendentes: SolicitacaoAghu[]): void {
+  async function iniciarConferencia(gruposPendentes: SolicitacaoAghu[]): Promise<void> {
+    const codigo = gruposPendentes[0]?.codigoSolicitacao;
+    if (codigo) await carregarExamesDaSolicitacao(codigo);
     exames.value = ordenarGrupos(gruposPendentes);
-    examesDaSolicitacao.value = [...exames.value];
+    if (!examesDaSolicitacaoCarregados.value) examesDaSolicitacao.value = [...exames.value];
     resultados.value = [];
     mensagemLeitura.value = null;
     amostraBipada.value = null;
     grupoSelecionadoId.value = null;
     amostraBipadaSituacao.value = null;
     passo.value = 1;
-    const codigo = gruposPendentes[0]?.codigoSolicitacao;
-    if (codigo) void carregarExamesDaSolicitacao(codigo);
   }
 
   /**
    * Abre a conferência preservando metadados da amostra bipada
    * (já definidos antes da chamada, em `lerCodigo`).
    */
-  function iniciarConferenciaComMetadados(gruposPendentes: SolicitacaoAghu[]): void {
+  async function iniciarConferenciaComMetadados(gruposPendentes: SolicitacaoAghu[]): Promise<void> {
+    const codigo = gruposPendentes[0]?.codigoSolicitacao;
+    if (codigo) await carregarExamesDaSolicitacao(codigo);
     exames.value = ordenarGrupos(gruposPendentes);
-    examesDaSolicitacao.value = [...exames.value];
+    if (!examesDaSolicitacaoCarregados.value) examesDaSolicitacao.value = [...exames.value];
     resultados.value = [];
     mensagemLeitura.value = null;
     passo.value = 1;
-    const codigo = gruposPendentes[0]?.codigoSolicitacao;
-    if (codigo) void carregarExamesDaSolicitacao(codigo);
   }
 
   /** Mensagem para uma leitura que não pode ser recebida. */
@@ -203,7 +231,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
         amostraBipada.value = leitura.amostraBipada ?? null;
         grupoSelecionadoId.value = leitura.grupoSelecionadoId ?? null;
         amostraBipadaSituacao.value = leitura.amostraBipadaSituacao ?? null;
-        iniciarConferenciaComMetadados(leitura.exames);
+        await iniciarConferenciaComMetadados(leitura.exames);
       } else {
         amostraBipada.value = null;
         grupoSelecionadoId.value = null;
@@ -235,23 +263,39 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     const confirmados: ResultadoRecepcao[] = [];
     const principais = entradas.filter((e): e is EntradaCasoConferencia => e.tipo === 'CASO');
     const ihqs = entradas.filter((e): e is EntradaIhqConferencia => e.tipo === 'IHQ');
-    const ordem: CasoAp['tipoExame'][] = ['CO', 'HP', 'CG', 'CCV'];
+    const ordem: CasoAp['tipoExame'][] = ['CO', 'HP', 'CG', 'CCV', 'REVISAO'];
     principais.sort((a, b) => ordem.indexOf(a.dados.tipoExame) - ordem.indexOf(b.dados.tipoExame));
 
     try {
       for (const entrada of principais) {
-        const caso = await casoService.confirmarEntrada(entrada.dados, responsavel.value);
-        confirmados.push({ tipo: 'CASO', caso });
+        let dados = entrada.dados;
+        if (dados.tipoExame === 'REVISAO' && entrada.usarCasoDaConferencia) {
+          const casos = confirmados.filter((r) => r.tipo === 'CASO').map((r) => r.caso);
+          const origem = casos.find((c) => c.tipoExame === 'HP')
+            ?? casos.find((c) => c.tipoExame !== 'CO' && c.tipoExame !== 'REVISAO')
+            ?? casos[0];
+          if (!origem) throw new ServiceError(400, 'Receba um caso principal antes de vincular a Revisão.');
+          dados = { ...dados, casoOrigemNumero: origem.numeroInterno };
+        }
+        const caso = await casoService.confirmarEntrada(dados, responsavel.value);
+        confirmados.push({ tipo: 'CASO', caso, etiqueta: caso });
       }
       for (const entrada of ihqs) {
         let casoOrigemNumero = entrada.dados.casoOrigemNumero;
-        if (entrada.usarCasoDaConferencia) {
+        const grupoHp = examesDaSolicitacao.value.find(
+          (grupo) => grupo.codigoSolicitacao === entrada.dados.solicitacaoId.split(':', 1)[0] && grupo.tipoExameSugerido === 'HP',
+        );
+        if (grupoHp) {
           const casos = confirmados.filter((r) => r.tipo === 'CASO').map((r) => r.caso);
-          casoOrigemNumero = (casos.find((c) => c.tipoExame === 'HP') ?? casos.find((c) => c.tipoExame !== 'CO') ?? casos[0])?.numeroInterno;
+          casoOrigemNumero = casos.find((c) => c.tipoExame === 'HP')?.numeroInterno ?? grupoHp.casoNumero;
         }
-        if (!casoOrigemNumero) throw new ServiceError(400, 'Selecione o caso de origem da IHQ.');
-        const { caso, ihq } = await casoService.vincularIhq({ ...entrada.dados, casoOrigemNumero }, responsavel.value);
-        confirmados.push({ tipo: 'IHQ', caso, ihq });
+        if (!casoOrigemNumero) {
+          throw new ServiceError(400, grupoHp
+            ? 'Receba o HP desta solicitação junto ou antes da IHQ.'
+            : 'Selecione o histopatológico associado.');
+        }
+        const { caso, ihq, solicitacao } = await casoService.vincularIhq({ ...entrada.dados, casoOrigemNumero }, responsavel.value);
+        confirmados.push({ tipo: 'IHQ', caso, ihq, etiqueta: etiquetaIhq(caso, ihq.codigoInternoIhq, solicitacao) });
       }
     } finally {
       if (confirmados.length > 0) {
@@ -281,7 +325,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
   async function registrarPlantao(numeroInterno: string): Promise<void> {
     const caso = await casoService.registrarAcionamentoPlantao(numeroInterno, responsavel.value);
     resultados.value = resultados.value.map((r) =>
-      r.tipo === 'CASO' && r.caso.numeroInterno === numeroInterno ? { tipo: 'CASO', caso } : r,
+      r.tipo === 'CASO' && r.caso.numeroInterno === numeroInterno ? { tipo: 'CASO', caso, etiqueta: caso } : r,
     );
   }
 
@@ -290,6 +334,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     passo.value = 0;
     exames.value = [];
     examesDaSolicitacao.value = [];
+    examesDaSolicitacaoCarregados.value = false;
     resultados.value = [];
     mensagemLeitura.value = null;
     amostraBipada.value = null;
@@ -302,6 +347,7 @@ export const useRecepcaoStore = defineStore('recepcao', () => {
     passo,
     exames,
     examesDaSolicitacao,
+    examesDaSolicitacaoCarregados,
     solicitacao,
     outrosExames,
     outrosExamesPendentes,

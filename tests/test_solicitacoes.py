@@ -10,6 +10,7 @@ from src.auth.auth import auth_handler
 from src.dependencies import _get_solicitacao_csv_provider
 from src.providers.implementations import solicitacao_csv_provider as provider_module
 from src.providers.implementations.solicitacao_csv_provider import SolicitacaoCsvProvider
+from src.controllers.solicitacao_controller import _mapear_linha
 
 FIXTURE_CSV = os.path.join(os.path.dirname(__file__), "fixtures", "solicitacoes_teste.csv")
 
@@ -54,6 +55,20 @@ def test_mapeamento_de_uma_linha(api, headers):
     assert item["numeroAmostra"] == "1"
     assert item["codigoLab"] == "LAB1"
     assert item["convenio"] == "SUS"
+
+
+def test_mapeia_revisao_por_sigla_ou_nome_do_exame():
+    linha = {
+        "sigla_exame": "REVLA",
+        "codigo_solicitacao": "900010",
+        "numero_amostra": "1",
+        "nome_exame": "REVISÃO DE LÂMINA",
+    }
+
+    resultado = _mapear_linha(linha)
+
+    assert resultado is not None
+    assert resultado["tipoExameSugerido"] == "REVISAO"
 
 
 def test_origens_mapeadas(api, headers):

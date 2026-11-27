@@ -65,7 +65,7 @@ export interface CasoService {
   buscarElegiveisIhq(termo: string): Promise<CasoElegivelIhq[]>;
   /** Confirma a entrada de um caso principal (HP, CG, CCV, CO). */
   confirmarEntrada(input: ConfirmarEntradaInput, usuario: Responsavel): Promise<CasoAp>;
-  vincularIhq(input: VincularIhqInput, usuario: Responsavel): Promise<{ caso: CasoAp; ihq: ExameIhq }>;
+  vincularIhq(input: VincularIhqInput, usuario: Responsavel): Promise<{ caso: CasoAp; ihq: ExameIhq; solicitacao: SolicitacaoAghu }>;
   cancelar(numeroInterno: string, motivo: string, usuario: Responsavel): Promise<CasoAp>;
   registrarAcionamentoPlantao(numeroInterno: string, usuario: Responsavel): Promise<CasoAp>;
   /**

@@ -24,14 +24,15 @@ export const TIPOS_EXAME: Record<TipoExame, { nome: string; principal: boolean }
   CG: { nome: 'Citologia geral', principal: true },
   CCV: { nome: 'Citologia cérvico-vaginal', principal: true },
   CO: { nome: 'Congelação', principal: true },
+  REVISAO: { nome: 'Revisão anatomopatológica', principal: false },
   IHQ: { nome: 'Imuno-histoquímica', principal: false },
 };
 
 /** Ordem de exibição dos tipos de exame. */
-export const ORDEM_TIPOS_EXAME: TipoExame[] = ['HP', 'CG', 'CCV', 'CO', 'IHQ'];
+export const ORDEM_TIPOS_EXAME: TipoExame[] = ['HP', 'CG', 'CCV', 'CO', 'REVISAO', 'IHQ'];
 
 /** Tipos que originam caso próprio. */
-export const TIPOS_CASO_PRINCIPAL: TipoCasoPrincipal[] = ['HP', 'CG', 'CCV', 'CO'];
+export const TIPOS_CASO_PRINCIPAL: TipoCasoPrincipal[] = ['HP', 'CG', 'CCV', 'CO', 'REVISAO'];
 
 /** Rótulos das etapas (tabela `etapa`). */
 export const ETAPAS: Record<EtapaCodigo, string> = {
@@ -53,6 +54,7 @@ export const FLUXO_POR_TIPO: Record<TipoCasoPrincipal, EtapaCodigo[]> = {
   CG: ['RECEPCAO', 'PROCESSAMENTO', 'MICROSCOPIA', 'APROVACAO', 'ARQUIVO'],
   CCV: ['RECEPCAO', 'PROCESSAMENTO', 'TRIAGEM_CITO', 'MICROSCOPIA', 'APROVACAO', 'ARQUIVO'],
   CO: ['RECEPCAO', 'CONGELACAO', 'MICROSCOPIA', 'APROVACAO', 'ARQUIVO'],
+  REVISAO: ['RECEPCAO', 'MICROSCOPIA', 'APROVACAO', 'ARQUIVO'],
 };
 
 /**
