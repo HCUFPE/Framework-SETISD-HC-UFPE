@@ -182,6 +182,21 @@ export interface SolicitacaoAghu {
   ihqCasoNumero?: string;
   /** Devolução que encerrou o exame na recepção. */
   devolucaoId?: number;
+  /** Ocorrência anterior preservada após a regularização do grupo. */
+  devolucaoRegularizada?: DevolucaoRegularizada;
+}
+
+/** Metadados imutáveis da devolução regularizada que reabriu o grupo. */
+export interface DevolucaoRegularizada {
+  id: number;
+  situacao: SituacaoDevolucao;
+  devolvidaEm: string;
+  regularizadaEm: string;
+  tipo?: TipoNaoConformidadeCodigo;
+  descricao?: string;
+  observacao?: string;
+  unidadeOrigem?: string;
+  rejeicaoNaRecepcao: boolean;
 }
 
 /** Conferência de recebimento (`conferencia_recebimento`). */

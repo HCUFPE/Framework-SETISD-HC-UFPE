@@ -276,6 +276,20 @@ class ReceptionController:
                     ocorrido_em=agora_iso(),
                 ),
             )
+        if atual["situacao"] == "NOVA_AMOSTRA_RECEBIDA":
+            if atual.get("casoNumero"):
+                estado_anterior = alteracao.get("statusCasoAnterior") or "DEVOLVIDO"
+                estado_atual = alteracao.get("statusCasoAtual") or "RECEBIDO"
+                await self.provider.adicionar_historico(
+                    atual["casoNumero"],
+                    _evento_historico(
+                        responsavel,
+                        "FLUXO_REABERTO",
+                        "Fluxo reaberto após regularização",
+                        f"Devolução {devolucao_id} regularizada; caso reaberto de {estado_anterior} para {estado_atual}.",
+                        ocorrido_em=agora_iso(),
+                    ),
+                )
         await _auditar(
             self.session,
             usuario,
@@ -285,10 +299,14 @@ class ReceptionController:
             {
                 "situacao": anterior["situacao"],
                 "statusNaoConformidade": alteracao["statusNaoConformidadeAnterior"],
+                "solicitacoes": alteracao.get("solicitacoesAnteriores", []),
+                "statusCaso": alteracao.get("statusCasoAnterior"),
             },
             {
                 "situacao": atual["situacao"],
                 "statusNaoConformidade": alteracao["statusNaoConformidadeAtual"],
+                "solicitacoes": alteracao.get("solicitacoesAtuais", []),
+                "statusCaso": alteracao.get("statusCasoAtual"),
             },
         )
         return atual
@@ -552,6 +570,18 @@ class ReceptionController:
             ocorrido_em=agora,
         )
         await self.provider.adicionar_historico(numero, evento)
+        ocorrencias = await self.provider.associar_ocorrencias_reabertas(grupo_id, numero)
+        for ocorrencia in ocorrencias:
+            await self.provider.adicionar_historico(
+                numero,
+                _evento_historico(
+                    responsavel,
+                    "FLUXO_REABERTO",
+                    "Histórico de devolução regularizada associado",
+                    f"Devolução {ocorrencia['devolucaoId']} da solicitação {grupo_id} foi associada ao caso após regularização.",
+                    ocorrido_em=agora,
+                ),
+            )
         if entrada["urgente"]:
             await self.provider.adicionar_historico(numero, _evento_historico(
                 responsavel, "URGENCIA_MARCADA", "Marcado como URGENTE", "Urgência informada na conferência.", ocorrido_em=agora
@@ -638,6 +668,18 @@ class ReceptionController:
             ocorrido_em=agora,
         )
         await self.provider.adicionar_historico(numero_caso, historico)
+        ocorrencias = await self.provider.associar_ocorrencias_reabertas(grupo_id, numero_caso)
+        for ocorrencia in ocorrencias:
+            await self.provider.adicionar_historico(
+                numero_caso,
+                _evento_historico(
+                    responsavel,
+                    "FLUXO_REABERTO",
+                    "Histórico de devolução regularizada associado",
+                    f"Devolução {ocorrencia['devolucaoId']} da solicitação {grupo_id} foi associada ao caso após regularização.",
+                    ocorrido_em=agora,
+                ),
+            )
         await _auditar(
             self.session,
             usuario,
@@ -779,6 +821,7 @@ class ReceptionController:
             "registradoPor": responsavel,
             "registradoEm": agora,
             "status": status_nc,
+            "statusCasoAnterior": status_caso_anterior,
         })
         devolucao = await self.provider.adicionar_devolucao({
             "naoConformidadeId": nao_conformidade["id"],
@@ -790,6 +833,8 @@ class ReceptionController:
             "novaAmostraSolicitada": entrada["novaAmostraSolicitada"],
             "situacao": "AGUARDANDO_NOVA_AMOSTRA" if entrada["novaAmostraSolicitada"] else "ENCERRADA",
             "devolvidaEm": agora,
+            "statusCasoAnterior": status_caso_anterior,
+            "rejeicaoNaRecepcao": contexto["tipo"] == "SOLICITACAO",
         })
 
         status_solicitacao_anterior: str | None = None

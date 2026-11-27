@@ -1,6 +1,15 @@
 <template>
   <div v-if="recepcao.solicitacao" class="space-y-4">
     <Alert
+      v-for="devolucao in devolucoesRegularizadas"
+      :key="devolucao.id"
+      variant="info"
+      title="Devolução anterior regularizada"
+    >
+      Este grupo foi devolvido por não conformidade em {{ formatarDataHora(devolucao.devolvidaEm) }} e regularizado em {{ formatarDataHora(devolucao.regularizadaEm) }}.
+      {{ devolucao.descricao ?? devolucao.tipo }}. O histórico original foi preservado.
+    </Alert>
+    <Alert
       v-if="recepcao.amostraBipadaSituacao"
       variant="warning"
       :title="`Amostra ${recepcao.amostraBipada} já ${recepcao.amostraBipadaSituacao.situacaoRecepcao === 'DEVOLVIDA' ? 'devolvida' : recepcao.amostraBipadaSituacao.situacaoRecepcao === 'CANCELADA' ? 'cancelada' : 'recebida'}`"
@@ -272,6 +281,7 @@ import NaoConformidadeModal from '../NaoConformidadeModal.vue';
 import CasoOrigemIhq from './CasoOrigemIhq.vue';
 import { NAO_INFORMADO, PROCEDIMENTOS, TIPOS_EXAME } from '../../../constants/ap';
 import { rotuloNumerosAmostras } from '../../../helpers/aghu';
+import { formatarDataHora } from '../../../helpers/formato';
 import { mensagemDeErro } from '../../../services/ap';
 import { useCasosStore } from '../../../stores/casos';
 import { useRecepcaoStore, type EntradaConferencia } from '../../../stores/recepcao';
@@ -296,6 +306,10 @@ const toast = useToast();
 const recepcao = useRecepcaoStore();
 const casosStore = useCasosStore();
 const authStore = useAuthStore();
+const devolucoesRegularizadas = computed(() => {
+  const ocorrencias = recepcao.exames.flatMap((exame) => exame.devolucaoRegularizada ? [exame.devolucaoRegularizada] : []);
+  return [...new Map(ocorrencias.map((item) => [item.id, item])).values()];
+});
 
 /** Modal de não conformidade e devolução aberto. */
 const ncAberta = ref(false);

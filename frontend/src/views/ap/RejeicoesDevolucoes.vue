@@ -9,7 +9,21 @@
       Seu perfil não possui permissão para consultar as devoluções. Nenhum dado foi carregado.
     </p>
 
-    <Card v-else>
+    <Alert v-if="reaberturaConcluida" variant="success" title="Fluxo reaberto">
+      <p>A nova amostra foi registrada como recebida e o fluxo foi reaberto.</p>
+      <router-link
+        v-if="reaberturaConcluida.casoNumero"
+        :to="rotaDoCaso(reaberturaConcluida.casoNumero)"
+        class="mt-2 inline-block font-bold underline"
+      >
+        Abrir caso {{ reaberturaConcluida.casoNumero }}
+      </router-link>
+      <router-link v-else :to="{ path: '/recepcao', query: { solicitacao: reaberturaConcluida.solicitacaoCodigo } }" class="mt-2 inline-block font-bold underline">
+        Abrir recepção para conferir a solicitação {{ reaberturaConcluida.solicitacaoCodigo }}
+      </router-link>
+    </Alert>
+
+    <Card v-if="!acessoPendente">
       <div class="flex flex-wrap items-end gap-3">
         <div class="w-44">
           <label for="dev-periodo" class="form-label">Período</label>
@@ -96,7 +110,7 @@
       :show="emEdicao !== null"
       :devolucao="emEdicao"
       @close="emEdicaoId = null"
-      @alterada="emEdicaoId = null"
+      @alterada="aoAlterarSituacao"
     />
   </div>
 </template>
@@ -109,6 +123,7 @@ import Badge from '../../components/Badge.vue';
 import Button from '../../components/Button.vue';
 import Card from '../../components/Card.vue';
 import DataTable from '../../components/DataTable.vue';
+import Alert from '../../components/Alert.vue';
 import SelectBusca from '../../components/SelectBusca.vue';
 import AlterarSituacaoDevolucaoModal from '../../components/ap/AlterarSituacaoDevolucaoModal.vue';
 import {
@@ -123,12 +138,13 @@ import { rotaDoCaso } from '../../helpers/rotas';
 import { mensagemDeErro, ServiceError } from '../../services/ap';
 import { useDevolucoesStore } from '../../stores/devolucoes';
 import { useAuthStore } from '../../stores/auth';
-import type { EtapaCodigo, TipoNaoConformidadeCodigo } from '../../types/ap';
+import type { DevolucaoDetalhada, EtapaCodigo, TipoNaoConformidadeCodigo } from '../../types/ap';
 
 const store = useDevolucoesStore();
 const authStore = useAuthStore();
 const toast = useToast();
 const acessoPendente = ref(false);
+const reaberturaConcluida = ref<DevolucaoDetalhada | null>(null);
 
 const filtros = reactive({
   periodoDias: 0,
@@ -210,6 +226,11 @@ const emEdicao = computed(() => store.devolucoes.find((d) => d.id === emEdicaoId
 
 const abrirEdicao = (id: number) => {
   emEdicaoId.value = id;
+};
+
+const aoAlterarSituacao = (devolucao: DevolucaoDetalhada) => {
+  emEdicaoId.value = null;
+  if (devolucao.situacao === 'NOVA_AMOSTRA_RECEBIDA') reaberturaConcluida.value = devolucao;
 };
 
 onMounted(async () => {

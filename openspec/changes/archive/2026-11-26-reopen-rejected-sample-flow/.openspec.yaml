@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-11-26
+goal: Permitir retomar com segurança o fluxo de recepção de uma amostra
+  rejeitada após sua regularização, preservando a devolução original e a
+  auditoria.

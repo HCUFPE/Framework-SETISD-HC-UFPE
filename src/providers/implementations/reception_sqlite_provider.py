@@ -1,11 +1,13 @@
 """Provider SQLAlchemy assíncrono para estado local das operações da Recepção."""
 
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException
 
 from ...models.ap_reception import (
     ApCaso,
@@ -350,11 +352,16 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
             payload["id"] = devolucao.id
             nc_payload = _load(nc.payload)
             nc_payload["id"] = nc.id
-            devolucoes.append({**payload, "naoConformidade": nc_payload, "rejeicaoNaRecepcao": not bool(devolucao.caso_numero)})
+            devolucoes.append({
+                **payload,
+                "casoNumero": devolucao.caso_numero,
+                "naoConformidade": nc_payload,
+                "rejeicaoNaRecepcao": payload.get("rejeicaoNaRecepcao", not bool(devolucao.caso_numero)),
+            })
         return devolucoes
 
     async def atualizar_situacao_devolucao(self, devolucao_id: int, situacao: str) -> dict[str, Any] | None:
-        """Atualiza devolução e não conformidade associada na sessão corrente."""
+        """Atualiza a devolução e reabre solicitações ou caso na sessão corrente."""
         devolucao = await self.session.get(ApDevolucao, devolucao_id)
         if devolucao is None:
             return None
@@ -364,12 +371,13 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
 
         payload = _load(devolucao.payload)
         nc_payload = _load(nc.payload)
+        rejeicao_na_recepcao = payload.get("rejeicaoNaRecepcao", devolucao.caso_numero is None)
         anterior = {
             **payload,
             "id": devolucao.id,
             "situacao": devolucao.situacao,
             "naoConformidade": {**nc_payload, "id": nc.id, "status": nc.status},
-            "rejeicaoNaRecepcao": not bool(devolucao.caso_numero),
+            "rejeicaoNaRecepcao": rejeicao_na_recepcao,
         }
         status_nc_anterior = nc.status
         if devolucao.situacao == situacao:
@@ -380,12 +388,79 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
                 "statusNaoConformidadeAtual": status_nc_anterior,
             }
 
+        grupos: list[ApSolicitacao] = []
+        grupos_anteriores: list[dict[str, Any]] = []
+        caso: ApCaso | None = None
+        status_caso_anterior: str | None = None
+        status_caso_atual: str | None = None
+
+        if situacao == "NOVA_AMOSTRA_RECEBIDA":
+            if devolucao.situacao != "AGUARDANDO_NOVA_AMOSTRA":
+                raise HTTPException(status_code=409, detail="A devolução não está aguardando nova amostra.")
+            if devolucao.caso_numero:
+                caso = await self.session.get(ApCaso, devolucao.caso_numero)
+                if caso is None or caso.status != "DEVOLVIDO":
+                    raise HTTPException(status_code=409, detail="O caso não está no estado devolvido.")
+                status_caso_anterior = caso.status
+                status_caso_atual = str(nc_payload.get("statusCasoAnterior") or payload.get("statusCasoAnterior") or "RECEBIDO")
+                if status_caso_atual in {"DEVOLVIDO", "CANCELADO", "LAUDO_CONCLUIDO", "EM_ARQUIVAMENTO", "ARQUIVADO"}:
+                    status_caso_atual = "RECEBIDO"
+            else:
+                ids_grupos = [str(item).strip().upper() for item in payload.get("solicitacaoIds", [])]
+                if not ids_grupos:
+                    raise HTTPException(status_code=409, detail="A devolução não possui grupos de solicitação vinculados.")
+                for grupo_id in ids_grupos:
+                    grupo = await self.session.get(ApSolicitacao, grupo_id)
+                    if grupo is None or grupo.situacao_recepcao != "DEVOLVIDA" or grupo.devolucao_id != devolucao.id:
+                        raise HTTPException(status_code=409, detail="Um grupo vinculado já avançou ou não pertence a esta devolução.")
+                    grupos.append(grupo)
+                    grupos_anteriores.append(self._solicitacao_payload(grupo))
+        elif situacao == "AGUARDANDO_NOVA_AMOSTRA" and devolucao.situacao == "NOVA_AMOSTRA_RECEBIDA":
+            if devolucao.caso_numero:
+                caso = await self.session.get(ApCaso, devolucao.caso_numero)
+                if caso is None or caso.status != "DEVOLVIDO":
+                    raise HTTPException(status_code=409, detail="A solicitação vinculada já avançou após a reabertura.")
+            else:
+                for grupo_id in payload.get("solicitacaoIds", []):
+                    grupo = await self.session.get(ApSolicitacao, str(grupo_id).strip().upper())
+                    if grupo is None or grupo.situacao_recepcao != "DEVOLVIDA" or grupo.devolucao_id != devolucao.id:
+                        raise HTTPException(status_code=409, detail="A solicitação vinculada já avançou após a reabertura.")
+
         devolucao.situacao = situacao
         payload["situacao"] = situacao
-        devolucao.payload = _dump(payload)
         nc.status = "RESOLVIDA" if situacao in {"NOVA_AMOSTRA_RECEBIDA", "ENCERRADA"} else "ABERTA"
         nc_payload["status"] = nc.status
         nc.payload = _dump(nc_payload)
+        grupos_atuais: list[dict[str, Any]] = []
+
+        if situacao == "NOVA_AMOSTRA_RECEBIDA":
+            payload["regularizadaEm"] = datetime.now(timezone.utc).isoformat()
+            if caso is not None:
+                caso.status = status_caso_atual or "RECEBIDO"
+            else:
+                metadados = {
+                    "id": devolucao.id,
+                    "situacao": situacao,
+                    "devolvidaEm": payload.get("devolvidaEm"),
+                    "regularizadaEm": payload["regularizadaEm"],
+                    "tipo": nc_payload.get("tipo"),
+                    "descricao": nc_payload.get("descricao"),
+                    "observacao": nc_payload.get("observacao"),
+                    "unidadeOrigem": payload.get("unidadeOrigem"),
+                    "rejeicaoNaRecepcao": True,
+                }
+                metadados = {key: value for key, value in metadados.items() if value is not None}
+                payload["rejeicaoNaRecepcao"] = True
+                for grupo in grupos:
+                    grupo_payload = _load(grupo.payload)
+                    grupo_payload["situacaoRecepcao"] = "AGUARDANDO_RECEBIMENTO"
+                    grupo_payload.pop("devolucaoId", None)
+                    grupo_payload["devolucaoRegularizada"] = metadados
+                    grupo.situacao_recepcao = "AGUARDANDO_RECEBIMENTO"
+                    grupo.devolucao_id = None
+                    grupo.payload = _dump(grupo_payload)
+                    grupos_atuais.append(self._solicitacao_payload(grupo))
+        devolucao.payload = _dump(payload)
         await self.session.flush()
 
         atual = {
@@ -393,14 +468,57 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
             "id": devolucao.id,
             "situacao": devolucao.situacao,
             "naoConformidade": {**nc_payload, "id": nc.id, "status": nc.status},
-            "rejeicaoNaRecepcao": not bool(devolucao.caso_numero),
+            "rejeicaoNaRecepcao": rejeicao_na_recepcao,
         }
         return {
             "anterior": anterior,
             "atual": atual,
             "statusNaoConformidadeAnterior": status_nc_anterior,
             "statusNaoConformidadeAtual": nc.status,
+            "solicitacoesAnteriores": grupos_anteriores,
+            "solicitacoesAtuais": grupos_atuais,
+            "statusCasoAnterior": status_caso_anterior,
+            "statusCasoAtual": status_caso_atual,
         }
+
+    async def associar_ocorrencias_reabertas(self, solicitacao_id: str, caso_numero: str) -> list[dict[str, Any]]:
+        """Vincula ao novo caso os registros de rejeição pré-recepção já regularizados."""
+        grupo_id = solicitacao_id.strip().upper()
+        nc_result = await self.session.execute(select(ApNaoConformidade))
+        associadas: list[dict[str, Any]] = []
+        for nc in nc_result.scalars().all():
+            nc_payload = _load(nc.payload)
+            if grupo_id not in [str(item).strip().upper() for item in nc_payload.get("solicitacaoIds", [])]:
+                continue
+            casos_associados = [str(item).strip().upper() for item in nc_payload.get("casoNumeros", [])]
+            if caso_numero.strip().upper() in casos_associados:
+                continue
+            devolucoes_result = await self.session.execute(
+                select(ApDevolucao).where(ApDevolucao.nao_conformidade_id == nc.id)
+            )
+            devolucao = devolucoes_result.scalars().first()
+            if devolucao is None:
+                continue
+            devolucao_payload = _load(devolucao.payload)
+            if devolucao.situacao != "NOVA_AMOSTRA_RECEBIDA" or devolucao_payload.get("rejeicaoNaRecepcao") is not True:
+                continue
+            casos_associados.append(caso_numero)
+            nc_payload["casoNumeros"] = casos_associados
+            nc.payload = _dump(nc_payload)
+            devolucao_payload["casoNumeros"] = casos_associados
+            devolucao.payload = _dump(devolucao_payload)
+            if nc.caso_numero is None:
+                nc.caso_numero = caso_numero
+            if devolucao.caso_numero is None:
+                devolucao.caso_numero = caso_numero
+            associadas.append({
+                "devolucaoId": devolucao.id,
+                "solicitacaoId": grupo_id,
+                "devolvidaEm": devolucao_payload.get("devolvidaEm"),
+                "regularizadaEm": devolucao_payload.get("regularizadaEm"),
+            })
+        await self.session.flush()
+        return associadas
 
     def _solicitacao_payload(self, registro: ApSolicitacao) -> dict[str, Any]:
         """Monta solicitação com os campos locais de estado como fonte oficial."""
@@ -419,6 +537,9 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
     async def _caso_payload(self, registro: ApCaso) -> dict[str, Any]:
         """Carrega relações persistidas e mantém o shape CasoAp usado pelo Vue."""
         payload = _load(registro.payload)
+        payload["numeroInterno"] = registro.numero_interno
+        payload["tipoExame"] = registro.tipo_exame
+        payload["status"] = registro.status
         solicitacao = await self.session.get(ApSolicitacao, registro.solicitacao_id)
         payload["solicitacao"] = self._solicitacao_payload(solicitacao) if solicitacao else {}
 
@@ -462,23 +583,23 @@ class ReceptionSqliteProvider(ReceptionProviderInterface):
             ihqs.append(ihq_payload)
         payload["ihqs"] = ihqs
 
-        nc_result = await self.session.execute(
-            select(ApNaoConformidade).where(ApNaoConformidade.caso_numero == registro.numero_interno)
-        )
+        nc_result = await self.session.execute(select(ApNaoConformidade))
         nao_conformidades: list[dict[str, Any]] = []
         for nc in nc_result.scalars().all():
             nc_payload = _load(nc.payload)
+            if nc.caso_numero != registro.numero_interno and registro.numero_interno not in nc_payload.get("casoNumeros", []):
+                continue
             nc_payload["id"] = nc.id
             nc_payload["status"] = nc.status
             nao_conformidades.append(nc_payload)
         payload["naoConformidades"] = nao_conformidades
 
-        devolucoes_result = await self.session.execute(
-            select(ApDevolucao).where(ApDevolucao.caso_numero == registro.numero_interno)
-        )
+        devolucoes_result = await self.session.execute(select(ApDevolucao))
         devolucoes: list[dict[str, Any]] = []
         for devolucao in devolucoes_result.scalars().all():
             devolucao_payload = _load(devolucao.payload)
+            if devolucao.caso_numero != registro.numero_interno and registro.numero_interno not in devolucao_payload.get("casoNumeros", []):
+                continue
             devolucao_payload.update({"id": devolucao.id, "situacao": devolucao.situacao})
             devolucoes.append(devolucao_payload)
         payload["devolucoes"] = devolucoes

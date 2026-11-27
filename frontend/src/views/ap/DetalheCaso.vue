@@ -78,6 +78,10 @@
           <span>Entrada: {{ formatarDataHora(caso.dataEntradaSap) }}</span>
         </p>
 
+        <Alert v-if="fluxoReaberto" variant="info" title="Histórico de devolução regularizada">
+          Este caso mantém na aba de não conformidades a ocorrência original e na linha do tempo o evento de reabertura do fluxo.
+        </Alert>
+
         <!-- Faixa de bloqueio -->
         <div
           v-if="textoBloqueio"
@@ -297,6 +301,7 @@ import {
   XCircleIcon,
 } from '@heroicons/vue/24/outline';
 import Badge from '../../components/Badge.vue';
+import Alert from '../../components/Alert.vue';
 import Button from '../../components/Button.vue';
 import Card from '../../components/Card.vue';
 import Tabs, { type TabItem } from '../../components/Tabs.vue';
@@ -395,6 +400,7 @@ const abas = computed<TabItem[]>(() => {
 });
 
 const historicoOrdenado = computed(() => [...(caso.value?.historico ?? [])].sort((a, b) => b.ocorridoEm.localeCompare(a.ocorridoEm) || b.id - a.id));
+const fluxoReaberto = computed(() => caso.value?.historico.some((evento) => evento.evento === 'FLUXO_REABERTO') ?? false);
 
 const camposResumo = computed(() => {
   const c = caso.value;

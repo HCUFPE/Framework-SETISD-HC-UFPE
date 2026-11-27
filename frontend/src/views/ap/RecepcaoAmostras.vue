@@ -12,14 +12,19 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { useToast } from 'vue-toastification';
 import Card from '../../components/Card.vue';
 import Stepper from '../../components/Stepper.vue';
 import PassoConferencia from '../../components/ap/recepcao/PassoConferencia.vue';
 import PassoLeitura from '../../components/ap/recepcao/PassoLeitura.vue';
 import PassoResultado from '../../components/ap/recepcao/PassoResultado.vue';
 import { PASSOS_RECEPCAO, useRecepcaoStore } from '../../stores/recepcao';
+import { mensagemDeErro } from '../../services/ap';
 
 const recepcao = useRecepcaoStore();
+const route = useRoute();
+const toast = useToast();
 const passos = PASSOS_RECEPCAO.map((label) => ({ label }));
 const passoLeitura = ref<InstanceType<typeof PassoLeitura> | null>(null);
 
@@ -41,7 +46,15 @@ watch(
   },
 );
 
-onMounted(() => {
-  recepcao.carregarPendentes();
+onMounted(async () => {
+  await recepcao.carregarPendentes();
+  const codigo = route.query.solicitacao;
+  if (typeof codigo === 'string' && codigo.trim()) {
+    try {
+      await recepcao.lerCodigo(codigo);
+    } catch (erro) {
+      toast.error(mensagemDeErro(erro));
+    }
+  }
 });
 </script>

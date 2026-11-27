@@ -251,6 +251,182 @@ def test_nao_conformidade_em_caso_muda_status_e_registra_historico(client):
     assert [item["evento"] for item in detalhe["historico"]][-2:] == ["NAO_CONFORMIDADE", "DEVOLUCAO"]
 
 
+def test_rejeicao_regularizada_reabre_grupo_preserva_metadados_e_associa_novo_caso(client):
+    headers = token(client, "recepcionista")
+    rejeicao = client.post("/api/ap/nao-conformidades", headers=headers, json={
+        "contexto": {"tipo": "SOLICITACAO", "solicitacaoIds": ["7712301:HP"]},
+        "tipo": "IDENTIFICACAO_ILEGIVEL",
+        "novaAmostraSolicitada": True,
+        "observacao": "Etiqueta fictícia ilegível.",
+    })
+    assert rejeicao.status_code == 201, rejeicao.text
+    devolucao = rejeicao.json()
+    alterada = client.patch(
+        f"/api/ap/devolucoes/{devolucao['id']}/situacao",
+        headers=headers,
+        json={"situacao": "NOVA_AMOSTRA_RECEBIDA"},
+    )
+    assert alterada.status_code == 200, alterada.text
+
+    pendentes = client.get("/api/ap/solicitacoes/pendentes", headers=headers).json()
+    grupo_pendente = next(item for item in pendentes if item["id"] == "7712301:HP")
+    meta = grupo_pendente["devolucaoRegularizada"]
+    assert grupo_pendente["situacaoRecepcao"] == "AGUARDANDO_RECEBIMENTO"
+    assert meta["id"] == devolucao["id"]
+    assert meta["devolvidaEm"] == devolucao["devolvidaEm"]
+    auditoria = client.get("/api/ap/auditoria", headers=token(client, "recepcao-coordenacao")).json()
+    evento_auditoria = next(item for item in auditoria if item["acao"] == "DEVOLUCAO_SITUACAO_ATUALIZADA")
+    assert evento_auditoria["dadosAnteriores"]["solicitacoes"][0]["situacaoRecepcao"] == "DEVOLVIDA"
+    assert evento_auditoria["dadosNovos"]["solicitacoes"][0]["situacaoRecepcao"] == "AGUARDANDO_RECEBIMENTO"
+    assert evento_auditoria["ipOrigem"] == "testclient"
+
+    for codigo in ("7712301", "7712301-1", "7712301001"):
+        leitura = client.get(f"/api/ap/solicitacoes/{codigo}", headers=headers).json()
+        assert leitura["tipo"] == "PENDENTE"
+        grupo = next(item for item in leitura["exames"] if item["id"] == "7712301:HP")
+        assert grupo["devolucaoRegularizada"]["id"] == devolucao["id"]
+
+    caso = client.post("/api/ap/recebimentos", headers=headers, json=entrada("7712301:HP", "HP"))
+    assert caso.status_code == 201, caso.text
+    detalhe = client.get(f"/api/ap/casos/{caso.json()['numeroInterno']}", headers=headers).json()
+    assert len(detalhe["naoConformidades"]) == 1
+    assert len(detalhe["devolucoes"]) == 1
+    assert any(evento["evento"] == "FLUXO_REABERTO" for evento in detalhe["historico"])
+    assert detalhe["devolucoes"][0]["devolvidaEm"] == devolucao["devolvidaEm"]
+
+
+def test_regularizacao_reabre_caso_devolvido_no_estado_anterior(client):
+    headers = token(client, "recepcionista")
+    caso_original = receber(client)
+    rejeicao = client.post("/api/ap/nao-conformidades", headers=headers, json={
+        "contexto": {"tipo": "CASO", "casoNumero": caso_original["numeroInterno"]},
+        "tipo": "EXAME_NAO_CORRESPONDE_MATERIAL",
+        "novaAmostraSolicitada": True,
+    })
+    assert rejeicao.status_code == 201, rejeicao.text
+    devolucao = rejeicao.json()
+    reaberta = client.patch(
+        f"/api/ap/devolucoes/{devolucao['id']}/situacao",
+        headers=headers,
+        json={"situacao": "NOVA_AMOSTRA_RECEBIDA"},
+    )
+    assert reaberta.status_code == 200, reaberta.text
+    detalhe = client.get(f"/api/ap/casos/{caso_original['numeroInterno']}", headers=headers).json()
+    assert detalhe["status"] == "RECEBIDO"
+    assert [evento["evento"] for evento in detalhe["historico"]][-1] == "FLUXO_REABERTO"
+
+
+def test_regularizacao_ihq_associa_historico_ao_caso_de_origem(client):
+    headers = token(client, "recepcionista")
+    caso = receber(client)
+    rejeicao = client.post("/api/ap/nao-conformidades", headers=headers, json={
+        "contexto": {"tipo": "SOLICITACAO", "solicitacaoIds": ["7712356:IHQ"]},
+        "tipo": "IDENTIFICACAO_ILEGIVEL",
+        "novaAmostraSolicitada": True,
+    })
+    assert rejeicao.status_code == 201, rejeicao.text
+    devolucao = rejeicao.json()
+    regularizada = client.patch(
+        f"/api/ap/devolucoes/{devolucao['id']}/situacao",
+        headers=headers,
+        json={"situacao": "NOVA_AMOSTRA_RECEBIDA"},
+    )
+    assert regularizada.status_code == 200, regularizada.text
+    vinculada = client.post("/api/ap/recebimentos/ihq", headers=headers, json={
+        "solicitacaoId": "7712356:IHQ",
+        "casoOrigemNumero": caso["numeroInterno"],
+        "divergenciaConfirmada": True,
+    })
+    assert vinculada.status_code == 201, vinculada.text
+    detalhe = client.get(f"/api/ap/casos/{caso['numeroInterno']}", headers=headers).json()
+    assert len(detalhe["naoConformidades"]) == 1
+    assert len(detalhe["devolucoes"]) == 1
+    assert any(evento["evento"] == "FLUXO_REABERTO" for evento in detalhe["historico"])
+
+
+def test_devolucao_de_multiplos_grupos_fica_associada_a_cada_caso_criado(client):
+    headers = token(client, "recepcionista")
+    rejeicao = client.post("/api/ap/nao-conformidades", headers=headers, json={
+        "contexto": {"tipo": "SOLICITACAO", "solicitacaoIds": ["7712301:HP", "7712301:CG"]},
+        "tipo": "IDENTIFICACAO_ILEGIVEL",
+        "novaAmostraSolicitada": True,
+    })
+    assert rejeicao.status_code == 201, rejeicao.text
+    devolucao = rejeicao.json()
+    reaberta = client.patch(
+        f"/api/ap/devolucoes/{devolucao['id']}/situacao",
+        headers=headers,
+        json={"situacao": "NOVA_AMOSTRA_RECEBIDA"},
+    )
+    assert reaberta.status_code == 200, reaberta.text
+
+    casos = [
+        client.post("/api/ap/recebimentos", headers=headers, json=entrada("7712301:HP", "HP")).json(),
+        client.post("/api/ap/recebimentos", headers=headers, json=entrada("7712301:CG", "CG")).json(),
+    ]
+    for caso in casos:
+        detalhe = client.get(f"/api/ap/casos/{caso['numeroInterno']}", headers=headers).json()
+        assert len(detalhe["naoConformidades"]) == 1
+        assert len(detalhe["devolucoes"]) == 1
+        assert any(evento["evento"] == "FLUXO_REABERTO" for evento in detalhe["historico"])
+
+
+def test_regressao_da_devolucao_e_bloqueada_apos_receber_ou_cancelar_grupo(client):
+    headers = token(client, "recepcionista")
+    rejeicao = client.post("/api/ap/nao-conformidades", headers=headers, json={
+        "contexto": {"tipo": "SOLICITACAO", "solicitacaoIds": ["7712301:HP"]},
+        "tipo": "IDENTIFICACAO_ILEGIVEL",
+        "novaAmostraSolicitada": True,
+    })
+    devolucao_id = rejeicao.json()["id"]
+    client.patch(f"/api/ap/devolucoes/{devolucao_id}/situacao", headers=headers, json={"situacao": "NOVA_AMOSTRA_RECEBIDA"})
+    assert client.post("/api/ap/recebimentos", headers=headers, json=entrada("7712301:HP", "HP")).status_code == 201
+    regressao = client.patch(
+        f"/api/ap/devolucoes/{devolucao_id}/situacao",
+        headers=headers,
+        json={"situacao": "AGUARDANDO_NOVA_AMOSTRA"},
+    )
+    assert regressao.status_code == 409
+
+    rejeicao_cancelada = client.post("/api/ap/nao-conformidades", headers=headers, json={
+        "contexto": {"tipo": "SOLICITACAO", "solicitacaoIds": ["7712301:CG"]},
+        "tipo": "IDENTIFICACAO_ILEGIVEL",
+        "novaAmostraSolicitada": True,
+    })
+    devolucao_cancelada_id = rejeicao_cancelada.json()["id"]
+    client.patch(f"/api/ap/devolucoes/{devolucao_cancelada_id}/situacao", headers=headers, json={"situacao": "NOVA_AMOSTRA_RECEBIDA"})
+    cancelamento = client.post("/api/ap/solicitacoes/cancelamento", headers=token(client, "recepcao-coordenacao"), json={
+        "solicitacaoId": "7712301:CG",
+        "motivo": "Cancelamento após a regularização",
+    })
+    assert cancelamento.status_code == 200
+    regressao_cancelada = client.patch(
+        f"/api/ap/devolucoes/{devolucao_cancelada_id}/situacao",
+        headers=headers,
+        json={"situacao": "AGUARDANDO_NOVA_AMOSTRA"},
+    )
+    assert regressao_cancelada.status_code == 409
+
+
+def test_devolucao_encerrada_nao_pode_ser_reaberta(client):
+    headers = token(client, "recepcionista")
+    rejeicao = client.post("/api/ap/nao-conformidades", headers=headers, json={
+        "contexto": {"tipo": "SOLICITACAO", "solicitacaoIds": ["7712301:HP"]},
+        "tipo": "IDENTIFICACAO_ILEGIVEL",
+        "novaAmostraSolicitada": False,
+    })
+    assert rejeicao.status_code == 201, rejeicao.text
+    resposta = client.patch(
+        f"/api/ap/devolucoes/{rejeicao.json()['id']}/situacao",
+        headers=headers,
+        json={"situacao": "NOVA_AMOSTRA_RECEBIDA"},
+    )
+    assert resposta.status_code == 409
+    grupos = client.get("/api/ap/solicitacoes/7712301/exames", headers=headers).json()
+    grupo = next(item for item in grupos if item["id"] == "7712301:HP")
+    assert grupo["situacaoRecepcao"] == "DEVOLVIDA"
+
+
 def test_cancelamento_exige_permissao_admin_e_motivo(client):
     caso = receber(client)
     numero = caso["numeroInterno"]
@@ -549,6 +725,28 @@ def test_falha_de_auditoria_reverte_mutacao_e_historico(tmp_path):
                 assert (await provider.buscar_solicitacao("7712301:CG"))["situacaoRecepcao"] == "AGUARDANDO_RECEBIMENTO"
                 assert await provider.contar_solicitacoes_pendentes() == 7
                 event.remove(session.sync_session, "before_commit", falhar_ao_confirmar_auditoria)
+
+                devolucao = await controller.registrar_nao_conformidade(
+                    {
+                        "contexto": {"tipo": "SOLICITACAO", "solicitacaoIds": ["7712301:HP"]},
+                        "tipo": "IDENTIFICACAO_ILEGIVEL",
+                        "novaAmostraSolicitada": True,
+                    },
+                    {"username": "recepcionista", "displayName": ["Recepcionista SAP"]},
+                    "192.0.2.10",
+                )
+                event.listen(session.sync_session, "before_commit", falhar_ao_confirmar_auditoria)
+                with pytest.raises(RuntimeError, match="Falha simulada"):
+                    await controller.atualizar_situacao_devolucao(
+                        devolucao["id"],
+                        "NOVA_AMOSTRA_RECEBIDA",
+                        {"username": "recepcionista", "displayName": ["Recepcionista SAP"]},
+                        "192.0.2.10",
+                    )
+                event.remove(session.sync_session, "before_commit", falhar_ao_confirmar_auditoria)
+                assert (await provider.buscar_solicitacao("7712301:HP"))["situacaoRecepcao"] == "DEVOLVIDA"
+                devolucoes = await provider.listar_devolucoes()
+                assert next(item for item in devolucoes if item["id"] == devolucao["id"])["situacao"] == "AGUARDANDO_NOVA_AMOSTRA"
         finally:
             await engine.dispose()
 
