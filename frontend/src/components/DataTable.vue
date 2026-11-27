@@ -10,7 +10,7 @@
       <tbody class="bg-white divide-y divide-gray-100">
         <tr v-for="item in items" :key="item.id" class="text-gray-700 hover:bg-gray-100">
           <td v-for="header in headers" :key="header.value" class="px-4 py-3 text-sm">
-            {{ item[header.value] }}
+            <slot :name="`cell-${header.value}`" :item="item">{{ item[header.value] }}</slot>
           </td>
           <td v-if="$slots.actions" class="px-4 py-3 text-sm">
             <slot name="actions" :item="item"></slot>
