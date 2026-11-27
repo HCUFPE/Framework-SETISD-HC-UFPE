@@ -1,3 +1,16 @@
+# Projeto HC - Marcação de Exames
+
+Projeto desenvolvido para o sistema de marcação de exames.
+
+## Integrantes
+
+- Gabriel Ribeiro
+- Eduardo Henrique
+- Felipe Komata
+- Murilo Acioli
+- Arhur Zanardi
+- Pedro Wellington
+
 # Framework-SETISD-HC-UFPE
 
 > **Arquitetura Web Full-Stack de Referência (Python / FastAPI + Vue 3 / Vite)**  

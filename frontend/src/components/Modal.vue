@@ -16,7 +16,8 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       >
         <div 
-          class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all"
+          :class="largura"
+          class="bg-white rounded-2xl shadow-2xl w-full overflow-hidden transform transition-all"
           @click.stop
         >
           <!-- Header -->
@@ -53,6 +54,8 @@ import { XMarkIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
   show: { type: Boolean, default: false },
+  // Classe Tailwind de largura máxima; telas existentes continuam com max-w-lg.
+  largura: { type: String, default: 'max-w-lg' },
 });
 
 const emit = defineEmits(['close']);

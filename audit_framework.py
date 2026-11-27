@@ -36,7 +36,7 @@ class Colors:
 def colorize(text: str, color: str) -> str:
     if os.name == 'nt' and not os.environ.get('TERM'):
         return text
-    return f"{color}{text}{ENDC}"
+    return f"{color}{text}{Colors.ENDC}"
 
 class FrameworkAuditor:
     def __init__(self, target_dir: str):
