@@ -9,7 +9,9 @@ from .providers.implementations.paciente_csv_provider import PacienteCsvProvider
 from .providers.interfaces.exame_provider_interface import ExameProviderInterface
 from .providers.implementations.exame_postgres_provider import ExamePostgresProvider
 from .providers.implementations.exame_csv_provider import ExameCsvProvider
-from .resources.database import get_aghu_db_session
+from .providers.interfaces.fila_provider_interface import FilaProviderInterface
+from .providers.implementations.fila_sqlite_provider import FilaSqliteProvider
+from .resources.database import get_aghu_db_session, get_app_db_session
 
 # 1. Funções "getter" simples e independentes (privadas por convenção)
 def _get_paciente_postgres_provider(
@@ -59,3 +61,10 @@ def get_exame_provider(strategy: str) -> Callable[..., ExameProviderInterface]:
         return _get_exame_csv_provider
     else:
         raise ValueError(f"Estratégia de provedor desconhecida: {strategy}")
+
+
+def get_fila_provider(
+    session: AsyncSession = Depends(get_app_db_session)
+) -> FilaProviderInterface:
+    """Instancia o provedor da fila de exames sobre o SQLite local da aplicação."""
+    return FilaSqliteProvider(session=session)

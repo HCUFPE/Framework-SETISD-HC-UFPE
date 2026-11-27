@@ -20,7 +20,7 @@
 1. **Camadas e arquivos**
    - `src/providers/interfaces/fila_provider_interface.py` + `src/providers/implementations/fila_sqlite_provider.py`: `listar_itens_ativos()`, `obter_item(id)`, `listar_por_prontuario(prontuario)`, `existe_item_ativo(prontuario, codigo_exame, excluir_id)`, `atualizar_item(item, campos)`, `listar_regras_prioridade()`, `listar_regras_exames()`, `listar_incompatibilidades()` — retornam dicts (regras já filtradas por `ativo`/`deleted_at`).
    - `src/controllers/fila_controller.py`: orquestra — carrega itens + regras, enriquece com AGHU (`listar_exames()` uma vez, indexado por `(codigo_solicitacao, codigo_exame)`), monta `outros_exames` por prontuário, chama `priorizar_fila`, `detectar_alertas`, `filtrar_fila`, pagina; aplica a máquina de estados e chama `registrar_auditoria`.
-   - `src/schemas/fila.py`: `ItemFila`, `AlertaExame`, `OutroExame`, `ItemFilaDetalhe`, `AtualizarStatusRequest`, `VincularSolicitacaoRequest`, enums `RegiaoGeografica`, `StatusOperacional`, `StatusHigienizacao` (geram o `422` automaticamente).
+   - `src/schemas/fila.py`: `ItemFila`, `AlertaExame`, `OutroExame`, `ItemFilaDetalhe`, `AtualizarStatusRequest`, `VincularSolicitacaoRequest`, enums `RegiaoGeografica`, `StatusOperacional`, `StatusHigienizacao` (o handler global do framework converte erro de validação em `400`).
    - `src/routers/exames.py`: endpoints, `Depends` do provider da fila, do provider AGHU, do usuário (`decode_token`) e `Request` para o IP.
    - Alternativa: SQLAlchemy direto no controller. Rejeitada — quebra a regra de camadas do `AGENTS.md` e o auditor verifica camadas.
 

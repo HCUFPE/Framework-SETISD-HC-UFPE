@@ -1,7 +1,10 @@
 import csv
+import unicodedata
 from typing import Any, Dict, List, Optional
 
 from ..interfaces.exame_provider_interface import ExameProviderInterface
+
+TAMANHO_MINIMO_BUSCA_NOME = 3
 
 
 class ExameCsvProvider(ExameProviderInterface):
@@ -93,4 +96,22 @@ class ExameCsvProvider(ExameProviderInterface):
             row
             for row in self._read_all_rows()
             if row.get("prontuario") == alvo
+        ]
+
+    @staticmethod
+    def _normalizar_nome(texto: Optional[str]) -> str:
+        """Normaliza nome para comparação (sem acentos, maiúsculo, espaços colapsados)."""
+        decomposto = unicodedata.normalize("NFKD", texto or "")
+        sem_acento = "".join(c for c in decomposto if not unicodedata.combining(c))
+        return " ".join(sem_acento.upper().split())
+
+    async def buscar_por_nome(self, nome: str) -> List[Dict[str, Any]]:
+        """Retorna as solicitações cujo nome do paciente contém o trecho (mín. 3 caracteres)."""
+        alvo = self._normalizar_nome(nome)
+        if len(alvo) < TAMANHO_MINIMO_BUSCA_NOME:
+            return []
+        return [
+            row
+            for row in self._read_all_rows()
+            if alvo in self._normalizar_nome(row.get("nome"))
         ]

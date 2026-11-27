@@ -25,7 +25,7 @@ Sem filtros de status, a listagem SHALL trazer apenas itens com higienização `
 - **THEN** esse item não aparece na resposta
 
 ### Requirement: Filtros e paginação da fila
-`GET /api/exames/fila` SHALL aceitar os parâmetros opcionais `codigo_exame`, `unidade`, `status_operacional`, `status_higienizacao`, `municipio`, `regiao` (`CAPITAL`, `RMR`, `INTERIOR`, `NAO_INFORMADO`), `apenas_tfd`, `apenas_24h_vencidos`, `busca`, `limit` (1 a 500) e `offset` (0 ou mais), combináveis entre si. Informar `status_operacional` ou `status_higienizacao` SHALL substituir o filtro padrão correspondente. O cabeçalho `X-Total-Count` SHALL conter o total após os filtros e antes da paginação. Os filtros MUST NOT alterar `scorePrioridade` nem `motivosPrioridade`. Valores inválidos de enumeração MUST retornar `422`.
+`GET /api/exames/fila` SHALL aceitar os parâmetros opcionais `codigo_exame`, `unidade`, `status_operacional`, `status_higienizacao`, `municipio`, `regiao` (`CAPITAL`, `RMR`, `INTERIOR`, `NAO_INFORMADO`), `apenas_tfd`, `apenas_24h_vencidos`, `busca`, `limit` (1 a 500) e `offset` (0 ou mais), combináveis entre si. Informar `status_operacional` ou `status_higienizacao` SHALL substituir o filtro padrão correspondente. O cabeçalho `X-Total-Count` SHALL conter o total após os filtros e antes da paginação. Os filtros MUST NOT alterar `scorePrioridade` nem `motivosPrioridade`. Valores inválidos de parâmetros (enumeração, `limit`, `offset`) MUST retornar `400` no formato padrão `{"detail": ...}` do framework.
 
 #### Scenario: Filtro geográfico preserva o score
 - **WHEN** a fila é consultada com `regiao=CAPITAL`
@@ -41,7 +41,7 @@ Sem filtros de status, a listagem SHALL trazer apenas itens com higienização `
 
 #### Scenario: Região inválida
 - **WHEN** a fila é consultada com `regiao=SERTAO`
-- **THEN** a resposta é `422`
+- **THEN** a resposta é `400`
 
 ### Requirement: Detalhe da solicitação
 `GET /api/exames/fila/{id}` SHALL retornar o item com os mesmos campos da listagem, mais `outrosExames` (demais exames do mesmo prontuário vindos da fila local e do AGHU, cada um com `codigoSolicitacao`, `codigoExame`, `nomeExame`, `origem` `FILA` ou `AGHU` e, quando houver, `dataAgendada` e `statusOperacional`) e `orientacoesPreparo` do exame. Os alertas do detalhe SHALL considerar também os exames do AGHU. Item inexistente ou excluído MUST retornar `404`.

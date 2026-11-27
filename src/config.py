@@ -26,6 +26,7 @@ class Settings:
 
     # 2. Provedores e Bancos de Dados
     PACIENTE_PROVIDER_TYPE: str = os.getenv("PACIENTE_PROVIDER_TYPE", "POSTGRES").upper()
+    EXAME_PROVIDER_TYPE: str = os.getenv("EXAME_PROVIDER_TYPE", "CSV").strip().upper()
     APP_DB_URL: str = os.getenv("APP_DB_URL", "sqlite+aiosqlite:///data/app.db")
     POSTGRES_DSN: str = os.getenv("POSTGRES_DSN", "")
     ORACLE_DSN: str = os.getenv("ORACLE_DSN", "")
