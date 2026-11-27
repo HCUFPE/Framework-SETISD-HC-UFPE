@@ -95,6 +95,7 @@
 import { ref, watch } from 'vue';
 import Button from '../Button.vue';
 import Modal from '../Modal.vue';
+import { diaLocal } from '../../utils/datetime';
 import type { AgendaSlot, Solicitacao } from '../../types/sae';
 
 const props = defineProps<{
@@ -136,7 +137,7 @@ function buscar(): void {
 
 function formatarData(iso: string): string {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    .format(new Date(`${iso.slice(0, 10)}T12:00:00`));
+    .format(new Date(`${diaLocal(iso)}T12:00:00`));
 }
 
 function formatarHora(iso: string): string {

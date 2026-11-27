@@ -746,15 +746,26 @@ export interface AjusteSlot {
   status?: AgendaSlot['status'];
 }
 
-/** Unidades e exames usados para compor a agenda simulada (derivados do export AGHUX). */
-const unidadesAgendaMock = Array.from(
-  new Set(mockDb.solicitacoes.map((item) => item.setorSolicitante)),
-).sort().slice(0, 3);
-
-const examesAgendaMock = Array.from(
-  new Map(mockDb.solicitacoes.flatMap((item) => item.itensExame)
-    .map((item) => [item.codigoExame, item] as const)).values(),
-);
+/**
+ * Pares reais (unidade solicitante, exame) derivados do export AGHUX.
+ * Antes cada unidade mock oferecia todos os exames, o que gerava vagas
+ * irreais e permitia propostas em unidades incompatíveis.
+ */
+const paresAgendaMock = Array.from(
+  new Map(
+    mockDb.solicitacoes.flatMap((item) => item.itensExame
+      .filter((exame) => exame.codigoExame && item.setorSolicitante)
+      .map((exame) => [
+        `${item.setorSolicitante}|${exame.codigoExame}`,
+        {
+          unidade: item.setorSolicitante,
+          codigoExame: exame.codigoExame,
+          nomeExame: exame.nomeExame,
+        },
+      ] as const)),
+  ).values(),
+).sort((a, b) => a.unidade.localeCompare(b.unidade)
+  || a.codigoExame.localeCompare(b.codigoExame));
 
 const TURNOS_AGENDA = [[8, 10], [10, 12], [13, 15], [15, 17]] as const;
 
@@ -766,23 +777,21 @@ function gerarSlotsDeterministicos(): AgendaSlot[] {
     const diaSemana = data.getDay();
     if (diaSemana === 0 || diaSemana === 6) continue;
     const dia = paraIsoLocal(data.getTime()).slice(0, 10);
-    unidadesAgendaMock.forEach((unidade, indiceUnidade) => {
-      examesAgendaMock.forEach((exame, indiceExame) => {
-        TURNOS_AGENDA.forEach(([horaInicio, horaFim], indiceTurno) => {
-          const capacidade = 3 + ((offset + indiceUnidade + indiceExame + indiceTurno) % 3);
-          const dois = (valor: number): string => String(valor).padStart(2, '0');
-          slots.push({
-            id: `slot-${dia.replace(/-/g, '')}-${indiceUnidade}-${indiceExame}-${indiceTurno}`,
-            unidade,
-            codigoExame: exame.codigoExame,
-            nomeExame: exame.nomeExame,
-            inicio: `${dia}T${dois(horaInicio)}:00:00.000`,
-            fim: `${dia}T${dois(horaFim)}:00:00.000`,
-            capacidade,
-            ocupadas: 0,
-            livres: capacidade,
-            status: 'DISPONIVEL',
-          });
+    paresAgendaMock.forEach((par, indicePar) => {
+      TURNOS_AGENDA.forEach(([horaInicio, horaFim], indiceTurno) => {
+        const capacidade = 3 + ((offset + indicePar + indiceTurno) % 3);
+        const dois = (valor: number): string => String(valor).padStart(2, '0');
+        slots.push({
+          id: `slot-${dia.replace(/-/g, '')}-${indicePar}-${indiceTurno}`,
+          unidade: par.unidade,
+          codigoExame: par.codigoExame,
+          nomeExame: par.nomeExame,
+          inicio: `${dia}T${dois(horaInicio)}:00:00.000`,
+          fim: `${dia}T${dois(horaFim)}:00:00.000`,
+          capacidade,
+          ocupadas: 0,
+          livres: capacidade,
+          status: 'DISPONIVEL',
         });
       });
     });
@@ -1152,6 +1161,12 @@ export interface ResultadoSimulacaoAgenda {
   dias: number;
   /** Quantidade de exames/solicitações que não encontraram vaga disponível. */
   deFora: number;
+  /** Solicitações filtradas sem contato de ACEITE registrado. */
+  semAceite?: number;
+  /** Solicitações filtradas com divergência ainda não tratada. */
+  comDivergencia?: number;
+  /** Solicitações que já possuem agendamento ATIVO ou proposta PROPOSTO. */
+  jaReservadas?: number;
   /** Linhas da fila de propostas, já ordenadas por prioridade. */
   propostas: PropostaAgendamentoFila[];
 }
@@ -1223,15 +1238,10 @@ export async function gerarPropostasAgendamento(
   const codigoExameFiltro = (filtros.codigoExame || '').trim().toUpperCase();
   const pacienteChaveFiltro = (filtros.pacienteChave || '').trim();
 
-  const elegiveis = mockDb.solicitacoes
+  const base = mockDb.solicitacoes
     .filter((solicitacao) => [
       'AGUARDANDO_CONTATO', 'AGUARDANDO_CONFIRMACAO', 'AGUARDANDO_REAGENDAMENTO',
     ].includes(solicitacao.status))
-    .filter((solicitacao) => solicitacao.contatos.some((contato) => contato.resultado === 'ACEITE'))
-    .filter((solicitacao) => !solicitacao.divergencias.some((divergencia) => !divergencia.tratada))
-    .filter((solicitacao) => !agendamentosMock.some((agendamento) =>
-      agendamento.solicitacaoId === solicitacao.id
-      && (agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO')))
     .filter((solicitacao) => {
       if (unidadeFiltro && (solicitacao.setorSolicitante || '').trim().toLowerCase() !== unidadeFiltro) {
         return false;
@@ -1245,7 +1255,23 @@ export async function gerarPropostasAgendamento(
         if (!codigos.has(codigoExameFiltro)) return false;
       }
       return true;
-    })
+    });
+
+  const temAceite = (solicitacao: (typeof base)[number]): boolean =>
+    solicitacao.contatos.some((contato) => contato.resultado === 'ACEITE');
+  const temDivergencia = (solicitacao: (typeof base)[number]): boolean =>
+    solicitacao.divergencias.some((divergencia) => !divergencia.tratada);
+  const jaReservada = (solicitacao: (typeof base)[number]): boolean =>
+    agendamentosMock.some((agendamento) => agendamento.solicitacaoId === solicitacao.id
+      && (agendamento.status === 'ATIVO' || agendamento.status === 'PROPOSTO'));
+
+  const semAceite = base.filter((solicitacao) => !temAceite(solicitacao)).length;
+  const comAceite = base.filter((solicitacao) => temAceite(solicitacao));
+  const comDivergencia = comAceite.filter((solicitacao) => temDivergencia(solicitacao)).length;
+  const semDivergencia = comAceite.filter((solicitacao) => !temDivergencia(solicitacao));
+  const jaReservadas = semDivergencia.filter((solicitacao) => jaReservada(solicitacao)).length;
+  const elegiveis = semDivergencia
+    .filter((solicitacao) => !jaReservada(solicitacao))
     .sort((a, b) => b.pontuacao - a.pontuacao
       || new Date(a.recebidaEm).getTime() - new Date(b.recebidaEm).getTime());
 
@@ -1263,12 +1289,21 @@ export async function gerarPropostasAgendamento(
     const codigos = new Set(solicitacao.itensExame
       .map((item) => item.codigoExame.trim().toUpperCase()).filter(Boolean));
     const chave = chavePacienteMock(solicitacao.prontuario);
+    const unidadeSolicitante = (solicitacao.setorSolicitante || '').trim().toLowerCase();
     const restante = (slot: AgendaSlot): number =>
       slot.livres - (ocupacaoAdicional.get(slot.id) ?? 0);
-    const examesParaTentar = codigos.size > 0 ? Array.from(codigos) : [null];
+    // Com filtro de exame ativo, só o exame filtrado é tentado; os demais
+    // códigos da mesma solicitação não entram como "sem vaga".
+    const examesParaTentar = codigoExameFiltro
+      ? [codigoExameFiltro]
+      : codigos.size > 0 ? Array.from(codigos) : [null];
     for (const codigo of examesParaTentar) {
       const slot = slotsAgendaMock
         .filter((candidato) => (codigo === null || codigos.has(candidato.codigoExame.trim().toUpperCase()))
+          // A vaga pertence à unidade que realiza o exame: não adianta ter o
+          // mesmo código em outra unidade.
+          && (!unidadeSolicitante
+            || (candidato.unidade || '').trim().toLowerCase() === unidadeSolicitante)
           && candidato.inicio >= inicio
           && candidato.inicio.slice(0, 10) <= limite
           && candidato.status !== 'ENCERRADO'
@@ -1332,7 +1367,14 @@ export async function gerarPropostasAgendamento(
   registrar('Simulação de agenda', autor, 'NEGOCIO_CLINICO',
     `${geradas} proposta(s) gerada(s) para os próximos ${dias} dias.`);
   return {
-    geradas, solicitacoes: elegiveis.length, dias, deFora, propostas: filaPropostasMock(),
+    geradas,
+    solicitacoes: base.length,
+    dias,
+    deFora,
+    semAceite,
+    comDivergencia,
+    jaReservadas,
+    propostas: filaPropostasMock(),
   };
 }
 

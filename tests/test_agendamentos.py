@@ -75,6 +75,7 @@ def _inserir_solicitacao(
     divergencia=False,
     chave=None,
     cpf_hash=None,
+    setor="CARDIOLOGIA",
 ):
     """Insere uma solicitação diretamente no SQLite isolado do teste."""
     sid = str(uuid.uuid4())
@@ -104,7 +105,7 @@ def _inserir_solicitacao(
                 "CINTILOGRAFIA DO MIOCARDIO",
                 itens,
                 "AMBULATORIAL",
-                "CARDIOLOGIA",
+                setor,
                 status,
                 pontuacao,
                 prioridade,
@@ -307,6 +308,110 @@ def test_calendario_filtra_agendamentos_por_unidade_e_exame(cliente):
     por_exame = _calendario(cliente, codigoExame="RX")
     assert [slot["id"] for slot in por_exame["slots"]] == [slot_b["id"]]
     assert [item["slotId"] for item in por_exame["agendamentos"]] == [slot_b["id"]]
+
+
+def test_simulacao_contabiliza_motivos_de_exclusao(cliente):
+    cliente, caminho = cliente
+    _criar_slot(cliente, minutos=60, capacidade=3)
+    _inserir_solicitacao(caminho, prontuario="91000001", protocolo="PROTO-ELEGIVEL")
+    _inserir_solicitacao(
+        caminho, prontuario="91000002", protocolo="PROTO-SEM-ACEITE", aceite=False
+    )
+    _inserir_solicitacao(
+        caminho, prontuario="91000003", protocolo="PROTO-DIVERGENTE", divergencia=True
+    )
+
+    resposta = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia"},
+        headers=_headers(OPERADOR),
+    )
+    assert resposta.status_code == 201, resposta.text
+    dados = resposta.json()
+
+    assert dados["geradas"] == 1
+    assert dados["deFora"] == 0
+    assert dados["semAceite"] == 1
+    assert dados["comDivergencia"] == 1
+    assert dados["jaReservadas"] == 0
+    assert dados["solicitacoes"] == 3
+    assert (
+        dados["geradas"] + dados["deFora"] + dados["semAceite"]
+        + dados["comDivergencia"] + dados["jaReservadas"]
+    ) == dados["solicitacoes"]
+
+    segunda = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia"},
+        headers=_headers(OPERADOR),
+    ).json()
+    assert segunda["geradas"] == 0
+    assert segunda["jaReservadas"] == 1
+    assert segunda["semAceite"] == 1
+    assert segunda["comDivergencia"] == 1
+
+
+def test_simulacao_filtra_vagas_pela_unidade(cliente):
+    cliente, caminho = cliente
+    slot_a = _criar_slot(cliente, minutos=60, capacidade=2, unidade="IMAGEM-A")
+    _criar_slot(cliente, minutos=120, capacidade=2, unidade="IMAGEM-B")
+    _inserir_solicitacao(
+        caminho, prontuario="92000001", protocolo="PROTO-A", setor="IMAGEM-A"
+    )
+    _inserir_solicitacao(
+        caminho, prontuario="92000002", protocolo="PROTO-B", setor="IMAGEM-B"
+    )
+
+    resposta = cliente.post(
+        "/api/agendamentos/propostas/gerar",
+        json={"dias": 30, "autor": "chefia", "unidade": "IMAGEM-A"},
+        headers=_headers(OPERADOR),
+    )
+    assert resposta.status_code == 201, resposta.text
+    dados = resposta.json()
+
+    assert dados["solicitacoes"] == 1
+    assert dados["geradas"] == 1
+    assert [item["protocolo"] for item in dados["propostas"]] == ["PROTO-A"]
+    assert dados["propostas"][0]["unidade"] == "IMAGEM-A"
+    assert dados["propostas"][0]["dataHora"] == slot_a["inicio"]
+
+
+def test_vaga_preserva_instante_ao_editar_com_offset(cliente):
+    cliente, _ = cliente
+    fuso_local = timezone(timedelta(hours=-3))
+    inicio_local = (
+        (_agora() + timedelta(days=2)).astimezone(fuso_local)
+    ).replace(hour=8, minute=0, second=0, microsecond=0)
+    fim_local = inicio_local + timedelta(hours=2)
+
+    criado = cliente.post(
+        "/api/admin/agenda/slots",
+        json={
+            "unidade": "IMAGEM",
+            "codigoExame": "CMDIP",
+            "nomeExame": "Cintilografia",
+            "inicio": inicio_local.isoformat(),
+            "fim": fim_local.isoformat(),
+            "capacidade": 3,
+            "situacao": "DISPONIVEL",
+        },
+        headers=_headers(ADMIN),
+    )
+    assert criado.status_code == 201, criado.text
+    slot = criado.json()
+    assert slot["inicio"] == inicio_local.astimezone(timezone.utc).isoformat()
+    assert datetime.fromisoformat(slot["inicio"]).astimezone(fuso_local).hour == 8
+
+    # Reenviar o ISO devolvido pela API (UTC) não pode deslocar o horário.
+    atualizado = cliente.patch(
+        f"/api/admin/agenda/slots/{slot['id']}",
+        json={"inicio": slot["inicio"], "fim": slot["fim"]},
+        headers=_headers(ADMIN),
+    )
+    assert atualizado.status_code == 200, atualizado.text
+    assert atualizado.json()["inicio"] == slot["inicio"]
+    assert atualizado.json()["fim"] == slot["fim"]
 
 
 def test_agendar_sem_aceite_devolve_422(cliente):

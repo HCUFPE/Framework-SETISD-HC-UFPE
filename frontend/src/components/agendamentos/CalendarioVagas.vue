@@ -13,6 +13,7 @@ import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import type { CalendarOptions, EventInput } from '@fullcalendar/core';
 import type { DateClickArg } from '@fullcalendar/interaction';
 import { agoraIso } from '../../config/tempo';
+import { diaLocal } from '../../utils/datetime';
 import type { AgendaSlot } from '../../types/sae';
 
 const props = defineProps<{
@@ -30,7 +31,7 @@ const calendario = ref<InstanceType<typeof FullCalendar> | null>(null);
 const porDia = computed(() => {
   const mapa = new Map<string, { total: number; livres: number }>();
   props.slots.forEach((slot) => {
-    const dia = slot.inicio.slice(0, 10);
+    const dia = diaLocal(slot.inicio);
     const atual = mapa.get(dia) ?? { total: 0, livres: 0 };
     atual.total += 1;
     atual.livres += slot.livres;

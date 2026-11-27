@@ -184,6 +184,7 @@ import {
   removerSlotAdmin,
   type DadosNovoSlot,
 } from '../../services/sae';
+import { diaLocal, paraApiIso, paraInputLocal } from '../../utils/datetime';
 import { useAuthStore } from '../../stores/auth';
 import type { AgendaSlot } from '../../types/sae';
 
@@ -244,7 +245,7 @@ const slotsDoExame = computed(() => codigoSelecionado.value === 'TODOS'
   : slots.value.filter((slot) => slot.codigoExame === codigoSelecionado.value));
 
 const slotsDoDia = computed(() => slotsDoExame.value
-  .filter((slot) => slot.inicio.slice(0, 10) === diaSelecionado.value)
+  .filter((slot) => diaLocal(slot.inicio) === diaSelecionado.value)
   .sort((a, b) => a.inicio.localeCompare(b.inicio) || a.unidade.localeCompare(b.unidade)));
 
 const unidades = computed(() => Array.from(
@@ -271,7 +272,7 @@ function dataIso(data: Date): string {
 function formatarData(iso: string): string {
   if (!iso) return '—';
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    .format(new Date(`${iso.slice(0, 10)}T12:00:00`));
+    .format(new Date(`${diaLocal(iso)}T12:00:00`));
 }
 
 function formatarHora(iso: string): string {
@@ -340,8 +341,9 @@ function editar(slot: AgendaSlot): void {
     unidade: slot.unidade,
     codigoExame: slot.codigoExame,
     nomeExame: slot.nomeExame,
-    inicio: slot.inicio.slice(0, 16),
-    fim: slot.fim.slice(0, 16),
+    // O input datetime-local trabalha na hora local; a API devolve UTC.
+    inicio: paraInputLocal(slot.inicio),
+    fim: paraInputLocal(slot.fim),
     capacidade: slot.capacidade,
     status: slot.status,
   });
@@ -355,10 +357,12 @@ async function criar(): Promise<void> {
   salvando.value = true;
   erroLocal.value = '';
   try {
+    const inicioLocal = `${diaSelecionado.value}T${novo.value.inicio.slice(11, 16) || '08:00'}`;
+    const fimLocal = `${diaSelecionado.value}T${novo.value.fim.slice(11, 16) || '10:00'}`;
     await criarSlotAdmin({
       ...novo.value,
-      inicio: `${diaSelecionado.value}T${novo.value.inicio.slice(11, 16) || '08:00'}`,
-      fim: `${diaSelecionado.value}T${novo.value.fim.slice(11, 16) || '10:00'}`,
+      inicio: paraApiIso(inicioLocal),
+      fim: paraApiIso(fimLocal),
     }, autor());
     await carregar();
     emit('alterado');
@@ -373,7 +377,11 @@ async function salvar(id: string): Promise<void> {
   salvandoItem.value = id;
   erroLocal.value = '';
   try {
-    await atualizarSlotAdmin(id, { ...edicao }, autor());
+    await atualizarSlotAdmin(id, {
+      ...edicao,
+      inicio: paraApiIso(edicao.inicio),
+      fim: paraApiIso(edicao.fim),
+    }, autor());
     selecionadoId.value = '';
     await carregar();
     emit('alterado');

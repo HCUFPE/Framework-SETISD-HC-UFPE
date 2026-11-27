@@ -325,7 +325,15 @@ async function gerarPropostas(): Promise<void> {
   if (resultado) {
     toast.success(`${resultado.geradas} proposta(s) gerada(s) para ${resultado.dias} dias.`);
     if (resultado.deFora > 0) {
-      toast.warning(`${resultado.deFora} solicitação(ões) não couberam nas vagas disponíveis.`);
+      toast.warning(`${resultado.deFora} exame(s) não couberam nas vagas disponíveis.`);
+    }
+    const excluidas = [
+      resultado.semAceite ? `${resultado.semAceite} sem aceite` : '',
+      resultado.comDivergencia ? `${resultado.comDivergencia} com divergência` : '',
+      resultado.jaReservadas ? `${resultado.jaReservadas} já reservada(s)` : '',
+    ].filter(Boolean);
+    if (excluidas.length > 0) {
+      toast.info(`Fora da simulação: ${excluidas.join(' · ')}.`);
     }
   } else {
     toast.error(store.erro || 'Não foi possível simular a agenda.');

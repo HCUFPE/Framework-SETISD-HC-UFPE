@@ -1177,13 +1177,24 @@ async def gerar_propostas(
     Uma solicitação com múltiplos exames pode gerar uma proposta por exame,
     cada qual em vaga e dia distintos conforme disponibilidade. Solicitações
     ou exames que não encontram vaga são contabilizados em `deFora`.
+    A resposta também contabiliza os motivos de exclusão (`semAceite`,
+    `comDivergencia`, `jaReservadas`) para que a simulação seja auditável:
+    `geradas + deFora + semAceite + comDivergencia + jaReservadas` fecha com
+    `solicitacoes` quando cada solicitação tem um único exame.
     A simulação respeita os filtros ativos (unidade, código de exame e
     paciente/prontuário); nunca simula todas as solicitações de uma vez.
     """
     horizonte_dias = max(1, min(int(dias), 90))
     agora = _agora()
     limite = agora + timedelta(days=horizonte_dias)
-    slots = await provider.listar(de=agora, ate=limite)
+    # Os filtros também valem para as vagas: antes só as solicitações eram
+    # filtradas e a simulação podia alocar em qualquer unidade/exame do período.
+    slots = await provider.listar(
+        de=agora,
+        ate=limite,
+        unidade=(unidade or "").strip(),
+        codigo_exame=(codigo_exame or "").strip().upper(),
+    )
     elegiveis = (
         await db.scalars(
             select(Solicitacao)
@@ -1231,12 +1242,18 @@ async def gerar_propostas(
     usadas_por_dia: dict[str, set[str]] = {}
     alocadas_por_slot: dict[str, int] = {}
     de_fora = 0
+    sem_aceite = 0
+    com_divergencia = 0
+    ja_reservadas = 0
     for solicitacao in elegiveis_filtradas:
         if solicitacao.id in reservadas:
+            ja_reservadas += 1
             continue
         if not await _tem_aceite(db, solicitacao.id):
+            sem_aceite += 1
             continue
         if await _divergencias_ativas(db, solicitacao.id):
+            com_divergencia += 1
             continue
         codigos = {
             str(item.get("codigoExame") or "").strip().upper()
@@ -1245,6 +1262,10 @@ async def gerar_propostas(
         }
         chave = solicitacao.paciente_chave or ""
         exames_para_tentar = list(codigos) if codigos else [None]
+        # Com filtro de exame ativo, só o exame filtrado é tentado: os demais
+        # códigos da mesma solicitação não são contabilizados como "sem vaga".
+        if codigo_exame_filtro:
+            exames_para_tentar = [codigo_exame_filtro]
         for codigo in exames_para_tentar:
             elegiveis_slots = [
                 slot for slot in slots
@@ -1307,6 +1328,9 @@ async def gerar_propostas(
         "solicitacoes": len(elegiveis_filtradas),
         "dias": horizonte_dias,
         "deFora": de_fora,
+        "semAceite": sem_aceite,
+        "comDivergencia": com_divergencia,
+        "jaReservadas": ja_reservadas,
         "propostas": _ordenar_fila_propostas(linhas_fila),
     }
 
