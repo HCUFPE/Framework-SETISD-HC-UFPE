@@ -130,3 +130,21 @@ class ExamePostgresProvider(ExameProviderInterface):
         result = await self.session.execute(query, {"prontuario": prontuario_int})
         rows = result.mappings().all()
         return [self._normalize_row(row) for row in rows]
+
+    async def buscar_por_nome(self, nome: str) -> List[Dict[str, Any]]:
+        """Retorna solicitações do AGHU cujo nome do paciente contém o trecho (ILIKE, mín. 3 caracteres)."""
+        trecho = " ".join((nome or "").split())
+        if len(trecho) < 3:
+            return []
+        trecho_escapado = (
+            trecho.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        )
+
+        query_string = self._prepare_parameterized_query(
+            "exames/buscar_por_nome.sql", "nome"
+        )
+        query = text(query_string)
+
+        result = await self.session.execute(query, {"nome": f"%{trecho_escapado}%"})
+        rows = result.mappings().all()
+        return [self._normalize_row(row) for row in rows]

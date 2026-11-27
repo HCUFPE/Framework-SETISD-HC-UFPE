@@ -21,3 +21,8 @@ class ExameProviderInterface(ABC):
     async def buscar_por_prontuario(self, prontuario: str) -> List[Dict[str, Any]]:
         """Deve retornar as solicitações de exames associadas a um prontuário."""
         pass
+
+    @abstractmethod
+    async def buscar_por_nome(self, nome: str) -> List[Dict[str, Any]]:
+        """Deve retornar as solicitações cujo nome do paciente contém o trecho informado (mín. 3 caracteres)."""
+        pass

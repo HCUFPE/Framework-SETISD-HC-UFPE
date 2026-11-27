@@ -1,0 +1,83 @@
+schema: spec-driven
+
+context: |
+  Language: pt-BR
+  All artifacts must be written in pt-BR.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Projeto: Sistema Interno de Gestão de Fila e Triagem de Exames do HC-UFPE (EBSERH),
+  construído sobre o Framework-SETISD-HC-UFPE. Aplicação estritamente interna da
+  Central de Marcação (sem portal de paciente, sem disparo automático de WhatsApp/SMS).
+
+  Fontes de verdade (ler antes de propor):
+  - AGENTS.md (regras obrigatórias do framework)
+  - docs/especificacao/SPEC.md (task breakdown e guardrails)
+  - docs/especificacao/02-requisitos.md (RF/RNF e blocos CARE)
+  - docs/especificacao/03-casos-uso.md, 04-modelo-dados.md, 05-interfaces.md, 06-arquitetura.md
+
+  Stack:
+  - Backend: Python 3.12+, FastAPI, Uvicorn, Pydantic, async/await, type hints e docstrings
+  - Banco local: SQLite (data/app.db) + SQLAlchemy 2.0 + Alembic
+  - AGHU: somente leitura via Provider + Strategy (CSV em dev, PostgreSQL em produção),
+    usando ExameProviderInterface e get_exame_provider() em src/dependencies.py
+  - Frontend: Vue 3 (Composition API), TypeScript, Vite, Pinia, Tailwind, Axios
+  - Testes: pytest, pytest-asyncio, httpx em tests/
+
+  Arquitetura (fluxo unidirecional):
+  SQL Template (src/providers/sql/) -> Resource -> Provider -> Controller (src/controllers/) -> Router (src/routers/)
+  - Nada de SQL ou regra de negócio dentro de routers.
+  - SQL nativo só para o AGHU; SQLAlchemy só para o SQLite local.
+
+  Domínio:
+  - Paciente identificado por prontuario + codigo_solicitacao (nunca CPF como chave).
+  - Alias do AGHU/CSV: data_solicitao (sem "c"), normalizado para data_solicitacao.
+  - status_higienizacao: VALIDA | DUPLICADA | DIVERGENCIA_EXAME | NAO_ENCONTRADA | JA_REALIZADA
+  - status_operacional: NA_FILA -> AGUARDANDO_CONFIRMACAO_24H -> CONFIRMADO_AGENDADO_AGHU
+    ou SEM_RESPOSTA_24H / CANCELADO. Ao entrar em AGUARDANDO_CONFIRMACAO_24H preencher
+    contato_iniciado_em e prazo_confirmacao_em = contato_iniciado_em + 24h.
+  - regiao_geografica: CAPITAL | RMR | INTERIOR | NAO_INFORMADO (+ utiliza_tfd).
+  - Tabelas configuráveis: regras_prioridade, regras_exames, incompatibilidades_exames.
+  - Perfis RBAC: ADMINISTRADOR, GESTOR_CENTRAL, MARCADOR, CONSULTA.
+
+  Guardrails obrigatórios:
+  - Routers de domínio com dependencies=[Depends(auth_handler.decode_token)] (Default-Private).
+  - Pesos, preparos, janelas de retorno e incompatibilidades SEMPRE lidos do SQLite (seed inicial),
+    nunca hardcoded em constantes.
+  - Priorização determinística e explicável (score + motivos); filtro geográfico nunca altera o score.
+  - Toda mutação chama registrar_auditoria() (src/helpers/audit_helper.py) com dados_anteriores,
+    dados_novos, usuário, IP e categoria SEGURANCA | NEGOCIO_CLINICO | CONFIGURACAO.
+  - Proibido hard delete (usar deleted_at); audit_logs é append-only.
+  - Proibido escrever no PostgreSQL do AGHU ou alterar o ticket impresso.
+  - Erros via HTTPException no formato {"detail": "..."}.
+  - Sem hardcode de segredos (usar src/config.py e .env.example).
+  - Não alterar interceptadores Axios, middleware de Security Headers nem a autenticação base.
+  - Contrato de resposta da fila deve seguir IItemFila / IAlertaExame de 05-interfaces.md.
+
+  Convenções:
+  - snake_case em Python, camelCase em TypeScript.
+  - Commits convencionais citando a task (ex: feat(exames): ... (TASK-008)).
+  - SemVer vX.Y.Z sincronizado entre src/version.py, frontend/src/config/version.ts e git tags.
+
+rules:
+  proposal:
+    - Referenciar a(s) TASK-0XX do SPEC.md e os RF/CARE correspondentes
+    - Incluir seção de dependências com outras tasks/integrantes
+    - Incluir seção "Fora de escopo"
+  specs:
+    - Derivar cenários dos critérios de avaliação dos blocos CARE de docs/especificacao/
+    - Cada requisito com ao menos um cenário WHEN/THEN testável via pytest
+  design:
+    - Indicar arquivos por camada (sql, provider, controller, router, schema, tests)
+    - Explicar como regras configuráveis são lidas do SQLite
+  tasks:
+    - Incluir tarefas de testes pytest para cada comportamento
+    - Terminar com tarefas de rodar pytest e python audit_framework.py . (100%)
+
+operations:
+  apply:
+    guidance:
+      - Seguir o golden sample do módulo paciente e o código da Fase 1 (exame provider e models)
+      - Rodar pytest e python audit_framework.py . antes de marcar a change como concluída
+  archive:
+    guidance:
+      - Resumir o que foi entregue e quais tasks do SPEC.md podem ser marcadas
